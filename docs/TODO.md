@@ -40,8 +40,10 @@
 - [ ] PSA population display — Higher / Same / Lower table, monospace numbers, only show if PSA/PSA-DNA cert exists
 
 ### Contact (`/contact`)
-- [ ] `<Contact>` page — simple form (name, email, message)
-- [ ] Decide and implement: mailto or Formspree
+- [x] `<Contact>` page — simple form (name, email, phone, message)
+- [ ] Decide and implement submission method (Supabase insert → Edge Function email, or Formspree)
+- [ ] Replace placeholder email + phone in Footer and Contact page with real client details
+- [ ] Prompt injection protection — sanitise all form fields before submission (strip HTML tags, limit length, reject suspicious patterns)
 
 ## 6. Admin Panel
 
