@@ -50,12 +50,17 @@
 
 ## 6. Admin Panel
 
-### Dashboard (`/admin/dashboard`)
+### Dashboard (`/admin/dashboard`) — Overview
 - [x] `<AdminLayout>` — sidebar nav (Overview, Table View, Sign Out) + sticky top bar with Add New Asset CTA
-- [x] `<Dashboard>` page — total item count, total acquisition cost, recent inventory feed table
+- [x] Stats cards — total item count, total acquisition cost
+- [ ] Rebuild inventory feed into a full item grid — shows ALL items with photo + minimal info (title, grade, for-sale status)
+- [ ] Search bar + tag filter to narrow the grid
+- [ ] Each card links to the item editor
 
-### Item List (`/admin/items`)
-- [ ] `<ItemList>` page — full analytical table view of collection (all fields visible, sortable)
+### Item List (`/admin/items`) — Table View
+- [ ] `<ItemList>` page — raw data table, NO images, ALL fields visible (title, acquisition cost, price, for_sale, game_date, grade, cert_id, cert_service, condition, notes, created_at)
+- [ ] Sortable columns
+- [ ] Search/filter bar
 
 ### Item Editor (`/admin/items/new` + `/admin/items/:id`)
 - [ ] `<CertForm>` — add/edit certifications per item

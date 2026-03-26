@@ -25,10 +25,9 @@ A private baseball memorabilia collection showcase website for a single client. 
 
 - Gallery viewing for outside users.
 - Inquiry via simplt contact form sent to an email
-- Admin dashboard only accessable via Clerk's auth for the website owner. 
-    - Dashboard will have an overview of all items and statistics like Total costs of collection and Market Value
-        -Market Value will be a feature that comes in later as we will need to figure out a way to calculate market value through scraping.
-    - table view. A more analystical table to view all of the collection through as if it were a google sheet.
+- Admin dashboard only accessable via Clerk's auth for the website owner.
+    - **Overview (`/admin/dashboard`)** — stats cards (total items, total cost) + a filterable/searchable grid of ALL items showing photo + minimal info (title, grade, for-sale status). Each card links to the item editor. Market value stat is a future feature (requires scraping).
+    - **Table View (`/admin/items`)** — no images, shows every field as raw data (title, acquisition cost, price, for_sale, game_date, grade, cert_id, cert_service, condition, notes, created_at). Think spreadsheet. Sortable columns, search/filter bar.
 
 `mintd` is a high-end memorabilia collector app. Design system: see `docs/DESIGN.md`.
 
