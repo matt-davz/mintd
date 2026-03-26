@@ -93,7 +93,7 @@ Page mockups (HTML reference): `docs/PageExaples/`
 - `item_viewer/` — item detail page (`/item/:id`)
 - `admin_dashboard_updated_icon/` — admin dashboard (`/admin/dashboard`)
 
-Styling: **styled-components only** — no Tailwind, no CSS modules. CSS custom properties (design tokens) are defined in `src/index.css`.
+Styling: **styled-components only** — no Tailwind, no CSS modules. Design tokens (CSS custom properties) and global styles are defined in `src/styles/GlobalStyles.js` via `createGlobalStyle`. All components reference tokens via `var(--color-*)`, `var(--font-*)`, `var(--space-*)` etc.
 
 Design direction:
 - Dark luxury aesthetic — deep blacks, electric blue (`#adc6ff`) accent

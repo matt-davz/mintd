@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ClerkProvider } from '@clerk/react'
-import './index.css'
+import GlobalStyles from './styles/GlobalStyles'
 
 import Gallery from './pages/public/Gallery'
 import ItemDetail from './pages/public/ItemDetail'
@@ -18,6 +18,7 @@ import { Layout } from './components/layout/Layout'
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ClerkProvider afterSignOutUrl="/">
+      <GlobalStyles />
       <BrowserRouter>
         <Routes>
           {/* Public routes */}
