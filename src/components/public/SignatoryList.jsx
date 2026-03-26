@@ -19,6 +19,7 @@ const Name = styled.div`
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  width: 100%;
   font-family: var(--font-headline);
   font-size: 1rem;
   font-weight: 600;
@@ -29,6 +30,7 @@ const Name = styled.div`
   .material-symbols-outlined {
     font-size: 0.875rem;
     color: var(--color-secondary-fixed);
+    flex-shrink: 0;
   }
 `
 
