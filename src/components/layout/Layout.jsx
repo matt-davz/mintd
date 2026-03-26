@@ -5,6 +5,7 @@ import { Footer } from './Footer'
 
 const Main = styled.main`
   padding-top: 5rem; /* offset for fixed header */
+  min-height: 10rem;
   flex: 1;
 `
 
