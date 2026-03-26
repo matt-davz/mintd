@@ -40,6 +40,7 @@
 - [x] `<ItemDetail>` page — full item view, PSA population table (from `latest_population`), signatory list
 - [x] PSA population display — Higher / Same / Lower table, monospace numbers, only show if PSA/PSA-DNA cert exists
 - [ ] Add pagination / gallery card grade badge — requires adding cert fields to `item_cards` view
+- [ ] `item_cards` view cert data relies on a lateral join added in migration 0002 — verify it works correctly with real data and edge cases (items with no cert, multiple certs)
 - Note: each signatory must be a separate row in the `signatories` table — do not store multiple names as a single comma-separated string
 
 ### Contact (`/contact`)
@@ -58,9 +59,9 @@
 - [ ] Each card links to the item editor
 
 ### Item List (`/admin/items`) — Table View
-- [ ] `<ItemList>` page — raw data table, NO images, ALL fields visible (title, acquisition cost, price, for_sale, game_date, grade, cert_id, cert_service, condition, notes, created_at)
-- [ ] Sortable columns
-- [ ] Search/filter bar
+- [x] `<ItemList>` page — raw data table, NO images, ALL fields visible (title, cert, grade, cert ID, cost, ask price, for_sale, signed, acq. type, game date, purchase date, location, notes, added)
+- [x] Sortable columns (click header to toggle asc/desc)
+- [x] Search bar (searches title, cert ID, location, notes)
 
 ### Item Editor (`/admin/items/new` + `/admin/items/:id`)
 - [ ] `<CertForm>` — add/edit certifications per item
