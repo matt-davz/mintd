@@ -407,8 +407,10 @@ export default function ItemDetail() {
   const firstPsaCert = psaCerts[0]
   const pop = firstPsaCert ? population.find(p => p.cert_id === firstPsaCert.id) : null
 
-  const gradeLabel = firstPsaCert
-    ? `${firstPsaCert.cert_service} ${firstPsaCert.item_grade ?? firstPsaCert.auto_grade ?? ''}`.trim()
+  // Badge shows for any cert with a known service
+  const badgeCert = certifications.find(c => c.cert_service && c.cert_service.toLowerCase() !== 'unknown')
+  const gradeLabel = badgeCert
+    ? `${badgeCert.cert_service} ${badgeCert.item_grade ?? badgeCert.auto_grade ?? ''}`.trim()
     : null
 
   const related = allItems.filter(i => i.id !== id).slice(0, 3)
