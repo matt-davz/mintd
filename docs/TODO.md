@@ -29,10 +29,11 @@
 ## 5. Public Site
 
 ### Gallery (`/`)
-- [ ] `useItems` hook — queries `item_cards` view, filters `is_visible = true` + `is_baseball = true`
-- [ ] `<FilterBar>` — filter by tag
-- [ ] `<ItemCard>` — image (Cloudinary), name, grade badge (muted gold), cert ID (monospace), multi-signer display rule
-- [ ] `<Gallery>` page — grid layout, filter bar, item cards
+- [x] `useItems` hook — queries `item_cards` view, supports tag filter + search
+- [x] `useTags` hook — fetches all tags
+- [x] `<FilterBar>` — item_type tag pills + search input
+- [x] `<ItemCard>` — image, for-sale badge, grade badge (muted gold), title, featured signer with multi-signer "+N others" rule, cert ID, price
+- [x] `<Gallery>` page — hero heading, filter bar, responsive 1-2-3-4 col grid
 
 ### Item Detail (`/item/:id`)
 - [ ] `useItem` hook — fetches single item with signatories, certs, images
