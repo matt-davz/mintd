@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { ClerkProvider } from '@clerk/clerk-react'
+import { ClerkProvider } from '@clerk/react'
 import './index.css'
 
 import Gallery from './pages/public/Gallery'
@@ -14,11 +14,9 @@ import ItemEditor from './pages/admin/ItemEditor'
 import PsaSync from './pages/admin/PsaSync'
 import { AdminGuard } from './components/admin/AdminGuard'
 
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ClerkProvider publishableKey={clerkPubKey}>
+    <ClerkProvider afterSignOutUrl="/">
       <BrowserRouter>
         <Routes>
           {/* Public routes */}

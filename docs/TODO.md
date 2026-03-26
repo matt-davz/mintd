@@ -15,9 +15,9 @@
 - [x] Seed pre-defined tags (item type, attribute, era tags from CLAUDE.md)
 
 ## 3. Auth (Clerk)
-- [ ] Add Clerk provider to `main.jsx`
-- [ ] Build `<AdminGuard>` component — redirects to Clerk login if not signed in
-- [ ] Wrap all `/admin/*` routes with `<AdminGuard>`
+- [x] Add Clerk provider to `main.jsx`
+- [x] Build `<AdminGuard>` component — redirects to Clerk login if not signed in
+- [x] Wrap all `/admin/*` routes with `<AdminGuard>`
 - [ ] Configure `src/lib/supabase-admin.js` (service role client — admin Edge Functions only)
 
 ## 4. Public Site
