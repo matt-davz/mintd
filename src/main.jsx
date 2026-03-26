@@ -13,6 +13,7 @@ import ItemList from './pages/admin/ItemList'
 import ItemEditor from './pages/admin/ItemEditor'
 import PsaSync from './pages/admin/PsaSync'
 import { AdminGuard } from './components/admin/AdminGuard'
+import { Layout } from './components/layout/Layout'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -20,9 +21,11 @@ createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<Gallery />} />
-          <Route path="/item/:id" element={<ItemDetail />} />
-          <Route path="/contact" element={<Contact />} />
+          <Route element={<Layout />}>
+            <Route path="/" element={<Gallery />} />
+            <Route path="/item/:id" element={<ItemDetail />} />
+            <Route path="/contact" element={<Contact />} />
+          </Route>
 
           {/* Admin routes — all protected by AdminGuard */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
