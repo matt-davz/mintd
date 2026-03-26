@@ -20,7 +20,13 @@
 - [x] Wrap all `/admin/*` routes with `<AdminGuard>`
 - [ ] Configure `src/lib/supabase-admin.js` (service role client — admin Edge Functions only)
 
-## 4. Public Site
+## 4. Supabase Connection Test
+- [x] Add real values to `.env.local`
+- [x] Build a temporary test page at `/test` that queries the `tags` table and renders the results
+- [x] Verify data returns correctly in the browser
+- [x] Remove the test page once confirmed working
+
+## 5. Public Site
 
 ### Gallery (`/`)
 - [ ] `useItems` hook — queries `item_cards` view, filters `is_visible = true` + `is_baseball = true`
@@ -37,7 +43,7 @@
 - [ ] `<Contact>` page — simple form (name, email, message)
 - [ ] Decide and implement: mailto or Formspree
 
-## 5. Admin Panel
+## 6. Admin Panel
 
 ### Dashboard (`/admin/dashboard`)
 - [ ] `<Dashboard>` page — total item count, total acquisition cost, market value placeholder
@@ -54,11 +60,11 @@
 ### PSA Sync (`/admin/psa-sync`)
 - [ ] `<PsaSync>` page — trigger manual PSA population refresh, show last sync time and result
 
-## 6. Edge Functions (Supabase)
+## 7. Edge Functions (Supabase)
 - [ ] `supabase/functions/psa-sync` — fetch PSA pop data for all PSA/PSA-DNA certs, insert `population_snapshots` rows
 - [ ] Configure `pg_cron` to call `psa-sync` weekly (Mondays 9am UTC)
 
-## 7. Deployment
+## 8. Deployment
 - [ ] Connect repo to Netlify
 - [ ] Set env vars in Netlify dashboard
 - [ ] Configure Netlify redirects for SPA routing (`/* → /index.html`)
