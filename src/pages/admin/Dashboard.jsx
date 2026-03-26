@@ -88,26 +88,44 @@ const StatSub = styled.div`
   .material-symbols-outlined { font-size: 1rem; }
 `
 
-// ─── Filter bar ───────────────────────────────────────────────────────────────
+// ─── Table section ────────────────────────────────────────────────────────────
 
-const Controls = styled.div`
+const TableSection = styled.section`
+  background-color: var(--color-surface-low);
+  border: 1px solid rgba(140, 144, 159, 0.15);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+`
+
+const TableHeader = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-6);
+  padding: var(--space-5) var(--space-8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+`
+
+const TableTitle = styled.h2`
+  font-family: var(--font-headline);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-on-surface);
+  margin-right: auto;
 `
 
 const SearchInput = styled.input`
-  background-color: var(--color-surface-low);
+  background-color: var(--color-surface-high);
   border: 1px solid rgba(140, 144, 159, 0.15);
   border-radius: var(--radius-md);
   color: var(--color-on-surface);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.05em;
-  padding: var(--space-2) var(--space-4);
-  width: 16rem;
+  padding: var(--space-2) var(--space-3);
+  width: 14rem;
   transition: border-color var(--transition-base);
 
   &::placeholder { color: var(--color-outline); }
@@ -125,7 +143,7 @@ const TagPills = styled.div`
 
 const TagPill = styled.button`
   font-family: var(--font-mono);
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   padding: var(--space-1) var(--space-3);
@@ -141,129 +159,152 @@ const TagPill = styled.button`
   }
 `
 
-const ResultsMeta = styled.p`
-  font-family: var(--font-mono);
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`
+
+const Th = styled.th`
+  padding: var(--space-4) var(--space-8);
+  font-family: var(--font-headline);
   font-size: 0.625rem;
+  font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--color-outline);
-  margin-bottom: var(--space-4);
+  color: rgba(229, 226, 225, 0.3);
+  text-align: ${({ $right }) => $right ? 'right' : 'left'};
+  background-color: rgba(255, 255, 255, 0.02);
 `
 
-// ─── Item grid ────────────────────────────────────────────────────────────────
+const Tr = styled.tr`
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background-color var(--transition-base);
 
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  &:last-child { border-bottom: none; }
+  &:hover { background-color: rgba(255, 255, 255, 0.02); }
+`
+
+const Td = styled.td`
+  padding: var(--space-5) var(--space-8);
+  text-align: ${({ $right }) => $right ? 'right' : 'left'};
+`
+
+const AssetCell = styled.div`
+  display: flex;
+  align-items: center;
   gap: var(--space-4);
-
-  @media (min-width: 768px)  { grid-template-columns: repeat(3, 1fr); }
-  @media (min-width: 1280px) { grid-template-columns: repeat(4, 1fr); }
-  @media (min-width: 1536px) { grid-template-columns: repeat(5, 1fr); }
 `
 
-const ItemCard = styled(Link)`
-  display: block;
-  background-color: var(--color-surface-low);
-  border: 1px solid rgba(140, 144, 159, 0.15);
-  border-radius: var(--radius-lg);
+const Thumb = styled.div`
+  width: 3rem;
+  height: 4rem;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  transition: border-color var(--transition-base), transform var(--transition-base);
-
-  &:hover {
-    border-color: rgba(173, 198, 255, 0.25);
-    transform: translateY(-2px);
-  }
-`
-
-const CardImage = styled.div`
-  aspect-ratio: 4/5;
   background-color: var(--color-surface-high);
-  overflow: hidden;
-  position: relative;
+  border: 1px solid rgba(140, 144, 159, 0.15);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     filter: grayscale(20%);
-    transition: filter var(--transition-base), transform 400ms ease;
+    transition: filter var(--transition-base);
   }
 
-  ${ItemCard}:hover & img {
-    filter: grayscale(0%);
-    transform: scale(1.03);
-  }
-`
+  ${Tr}:hover & img { filter: grayscale(0%); }
 
-const NoImage = styled.div`
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   .material-symbols-outlined {
-    font-size: 2rem;
+    font-size: 1.25rem;
     color: var(--color-surface-bright);
   }
 `
 
-const CardBody = styled.div`
-  padding: var(--space-3) var(--space-4);
-`
-
-const CardTitle = styled.p`
-  font-family: var(--font-headline);
-  font-size: 0.8125rem;
-  font-weight: 600;
+const AssetName = styled.div`
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--color-on-surface);
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  line-height: 1.3;
-  margin-bottom: var(--space-2);
-
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
 `
 
-const CardMeta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-`
-
-const GradeBadge = styled.span`
-  background-color: var(--color-secondary-container);
-  color: var(--color-secondary-fixed);
+const CategoryPill = styled.span`
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--color-surface-high);
+  color: rgba(229, 226, 225, 0.6);
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-size: 0.625rem;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  padding: 0.125rem var(--space-2);
   border-radius: var(--radius-sm);
 `
 
-const ForSaleDot = styled.span`
+const GradeBadge = styled.span`
+  display: inline-block;
+  background-color: var(--color-secondary-container);
+  color: var(--color-secondary-fixed);
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
+  font-size: 0.625rem;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-primary);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
 `
 
-const EmptyState = styled.p`
+const CertId = styled.span`
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
+  color: rgba(173, 198, 255, 0.8);
+`
+
+const Muted = styled.span`
   color: var(--color-outline);
+  font-size: 0.75rem;
+`
+
+const ActionBtn = styled(Link)`
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-high);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(229, 226, 225, 0.4);
+  transition: color var(--transition-base);
+
+  .material-symbols-outlined { font-size: 1rem; }
+  &:hover { color: var(--color-primary); }
+`
+
+const TableFooter = styled.div`
+  padding: var(--space-4) var(--space-8);
+  background-color: rgba(255, 255, 255, 0.01);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+`
+
+const FooterMeta = styled.span`
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: var(--space-16) 0;
-  text-align: center;
-  grid-column: 1 / -1;
+  color: rgba(229, 226, 225, 0.3);
+`
+
+const StatusRow = styled.tr`
+  td {
+    padding: var(--space-8);
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-outline);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
 `
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -345,53 +386,84 @@ export default function Dashboard() {
         </StatCard>
       </StatsGrid>
 
-      <Controls>
-        <SearchInput
-          type="text"
-          placeholder="Search items..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-        <TagPills>
-          <TagPill $active={!activeTag} onClick={() => setActiveTag(null)}>All</TagPill>
-          {itemTypeTags.map(t => (
-            <TagPill key={t.id} $active={activeTag === t.slug} onClick={() => setActiveTag(t.slug)}>
-              {t.name}
-            </TagPill>
-          ))}
-        </TagPills>
-      </Controls>
+      <TableSection>
+        <TableHeader>
+          <TableTitle>Active Inventory</TableTitle>
+          <SearchInput
+            type="text"
+            placeholder="Search items..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <TagPills>
+            <TagPill $active={!activeTag} onClick={() => setActiveTag(null)}>All</TagPill>
+            {itemTypeTags.map(t => (
+              <TagPill key={t.id} $active={activeTag === t.slug} onClick={() => setActiveTag(t.slug)}>
+                {t.name}
+              </TagPill>
+            ))}
+          </TagPills>
+        </TableHeader>
 
-      {!itemsLoading && (
-        <ResultsMeta>{filtered.length} {filtered.length === 1 ? 'item' : 'items'}</ResultsMeta>
-      )}
+        <Table>
+          <thead>
+            <tr>
+              <Th>Asset</Th>
+              <Th>Category</Th>
+              <Th>Grade</Th>
+              <Th>Certification ID</Th>
+              <Th $right>Actions</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {itemsLoading ? (
+              <StatusRow><td colSpan={5}>Loading...</td></StatusRow>
+            ) : filtered.length === 0 ? (
+              <StatusRow><td colSpan={5}>No items found.</td></StatusRow>
+            ) : filtered.map(item => (
+              <Tr key={item.id}>
+                <Td>
+                  <AssetCell>
+                    <Thumb>
+                      {item.primary_image_url
+                        ? <img src={item.primary_image_url} alt={item.title} />
+                        : <span className="material-symbols-outlined">image</span>}
+                    </Thumb>
+                    <AssetName>{item.title}</AssetName>
+                  </AssetCell>
+                </Td>
+                <Td>
+                  {item.tag_slugs?.[0]
+                    ? <CategoryPill>{item.tag_slugs[0].replace(/-/g, ' ')}</CategoryPill>
+                    : <Muted>—</Muted>}
+                </Td>
+                <Td>
+                  {item.cert_grade
+                    ? <GradeBadge>{item.cert_service ? `${item.cert_service} ` : ''}{item.cert_grade}</GradeBadge>
+                    : <Muted>—</Muted>}
+                </Td>
+                <Td>
+                  {item.cert_id ? <CertId>#{item.cert_id}</CertId> : <Muted>—</Muted>}
+                </Td>
+                <Td $right>
+                  <ActionBtn to={`/admin/items/${item.id}`}>
+                    <span className="material-symbols-outlined">edit</span>
+                  </ActionBtn>
+                </Td>
+              </Tr>
+            ))}
+          </tbody>
+        </Table>
 
-      <Grid>
-        {itemsLoading ? (
-          <EmptyState>Loading...</EmptyState>
-        ) : filtered.length === 0 ? (
-          <EmptyState>No items found.</EmptyState>
-        ) : filtered.map(item => (
-          <ItemCard key={item.id} to={`/admin/items/${item.id}`}>
-            <CardImage>
-              {item.primary_image_url
-                ? <img src={item.primary_image_url} alt={item.title} />
-                : <NoImage><span className="material-symbols-outlined">image</span></NoImage>}
-            </CardImage>
-            <CardBody>
-              <CardTitle>{item.title}</CardTitle>
-              <CardMeta>
-                {item.cert_grade && (
-                  <GradeBadge>
-                    {item.cert_service ? `${item.cert_service} ` : ''}{item.cert_grade}
-                  </GradeBadge>
-                )}
-                {item.for_sale && <ForSaleDot>For Sale</ForSaleDot>}
-              </CardMeta>
-            </CardBody>
-          </ItemCard>
-        ))}
-      </Grid>
+        {!itemsLoading && (
+          <TableFooter>
+            <FooterMeta>
+              {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
+              {filtered.length !== items.length && ` (filtered from ${items.length})`}
+            </FooterMeta>
+          </TableFooter>
+        )}
+      </TableSection>
     </>
   )
 }
