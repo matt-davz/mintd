@@ -51,7 +51,13 @@ export default function Gallery() {
   const [activeTag, setActiveTag] = useState(null)
   const [search, setSearch] = useState('')
 
-  const { items, loading, error } = useItems({ tagSlug: activeTag, search })
+  const { items, loading, error } = useItems()
+
+  const filtered = items.filter(item => {
+    const matchesTag = !activeTag || (item.tag_slugs ?? []).includes(activeTag)
+    const matchesSearch = !search.trim() || item.title.toLowerCase().includes(search.trim().toLowerCase())
+    return matchesTag && matchesSearch
+  })
 
   return (
     <Page>
@@ -70,12 +76,12 @@ export default function Gallery() {
       {!error && (
         <>
           <Grid>
-            {items.map(item => (
+            {filtered.map(item => (
               <ItemCard key={item.id} item={item} />
             ))}
           </Grid>
 
-          {!loading && items.length === 0 && (
+          {!loading && filtered.length === 0 && (
             <StatusText>No items found.</StatusText>
           )}
 

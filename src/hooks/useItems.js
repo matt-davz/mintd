@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-export function useItems({ tagSlug = null, search = '' } = {}) {
+export function useItems() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -13,17 +13,10 @@ export function useItems({ tagSlug = null, search = '' } = {}) {
       setLoading(true)
       setError(null)
 
-      let query = supabase.from('item_cards').select()
-
-      if (tagSlug) {
-        query = query.contains('tag_slugs', [tagSlug])
-      }
-
-      if (search.trim()) {
-        query = query.ilike('title', `%${search.trim()}%`)
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false })
+      const { data, error } = await supabase
+        .from('item_cards')
+        .select()
+        .order('created_at', { ascending: false })
 
       if (cancelled) return
       if (error) setError(error.message)
@@ -33,7 +26,7 @@ export function useItems({ tagSlug = null, search = '' } = {}) {
 
     fetch()
     return () => { cancelled = true }
-  }, [tagSlug, search])
+  }, [])
 
   return { items, loading, error }
 }
