@@ -9,10 +9,10 @@
 - [x] Set up React Router in `src/main.jsx` with public + admin route structure
 
 ## 2. Database (Supabase)
-- [ ] Create tables: `items`, `signatories`, `certifications`, `population_snapshots`, `tags`, `item_tags`, `sets`, `images`
-- [ ] Create views: `item_cards`, `latest_population`
-- [ ] Configure RLS on all tables
-- [ ] Seed pre-defined tags (item type, attribute, era tags from CLAUDE.md)
+- [x] Create tables: `items`, `signatories`, `certifications`, `population_snapshots`, `tags`, `item_tags`, `sets`, `images`
+- [x] Create views: `item_cards`, `latest_population`
+- [x] Configure RLS on all tables
+- [x] Seed pre-defined tags (item type, attribute, era tags from CLAUDE.md)
 
 ## 3. Auth (Clerk)
 - [ ] Add Clerk provider to `main.jsx`

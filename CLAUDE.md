@@ -133,7 +133,7 @@ Never commit `.env.local`. Never expose service role key or Clerk secret key in 
 - No Prisma or other ORM — Supabase JS client only
 - No Redux — React Query or plain hooks for data fetching
 - No separate backend server — Supabase Edge Functions only
-- No `inquiries` table — contact form sends email directly, not stored in DB
+- Inquiries ARE stored in the `inquiries` table AND emailed via Edge Function
 
 ## Code style preferences
 
