@@ -13,6 +13,7 @@ import ItemList from './pages/admin/ItemList'
 import ItemEditor from './pages/admin/ItemEditor'
 import PsaSync from './pages/admin/PsaSync'
 import { AdminGuard } from './components/admin/AdminGuard'
+import { AdminLayout } from './components/admin/AdminLayout'
 import { Layout } from './components/layout/Layout'
 import NotFound from './pages/NotFound'
 
@@ -32,14 +33,16 @@ createRoot(document.getElementById('root')).render(
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
 
-          {/* Admin routes — all protected by AdminGuard */}
+          {/* Admin routes — all protected by AdminGuard, all wrapped in AdminLayout */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/*" element={<AdminGuard />}>
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="items" element={<ItemList />} />
-            <Route path="items/new" element={<ItemEditor />} />
-            <Route path="items/:id" element={<ItemEditor />} />
-            <Route path="psa-sync" element={<PsaSync />} />
+            <Route element={<AdminLayout />}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="items" element={<ItemList />} />
+              <Route path="items/new" element={<ItemEditor />} />
+              <Route path="items/:id" element={<ItemEditor />} />
+              <Route path="psa-sync" element={<PsaSync />} />
+            </Route>
           </Route>
         </Routes>
       </BrowserRouter>

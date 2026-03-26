@@ -36,9 +36,11 @@
 - [x] `<Gallery>` page — hero heading, filter bar, responsive 1-2-3-4 col grid
 
 ### Item Detail (`/item/:id`)
-- [ ] `useItem` hook — fetches single item with signatories, certs, images
-- [ ] `<ItemDetail>` page — full item view, PSA population table (from `latest_population`), signatory list
-- [ ] PSA population display — Higher / Same / Lower table, monospace numbers, only show if PSA/PSA-DNA cert exists
+- [x] `useItem` hook — fetches single item with signatories, certs, images
+- [x] `<ItemDetail>` page — full item view, PSA population table (from `latest_population`), signatory list
+- [x] PSA population display — Higher / Same / Lower table, monospace numbers, only show if PSA/PSA-DNA cert exists
+- [ ] Add pagination / gallery card grade badge — requires adding cert fields to `item_cards` view
+- Note: each signatory must be a separate row in the `signatories` table — do not store multiple names as a single comma-separated string
 
 ### Contact (`/contact`)
 - [x] `<Contact>` page — simple form (name, email, phone, message)
@@ -49,7 +51,8 @@
 ## 6. Admin Panel
 
 ### Dashboard (`/admin/dashboard`)
-- [ ] `<Dashboard>` page — total item count, total acquisition cost, market value placeholder
+- [x] `<AdminLayout>` — sidebar nav (Overview, Table View, Sign Out) + sticky top bar with Add New Asset CTA
+- [x] `<Dashboard>` page — total item count, total acquisition cost, recent inventory feed table
 
 ### Item List (`/admin/items`)
 - [ ] `<ItemList>` page — full analytical table view of collection (all fields visible, sortable)
