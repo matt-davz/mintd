@@ -1,12 +1,12 @@
-import { useAuth } from '@clerk/react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { useAuth, RedirectToSignIn } from '@clerk/react'
+import { Outlet } from 'react-router-dom'
 
 export function AdminGuard() {
   const { isLoaded, isSignedIn } = useAuth()
 
   if (!isLoaded) return null
 
-  if (!isSignedIn) return <Navigate to="/sign-in" replace />
+  if (!isSignedIn) return <RedirectToSignIn />
 
   return <Outlet />
 }
