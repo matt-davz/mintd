@@ -188,8 +188,7 @@ export function Footer() {
           <div>
             <Heading>Have Questions?<br />Inquire Now.</Heading>
             <SubText>
-              Our team of expert curators is available for private consultations
-              regarding asset provenance, acquisition strategies, and portfolio management.
+              Contact us for any inquires, that be to acquire memorbillia or if you think you have a piece that would fit with this collection as we are looking to expand our collection.
             </SubText>
             <ContactItem>
               <span className="material-symbols-outlined">mail</span>

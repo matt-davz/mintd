@@ -14,6 +14,7 @@ import ItemEditor from './pages/admin/ItemEditor'
 import PsaSync from './pages/admin/PsaSync'
 import { AdminGuard } from './components/admin/AdminGuard'
 import { Layout } from './components/layout/Layout'
+import NotFound from './pages/NotFound'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -27,6 +28,9 @@ createRoot(document.getElementById('root')).render(
             <Route path="/item/:id" element={<ItemDetail />} />
             <Route path="/contact" element={<Contact />} />
           </Route>
+
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
 
           {/* Admin routes — all protected by AdminGuard */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
