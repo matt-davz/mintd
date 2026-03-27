@@ -6,8 +6,9 @@ import { useClerk } from '@clerk/react'
 const EXPANDED_W = '16rem'
 const COLLAPSED_W = '4rem'
 
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
 const Sidebar = styled.aside`
-  width: ${({ $collapsed }) => $collapsed ? COLLAPSED_W : EXPANDED_W};
   height: 100vh;
   position: fixed;
   left: 0;
@@ -15,11 +16,34 @@ const Sidebar = styled.aside`
   background-color: var(--color-surface-lowest);
   display: flex;
   flex-direction: column;
-  padding: var(--space-4) var(--space-2);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   z-index: 50;
-  transition: width 250ms ease;
   overflow: hidden;
+
+  /* Desktop: shrink to icon strip when collapsed */
+  width: ${({ $collapsed }) => $collapsed ? COLLAPSED_W : EXPANDED_W};
+  padding: var(--space-4) var(--space-2);
+  transition: width 250ms ease;
+
+  /* Mobile: slide off-screen when collapsed, overlay when open */
+  @media (max-width: 768px) {
+    width: ${EXPANDED_W};
+    transform: ${({ $collapsed }) => $collapsed ? 'translateX(-100%)' : 'translateX(0)'};
+    transition: transform 250ms ease;
+    box-shadow: ${({ $collapsed }) => $collapsed ? 'none' : '0 0 40px rgba(0,0,0,0.6)'};
+  }
+`
+
+const Backdrop = styled.div`
+  display: none;
+
+  @media (max-width: 768px) {
+    display: ${({ $visible }) => $visible ? 'block' : 'none'};
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 49;
+  }
 `
 
 const SidebarTop = styled.div`
@@ -28,6 +52,11 @@ const SidebarTop = styled.div`
   justify-content: ${({ $collapsed }) => $collapsed ? 'center' : 'space-between'};
   padding: var(--space-2) ${({ $collapsed }) => $collapsed ? 0 : 'var(--space-2)'};
   margin-bottom: var(--space-6);
+
+  @media (max-width: 768px) {
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-2);
+  }
 `
 
 const Logo = styled.div`
@@ -40,6 +69,11 @@ const Logo = styled.div`
   opacity: ${({ $collapsed }) => $collapsed ? 0 : 1};
   width: ${({ $collapsed }) => $collapsed ? 0 : 'auto'};
   transition: opacity 200ms ease, width 200ms ease;
+
+  @media (max-width: 768px) {
+    opacity: 1;
+    width: auto;
+  }
 `
 
 const ToggleBtn = styled.button`
@@ -74,6 +108,8 @@ const NavSection = styled.p`
   overflow: hidden;
   opacity: ${({ $collapsed }) => $collapsed ? 0 : 1};
   transition: opacity 150ms ease;
+
+  @media (max-width: 768px) { opacity: 1; }
 `
 
 const Nav = styled.nav`
@@ -99,7 +135,6 @@ const NavItem = styled(NavLink)`
   transition: background-color var(--transition-base), color var(--transition-base), border-color var(--transition-base);
   white-space: nowrap;
   overflow: hidden;
-  title: ${({ $label }) => $label};
 
   .material-symbols-outlined {
     font-size: 1.25rem;
@@ -116,6 +151,8 @@ const NavItem = styled(NavLink)`
     background-color: var(--color-surface-low);
     border-right-color: var(--color-primary);
   }
+
+  @media (max-width: 768px) { justify-content: flex-start; }
 `
 
 const NavLabel = styled.span`
@@ -123,6 +160,11 @@ const NavLabel = styled.span`
   width: ${({ $collapsed }) => $collapsed ? 0 : 'auto'};
   overflow: hidden;
   transition: opacity 150ms ease, width 200ms ease;
+
+  @media (max-width: 768px) {
+    opacity: 1;
+    width: auto;
+  }
 `
 
 const SidebarBottom = styled.div`
@@ -158,7 +200,11 @@ const SignOutBtn = styled.button`
     color: var(--color-on-surface);
     background-color: var(--color-surface-low);
   }
+
+  @media (max-width: 768px) { justify-content: flex-start; }
 `
+
+// ─── Main area ────────────────────────────────────────────────────────────────
 
 const MainCanvas = styled.div`
   margin-left: ${({ $collapsed }) => $collapsed ? COLLAPSED_W : EXPANDED_W};
@@ -168,18 +214,47 @@ const MainCanvas = styled.div`
   background-color: var(--color-background);
   flex: 1;
   transition: margin-left 250ms ease;
+
+  @media (max-width: 768px) {
+    margin-left: 0;
+    transition: none;
+  }
 `
 
 const TopBar = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-3) var(--space-8);
+  padding: var(--space-3) var(--space-4);
   background-color: var(--color-background);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   position: sticky;
   top: 0;
   z-index: 40;
+  gap: var(--space-3);
+`
+
+const MobileMenuBtn = styled.button`
+  display: none;
+
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-md);
+    color: var(--color-outline);
+    flex-shrink: 0;
+    transition: background-color var(--transition-base), color var(--transition-base);
+
+    .material-symbols-outlined { font-size: 1.25rem; }
+
+    &:hover {
+      background-color: var(--color-surface-low);
+      color: var(--color-on-surface);
+    }
+  }
 `
 
 const VaultLabel = styled.div`
@@ -189,6 +264,7 @@ const VaultLabel = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-primary);
+  flex: 1;
 `
 
 const AddBtn = styled(Link)`
@@ -199,9 +275,10 @@ const AddBtn = styled(Link)`
   font-size: 0.625rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  padding: var(--space-2) var(--space-6);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   transition: opacity var(--transition-base);
+  white-space: nowrap;
 
   &:hover { opacity: 0.9; }
   &:active { transform: scale(0.97); }
@@ -209,22 +286,32 @@ const AddBtn = styled(Link)`
 
 const Content = styled.div`
   flex: 1;
-  padding: var(--space-10);
-  max-width: 90rem;
+  padding: var(--space-6) var(--space-4);
   width: 100%;
-  margin: 0 auto;
+
+  @media (min-width: 769px) {
+    padding: var(--space-10);
+  }
 `
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function AdminLayout() {
   const { signOut } = useClerk()
   const [collapsed, setCollapsed] = useState(false)
 
+  function closeMobile() {
+    if (window.innerWidth <= 768) setCollapsed(true)
+  }
+
   return (
     <>
+      <Backdrop $visible={!collapsed} onClick={() => setCollapsed(true)} />
+
       <Sidebar $collapsed={collapsed}>
         <SidebarTop $collapsed={collapsed}>
           <Logo $collapsed={collapsed}>Mintd Vault</Logo>
-          <ToggleBtn onClick={() => setCollapsed(c => !c)} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+          <ToggleBtn onClick={() => setCollapsed(c => !c)} title={collapsed ? 'Expand' : 'Collapse'}>
             <span className="material-symbols-outlined">
               {collapsed ? 'menu' : 'menu_open'}
             </span>
@@ -233,11 +320,11 @@ export function AdminLayout() {
 
         <NavSection $collapsed={collapsed}>Management Suite</NavSection>
         <Nav>
-          <NavItem to="/admin/dashboard" $collapsed={collapsed} title="Overview">
+          <NavItem to="/admin/dashboard" $collapsed={collapsed} title="Overview" onClick={closeMobile}>
             <span className="material-symbols-outlined">dashboard</span>
             <NavLabel $collapsed={collapsed}>Overview</NavLabel>
           </NavItem>
-          <NavItem to="/admin/items" $collapsed={collapsed} title="Table View">
+          <NavItem to="/admin/items" $collapsed={collapsed} title="Table View" onClick={closeMobile}>
             <span className="material-symbols-outlined">table_view</span>
             <NavLabel $collapsed={collapsed}>Table View</NavLabel>
           </NavItem>
@@ -253,6 +340,9 @@ export function AdminLayout() {
 
       <MainCanvas $collapsed={collapsed}>
         <TopBar>
+          <MobileMenuBtn onClick={() => setCollapsed(false)}>
+            <span className="material-symbols-outlined">menu</span>
+          </MobileMenuBtn>
           <VaultLabel>Vault Admin</VaultLabel>
           <AddBtn to="/admin/items/new">Add New Asset</AddBtn>
         </TopBar>
