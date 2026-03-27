@@ -75,7 +75,7 @@ const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
   white-space: nowrap;
-  min-width: 1200px;
+  min-width: 3200px;
 `
 
 const Th = styled.th`
@@ -191,21 +191,45 @@ const StatusRow = styled.tr`
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const COLUMNS = [
-  { key: 'title',           label: 'Title',          sortable: true  },
-  { key: 'cert_service',    label: 'Cert',           sortable: true  },
-  { key: 'cert_grade',      label: 'Grade',          sortable: true  },
-  { key: 'cert_id',         label: 'Cert ID',        sortable: false },
-  { key: 'item_total',      label: 'Cost',           sortable: true  },
-  { key: 'price',           label: 'Ask Price',      sortable: true  },
-  { key: 'for_sale',        label: 'For Sale',       sortable: true  },
-  { key: 'is_autographed',  label: 'Signed',         sortable: true  },
-  { key: 'acquisition_type',label: 'Acq. Type',      sortable: true  },
-  { key: 'game_date',       label: 'Game Date',      sortable: true  },
-  { key: 'purchase_date',   label: 'Purchase Date',  sortable: true  },
-  { key: 'location',        label: 'Location',       sortable: true  },
-  { key: 'notes',           label: 'Notes',          sortable: false },
-  { key: 'created_at',      label: 'Added',          sortable: true  },
-  { key: '_edit',           label: '',               sortable: false },
+  { key: 'title',             label: 'Title',            sortable: true  },
+  // Cert
+  { key: 'cert_service',      label: 'Cert Service',     sortable: true  },
+  { key: 'cert_grade',        label: 'Grade',            sortable: true  },
+  { key: 'auto_grade',        label: 'Auto Grade',       sortable: true  },
+  { key: 'cert_id',           label: 'Cert ID',          sortable: false },
+  { key: 'cert_link',         label: 'Cert Link',        sortable: false },
+  { key: 'is_autograph_cert', label: 'Auto Cert',        sortable: true  },
+  // Financials
+  { key: 'item_total',        label: 'Item Cost',        sortable: true  },
+  { key: 'auto_total',        label: 'Auto Cost',        sortable: true  },
+  { key: 'price',             label: 'Ask Price',        sortable: true  },
+  { key: 'for_sale',          label: 'For Sale',         sortable: true  },
+  { key: 'acquisition_type',  label: 'Acq. Type',        sortable: true  },
+  // Attributes
+  { key: 'is_autographed',    label: 'Signed',           sortable: true  },
+  { key: 'is_world_series_game', label: 'World Series',  sortable: true  },
+  { key: 'ws_game_number',    label: 'WS Game #',        sortable: true  },
+  { key: 'is_clinch_game',    label: 'Clinch Game',      sortable: true  },
+  { key: 'clinch_number',     label: 'Clinch #',         sortable: true  },
+  { key: 'is_part_of_set',    label: 'In Set',           sortable: true  },
+  // Dates & location
+  { key: 'game_date',         label: 'Game Date',        sortable: true  },
+  { key: 'purchase_date',     label: 'Purchase Date',    sortable: true  },
+  { key: 'location',          label: 'Location',         sortable: true  },
+  // Visibility
+  { key: 'is_visible',        label: 'Visible',          sortable: true  },
+  { key: 'is_baseball',       label: 'Baseball',         sortable: true  },
+  // Media
+  { key: 'primary_image_url', label: 'Image URL',        sortable: false },
+  { key: 'cloudinary_id',     label: 'Cloudinary ID',    sortable: false },
+  { key: 'reference_link',    label: 'Reference Link',   sortable: false },
+  // Text
+  { key: 'description',       label: 'Description',      sortable: false },
+  { key: 'notes',             label: 'Notes',            sortable: false },
+  // Meta
+  { key: 'created_at',        label: 'Added',            sortable: true  },
+  { key: 'updated_at',        label: 'Updated',          sortable: true  },
+  { key: '_edit',             label: '',                 sortable: false },
 ]
 
 function formatCurrency(n) {
@@ -231,10 +255,10 @@ export default function ItemList() {
     let cancelled = false
 
     async function load() {
-      // Fetch items + their first cert via a separate query, then merge
-      const [itemsRes, certsRes] = await Promise.all([
+      const [itemsRes, certsRes, imagesRes] = await Promise.all([
         supabase.from('items').select('*').order('created_at', { ascending: false }),
-        supabase.from('certifications').select('item_id, cert_service, cert_id, item_grade, auto_grade').order('created_at'),
+        supabase.from('certifications').select('*').order('created_at'),
+        supabase.from('images').select('item_id, cloudinary_url, cloudinary_public_id').eq('is_primary', true),
       ])
 
       if (cancelled) return
@@ -244,11 +268,21 @@ export default function ItemList() {
         if (!certsByItem[c.item_id]) certsByItem[c.item_id] = c
       }
 
+      const imagesByItem = {}
+      for (const img of imagesRes.data ?? []) {
+        imagesByItem[img.item_id] = img
+      }
+
       const merged = (itemsRes.data ?? []).map(item => ({
         ...item,
-        cert_service: certsByItem[item.id]?.cert_service ?? null,
-        cert_id:      certsByItem[item.id]?.cert_id ?? null,
-        cert_grade:   certsByItem[item.id]?.item_grade ?? certsByItem[item.id]?.auto_grade ?? null,
+        cert_service:      certsByItem[item.id]?.cert_service ?? null,
+        cert_id:           certsByItem[item.id]?.cert_id ?? null,
+        cert_link:         certsByItem[item.id]?.cert_link ?? null,
+        cert_grade:        certsByItem[item.id]?.item_grade ?? null,
+        auto_grade:        certsByItem[item.id]?.auto_grade ?? null,
+        is_autograph_cert: certsByItem[item.id]?.is_autograph_cert ?? null,
+        primary_image_url: imagesByItem[item.id]?.cloudinary_url ?? null,
+        cloudinary_id:     imagesByItem[item.id]?.cloudinary_public_id ?? null,
       }))
 
       setRows(merged)
@@ -345,26 +379,64 @@ export default function ItemList() {
               <StatusRow><td colSpan={COLUMNS.length}>No items found.</td></StatusRow>
             ) : sorted.map(item => (
               <Tr key={item.id}>
-                <Td>
-                  <TitleCell to={`/admin/items/${item.id}`}>{item.title}</TitleCell>
-                </Td>
+                <Td><TitleCell to={`/admin/items/${item.id}`}>{item.title}</TitleCell></Td>
+                {/* Cert */}
                 <Td $dim={!item.cert_service}>{item.cert_service ?? '—'}</Td>
                 <Td>
                   {item.cert_grade
                     ? <GradeBadge>{item.cert_grade}</GradeBadge>
                     : <span style={{ color: 'var(--color-outline)' }}>—</span>}
                 </Td>
+                <Td $dim={!item.auto_grade}>{item.auto_grade ?? '—'}</Td>
                 <Td $dim={!item.cert_id}>{item.cert_id ?? '—'}</Td>
+                <Td $dim={!item.cert_link}>
+                  {item.cert_link
+                    ? <a href={item.cert_link} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', fontSize: '0.6875rem' }}>Link ↗</a>
+                    : '—'}
+                </Td>
+                <Td>
+                  {item.is_autograph_cert != null
+                    ? <BoolBadge $on={item.is_autograph_cert}>{item.is_autograph_cert ? 'Yes' : 'No'}</BoolBadge>
+                    : <span style={{ color: 'var(--color-outline)' }}>—</span>}
+                </Td>
+                {/* Financials */}
                 <Td $dim={!item.item_total}>{formatCurrency(item.item_total)}</Td>
+                <Td $dim={!item.auto_total}>{formatCurrency(item.auto_total)}</Td>
                 <Td $dim={!item.price}>{item.for_sale ? formatCurrency(item.price) : '—'}</Td>
                 <Td><BoolBadge $on={item.for_sale}>{item.for_sale ? 'Yes' : 'No'}</BoolBadge></Td>
-                <Td><BoolBadge $on={item.is_autographed}>{item.is_autographed ? 'Yes' : 'No'}</BoolBadge></Td>
                 <Td $dim>{item.acquisition_type ?? '—'}</Td>
+                {/* Attributes */}
+                <Td><BoolBadge $on={item.is_autographed}>{item.is_autographed ? 'Yes' : 'No'}</BoolBadge></Td>
+                <Td><BoolBadge $on={item.is_world_series_game}>{item.is_world_series_game ? 'Yes' : 'No'}</BoolBadge></Td>
+                <Td $dim={!item.ws_game_number}>{item.ws_game_number ?? '—'}</Td>
+                <Td><BoolBadge $on={item.is_clinch_game}>{item.is_clinch_game ? 'Yes' : 'No'}</BoolBadge></Td>
+                <Td $dim={!item.clinch_number}>{item.clinch_number ?? '—'}</Td>
+                <Td><BoolBadge $on={item.is_part_of_set}>{item.is_part_of_set ? 'Yes' : 'No'}</BoolBadge></Td>
+                {/* Dates & location */}
                 <Td $dim={!item.game_date}>{formatDate(item.game_date)}</Td>
                 <Td $dim={!item.purchase_date}>{formatDate(item.purchase_date)}</Td>
                 <Td $dim={!item.location}>{item.location ?? '—'}</Td>
-                <Td $dim={!item.notes} style={{ maxWidth: '12rem' }}>{item.notes ?? '—'}</Td>
+                {/* Visibility */}
+                <Td><BoolBadge $on={item.is_visible}>{item.is_visible ? 'Yes' : 'No'}</BoolBadge></Td>
+                <Td><BoolBadge $on={item.is_baseball}>{item.is_baseball ? 'Yes' : 'No'}</BoolBadge></Td>
+                {/* Media */}
+                <Td $dim={!item.primary_image_url}>
+                  {item.primary_image_url
+                    ? <a href={item.primary_image_url} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', fontSize: '0.6875rem' }}>Link ↗</a>
+                    : '—'}
+                </Td>
+                <Td $dim={!item.cloudinary_id} style={{ maxWidth: '14rem' }}>{item.cloudinary_id ?? '—'}</Td>
+                <Td $dim={!item.reference_link}>
+                  {item.reference_link
+                    ? <a href={item.reference_link} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', fontSize: '0.6875rem' }}>Link ↗</a>
+                    : '—'}
+                </Td>
+                {/* Text */}
+                <Td $dim={!item.description} style={{ maxWidth: '16rem' }}>{item.description ?? '—'}</Td>
+                <Td $dim={!item.notes} style={{ maxWidth: '14rem' }}>{item.notes ?? '—'}</Td>
+                {/* Meta */}
                 <Td $dim>{formatDate(item.created_at)}</Td>
+                <Td $dim>{formatDate(item.updated_at)}</Td>
                 <Td>
                   <EditBtn to={`/admin/items/${item.id}`}>
                     <span className="material-symbols-outlined">edit</span>
