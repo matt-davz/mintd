@@ -51,7 +51,7 @@ Single Vite + React app. Public and admin share one codebase, split by route.
 
 ## Build Todo
 
-See `docs/TODO.md` for the full ordered task list. When completing each task on the todo check it off. When each todo is complete commit to git. ***DO NOT PUSH TO REMOTE REPO*** I will do that.
+See `docs/TODO.md` for the full ordered task list. When completing each task on the todo check it off. When each todo is complete commit and push to the remote repo.
 
 ## File System
 
