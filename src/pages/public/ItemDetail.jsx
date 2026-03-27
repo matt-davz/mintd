@@ -62,11 +62,14 @@ const ImageFrame = styled.div`
   background-color: var(--color-surface-low);
   border: 1px solid rgba(66, 71, 84, 0.1);
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+  max-height: 80vh;
+  aspect-ratio: 1;
 `
 
 const MainImage = styled.img`
   width: 100%;
-  height: auto;
+  height: 100%;
+  max-height: 80vh;
   object-fit: cover;
   display: block;
 `
