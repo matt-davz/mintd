@@ -1,9 +1,13 @@
+import { useState } from 'react'
 import { NavLink, Outlet, Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { useClerk } from '@clerk/react'
 
+const EXPANDED_W = '16rem'
+const COLLAPSED_W = '4rem'
+
 const Sidebar = styled.aside`
-  width: 16rem;
+  width: ${({ $collapsed }) => $collapsed ? COLLAPSED_W : EXPANDED_W};
   height: 100vh;
   position: fixed;
   left: 0;
@@ -11,9 +15,19 @@ const Sidebar = styled.aside`
   background-color: var(--color-surface-lowest);
   display: flex;
   flex-direction: column;
-  padding: var(--space-4);
+  padding: var(--space-4) var(--space-2);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   z-index: 50;
+  transition: width 250ms ease;
+  overflow: hidden;
+`
+
+const SidebarTop = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: ${({ $collapsed }) => $collapsed ? 'center' : 'space-between'};
+  padding: var(--space-2) ${({ $collapsed }) => $collapsed ? 0 : 'var(--space-2)'};
+  margin-bottom: var(--space-6);
 `
 
 const Logo = styled.div`
@@ -21,8 +35,30 @@ const Logo = styled.div`
   font-size: 1.125rem;
   font-weight: 900;
   color: var(--color-primary);
-  margin-bottom: var(--space-8);
-  padding: var(--space-2) var(--space-4);
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: ${({ $collapsed }) => $collapsed ? 0 : 1};
+  width: ${({ $collapsed }) => $collapsed ? 0 : 'auto'};
+  transition: opacity 200ms ease, width 200ms ease;
+`
+
+const ToggleBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--color-outline);
+  flex-shrink: 0;
+  transition: background-color var(--transition-base), color var(--transition-base);
+
+  .material-symbols-outlined { font-size: 1.25rem; }
+
+  &:hover {
+    background-color: var(--color-surface-low);
+    color: var(--color-on-surface);
+  }
 `
 
 const NavSection = styled.p`
@@ -32,8 +68,12 @@ const NavSection = styled.p`
   text-transform: uppercase;
   color: rgba(229, 226, 225, 0.4);
   font-weight: 700;
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-2);
   margin-bottom: var(--space-2);
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: ${({ $collapsed }) => $collapsed ? 0 : 1};
+  transition: opacity 150ms ease;
 `
 
 const Nav = styled.nav`
@@ -41,14 +81,14 @@ const Nav = styled.nav`
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  margin-top: var(--space-4);
 `
 
 const NavItem = styled(NavLink)`
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-2);
+  justify-content: ${({ $collapsed }) => $collapsed ? 'center' : 'flex-start'};
   font-family: var(--font-headline);
   font-size: 0.875rem;
   font-weight: 500;
@@ -57,8 +97,14 @@ const NavItem = styled(NavLink)`
   color: rgba(229, 226, 225, 0.5);
   border-right: 2px solid transparent;
   transition: background-color var(--transition-base), color var(--transition-base), border-color var(--transition-base);
+  white-space: nowrap;
+  overflow: hidden;
+  title: ${({ $label }) => $label};
 
-  .material-symbols-outlined { font-size: 1.25rem; }
+  .material-symbols-outlined {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
 
   &:hover {
     color: var(--color-on-surface);
@@ -72,6 +118,13 @@ const NavItem = styled(NavLink)`
   }
 `
 
+const NavLabel = styled.span`
+  opacity: ${({ $collapsed }) => $collapsed ? 0 : 1};
+  width: ${({ $collapsed }) => $collapsed ? 0 : 'auto'};
+  overflow: hidden;
+  transition: opacity 150ms ease, width 200ms ease;
+`
+
 const SidebarBottom = styled.div`
   margin-top: auto;
   padding-top: var(--space-4);
@@ -82,8 +135,9 @@ const SignOutBtn = styled.button`
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  justify-content: ${({ $collapsed }) => $collapsed ? 'center' : 'flex-start'};
   width: 100%;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-2);
   font-family: var(--font-headline);
   font-size: 0.875rem;
   font-weight: 500;
@@ -91,10 +145,13 @@ const SignOutBtn = styled.button`
   border-radius: var(--radius-md);
   color: rgba(229, 226, 225, 0.5);
   transition: background-color var(--transition-base), color var(--transition-base);
+  white-space: nowrap;
+  overflow: hidden;
 
   .material-symbols-outlined {
     font-size: 1.25rem;
     color: var(--color-error);
+    flex-shrink: 0;
   }
 
   &:hover {
@@ -104,12 +161,13 @@ const SignOutBtn = styled.button`
 `
 
 const MainCanvas = styled.div`
-  margin-left: 16rem;
+  margin-left: ${({ $collapsed }) => $collapsed ? COLLAPSED_W : EXPANDED_W};
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: var(--color-background);
   flex: 1;
+  transition: margin-left 250ms ease;
 `
 
 const TopBar = styled.header`
@@ -159,31 +217,41 @@ const Content = styled.div`
 
 export function AdminLayout() {
   const { signOut } = useClerk()
+  const [collapsed, setCollapsed] = useState(false)
 
   return (
     <>
-      <Sidebar>
-        <Logo>Mintd Vault</Logo>
-        <NavSection>Management Suite</NavSection>
+      <Sidebar $collapsed={collapsed}>
+        <SidebarTop $collapsed={collapsed}>
+          <Logo $collapsed={collapsed}>Mintd Vault</Logo>
+          <ToggleBtn onClick={() => setCollapsed(c => !c)} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+            <span className="material-symbols-outlined">
+              {collapsed ? 'menu' : 'menu_open'}
+            </span>
+          </ToggleBtn>
+        </SidebarTop>
+
+        <NavSection $collapsed={collapsed}>Management Suite</NavSection>
         <Nav>
-          <NavItem to="/admin/dashboard">
+          <NavItem to="/admin/dashboard" $collapsed={collapsed} title="Overview">
             <span className="material-symbols-outlined">dashboard</span>
-            Overview
+            <NavLabel $collapsed={collapsed}>Overview</NavLabel>
           </NavItem>
-          <NavItem to="/admin/items">
+          <NavItem to="/admin/items" $collapsed={collapsed} title="Table View">
             <span className="material-symbols-outlined">table_view</span>
-            Table View
+            <NavLabel $collapsed={collapsed}>Table View</NavLabel>
           </NavItem>
         </Nav>
+
         <SidebarBottom>
-          <SignOutBtn onClick={() => signOut({ redirectUrl: '/' })}>
+          <SignOutBtn $collapsed={collapsed} onClick={() => signOut({ redirectUrl: '/' })} title="Sign Out">
             <span className="material-symbols-outlined">logout</span>
-            Sign Out
+            <NavLabel $collapsed={collapsed}>Sign Out</NavLabel>
           </SignOutBtn>
         </SidebarBottom>
       </Sidebar>
 
-      <MainCanvas>
+      <MainCanvas $collapsed={collapsed}>
         <TopBar>
           <VaultLabel>Vault Admin</VaultLabel>
           <AddBtn to="/admin/items/new">Add New Asset</AddBtn>
