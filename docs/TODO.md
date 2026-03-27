@@ -63,11 +63,13 @@
 - [x] Sortable columns (click header to toggle asc/desc)
 - [x] Search bar (searches title, cert ID, location, notes)
 
-### Item Editor (`/admin/items/new` + `/admin/items/:id`)
-- [ ] `<CertForm>` — add/edit certifications per item
-- [ ] `<SignatoryForm>` — add/edit signatories per item
-- [ ] `<ImageUploader>` — Cloudinary unsigned upload widget, sets `is_primary`
-- [ ] `<ItemEditor>` page — create and edit mode, all item fields, sub-forms for certs/signatories/images
+### Item Viewer + Editor (`/admin/items/:id` + `/admin/items/new`)
+- [ ] `<ItemViewer>` page — default view at `/admin/items/:id`, shows ALL item data (every field, all certs, all signatories, all images with Cloudinary IDs). Read-only. Contains an "Edit" button that switches into edit mode.
+- [ ] Edit mode — inline form within the same page, pre-filled with current values, all item fields editable
+- [ ] `<CertForm>` — add/edit/delete certifications per item
+- [ ] `<SignatoryForm>` — add/edit/delete signatories per item
+- [ ] `<ImageUploader>` — Cloudinary unsigned upload widget, sets `is_primary`, allows reorder/delete
+- [ ] `/admin/items/new` — create mode (blank form, no viewer state)
 
 ### PSA Sync (`/admin/psa-sync`)
 - [ ] `<PsaSync>` page — trigger manual PSA population refresh, show last sync time and result

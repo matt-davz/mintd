@@ -26,8 +26,10 @@ A private baseball memorabilia collection showcase website for a single client. 
 - Gallery viewing for outside users.
 - Inquiry via simplt contact form sent to an email
 - Admin dashboard only accessable via Clerk's auth for the website owner.
-    - **Overview (`/admin/dashboard`)** — stats cards (total items, total cost) + a filterable/searchable grid of ALL items showing photo + minimal info (title, grade, for-sale status). Each card links to the item editor. Market value stat is a future feature (requires scraping).
+    - **Overview (`/admin/dashboard`)** — stats cards (total items, total cost) + a filterable/searchable table of ALL items showing photo + minimal info (title, grade, for-sale status). Each row links to the item viewer. Market value stat is a future feature (requires scraping).
     - **Table View (`/admin/items`)** — no images, shows every field as raw data (title, acquisition cost, price, for_sale, game_date, grade, cert_id, cert_service, condition, notes, created_at). Think spreadsheet. Sortable columns, search/filter bar.
+    - **Item Viewer (`/admin/items/:id`)** — read-only display of all data for a single item (every field, all certs, all signatories, all images with Cloudinary IDs). Has an "Edit" button that switches the page into inline edit mode. This is the default destination when clicking an item from Overview or Table View.
+    - **Item Editor (`/admin/items/new`)** — blank create form for adding a new item.
 
 `mintd` is a high-end memorabilia collector app. Design system: see `docs/DESIGN.md`.
 
@@ -67,8 +69,8 @@ File system go to docs/FILESYSTEM.md
 /admin               → redirect to /admin/dashboard
 /admin/dashboard     → Dashboard
 /admin/items         → ItemList
-/admin/items/new     → ItemEditor (create mode)
-/admin/items/:id     → ItemEditor (edit mode)
+/admin/items/new     → ItemEditor (create mode — blank form)
+/admin/items/:id    → ItemViewer (read-only by default; "Edit" button switches to inline edit mode)
 /admin/psa-sync      → PsaSync
 ```
 
