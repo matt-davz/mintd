@@ -322,12 +322,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     let cancelled = false
-    supabase.from('items').select('id, acquisition_cost').then(({ data, error }) => {
+    supabase.from('items').select('id, item_total').then(({ data, error }) => {
       if (cancelled) return
       if (!error && data) {
         setStats({
           count: data.length,
-          totalCost: data.reduce((sum, i) => sum + (i.acquisition_cost ?? 0), 0),
+          totalCost: data.reduce((sum, i) => sum + (i.item_total ?? 0), 0),
         })
       }
       setStatsLoading(false)
