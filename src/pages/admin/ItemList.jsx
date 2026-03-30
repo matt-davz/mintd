@@ -200,7 +200,7 @@ const COLUMNS = [
   { key: 'cert_link',         label: 'Cert Link',        sortable: false },
   { key: 'is_autograph_cert', label: 'Auto Cert',        sortable: true  },
   // Financials
-  { key: 'item_total',        label: 'Item Cost',        sortable: true  },
+  { key: 'price',             label: 'Item Cost',        sortable: true  },
   { key: 'auto_total',        label: 'Auto Cost',        sortable: true  },
   { key: 'price',             label: 'Ask Price',        sortable: true  },
   { key: 'for_sale',          label: 'For Sale',         sortable: true  },
@@ -400,7 +400,7 @@ export default function ItemList() {
                     : <span style={{ color: 'var(--color-outline)' }}>—</span>}
                 </Td>
                 {/* Financials */}
-                <Td $dim={!item.item_total}>{formatCurrency(item.item_total)}</Td>
+                <Td $dim={!item.price}>{formatCurrency(item.price)}</Td>
                 <Td $dim={!item.auto_total}>{formatCurrency(item.auto_total)}</Td>
                 <Td $dim={!item.price}>{item.for_sale ? formatCurrency(item.price) : '—'}</Td>
                 <Td><BoolBadge $on={item.for_sale}>{item.for_sale ? 'Yes' : 'No'}</BoolBadge></Td>
