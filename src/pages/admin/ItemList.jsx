@@ -313,12 +313,18 @@ export default function ItemList() {
     )
   }, [rows, search])
 
+  const DATE_KEYS = new Set(['created_at', 'updated_at', 'game_date', 'purchase_date'])
+
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
       let av = a[sortKey] ?? ''
       let bv = b[sortKey] ?? ''
       if (typeof av === 'boolean') av = av ? 1 : 0
       if (typeof bv === 'boolean') bv = bv ? 1 : 0
+      if (DATE_KEYS.has(sortKey)) {
+        av = av ? new Date(av).getTime() : 0
+        bv = bv ? new Date(bv).getTime() : 0
+      }
       if (av < bv) return sortDir === 'asc' ? -1 : 1
       if (av > bv) return sortDir === 'asc' ? 1 : -1
       return 0
