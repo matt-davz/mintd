@@ -458,7 +458,13 @@ export default function Dashboard() {
                         ? <img src={item.primary_image_url} alt={item.title} />
                         : <span className="material-symbols-outlined">image</span>}
                     </Thumb>
-                    <AssetName>{item.title}</AssetName>
+                    {item.reference_link ? (
+                      <AssetName as="a" href={item.reference_link} target="_blank" rel="noreferrer" style={{ textDecoration: 'underline', textUnderlineOffset: '2px', cursor: 'pointer' }}>
+                        {item.title}
+                      </AssetName>
+                    ) : (
+                      <AssetName>{item.title}</AssetName>
+                    )}
                   </AssetCell>
                 </Td>
                 <Td>
