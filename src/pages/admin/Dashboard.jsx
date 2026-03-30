@@ -4,6 +4,7 @@ import styled from 'styled-components'
 import { supabase } from '../../lib/supabase'
 import { useItems } from '../../hooks/useItems'
 import { useTags } from '../../hooks/useTags'
+import { ItemViewerModal } from '../../components/admin/ItemViewerModal'
 
 // ─── Page heading ─────────────────────────────────────────────────────────────
 
@@ -294,7 +295,7 @@ const Muted = styled.span`
   font-size: 0.75rem;
 `
 
-const ActionBtn = styled(Link)`
+const ActionBtn = styled.button`
   width: 2rem;
   height: 2rem;
   border-radius: var(--radius-md);
@@ -342,6 +343,7 @@ export default function Dashboard() {
   const [statsLoading, setStatsLoading] = useState(true)
   const [activeTag, setActiveTag] = useState(null)
   const [search, setSearch] = useState('')
+  const [selectedItemId, setSelectedItemId] = useState(null)
 
   const { items, loading: itemsLoading } = useItems()
   const { tags } = useTags()
@@ -376,6 +378,10 @@ export default function Dashboard() {
 
   return (
     <>
+      {selectedItemId && (
+        <ItemViewerModal itemId={selectedItemId} onClose={() => setSelectedItemId(null)} />
+      )}
+
       <PageHeading>
         <PageTitle>Collection Management</PageTitle>
         <PageSub>
@@ -501,8 +507,8 @@ export default function Dashboard() {
                   ) : <Muted>—</Muted>}
                 </Td>
                 <Td $right>
-                  <ActionBtn to={`/admin/items/${item.id}`}>
-                    <span className="material-symbols-outlined">edit</span>
+                  <ActionBtn onClick={() => setSelectedItemId(item.id)}>
+                    <span className="material-symbols-outlined">open_in_new</span>
                   </ActionBtn>
                 </Td>
               </Tr>

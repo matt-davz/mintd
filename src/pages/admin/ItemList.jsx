@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { supabase } from '../../lib/supabase'
+import { ItemViewerModal } from '../../components/admin/ItemViewerModal'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -121,7 +121,7 @@ const Td = styled.td`
   text-overflow: ellipsis;
 `
 
-const TitleCell = styled(Link)`
+const TitleCell = styled.button`
   font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 500;
@@ -131,6 +131,7 @@ const TitleCell = styled(Link)`
   overflow: hidden;
   text-overflow: ellipsis;
   transition: color var(--transition-base);
+  text-align: left;
 
   &:hover { color: var(--color-primary); }
 `
@@ -161,7 +162,7 @@ const BoolBadge = styled.span`
   border: 1px solid ${({ $on }) => $on ? 'rgba(173, 198, 255, 0.2)' : 'rgba(140, 144, 159, 0.1)'};
 `
 
-const EditBtn = styled(Link)`
+const EditBtn = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -250,6 +251,7 @@ export default function ItemList() {
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('created_at')
   const [sortDir, setSortDir] = useState('desc')
+  const [selectedItemId, setSelectedItemId] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -338,6 +340,10 @@ export default function ItemList() {
 
   return (
     <>
+      {selectedItemId && (
+        <ItemViewerModal itemId={selectedItemId} onClose={() => setSelectedItemId(null)} />
+      )}
+
       <PageHeading>
         <PageTitle>Table View</PageTitle>
         <PageSub>All fields, raw data — click any column header to sort.</PageSub>
@@ -385,7 +391,7 @@ export default function ItemList() {
               <StatusRow><td colSpan={COLUMNS.length}>No items found.</td></StatusRow>
             ) : sorted.map(item => (
               <Tr key={item.id}>
-                <Td><TitleCell to={`/admin/items/${item.id}`}>{item.title}</TitleCell></Td>
+                <Td><TitleCell onClick={() => setSelectedItemId(item.id)}>{item.title}</TitleCell></Td>
                 {/* Cert */}
                 <Td $dim={!item.cert_service}>{item.cert_service ?? '—'}</Td>
                 <Td>
@@ -444,8 +450,8 @@ export default function ItemList() {
                 <Td $dim>{formatDate(item.created_at)}</Td>
                 <Td $dim>{formatDate(item.updated_at)}</Td>
                 <Td>
-                  <EditBtn to={`/admin/items/${item.id}`}>
-                    <span className="material-symbols-outlined">edit</span>
+                  <EditBtn onClick={() => setSelectedItemId(item.id)}>
+                    <span className="material-symbols-outlined">open_in_new</span>
                   </EditBtn>
                 </Td>
               </Tr>

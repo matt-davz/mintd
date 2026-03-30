@@ -62,14 +62,16 @@
 - [x] `<ItemList>` page — raw data table, NO images, ALL fields visible (title, cert, grade, cert ID, cost, ask price, for_sale, signed, acq. type, game date, purchase date, location, notes, added)
 - [x] Sortable columns (click header to toggle asc/desc)
 - [x] Search bar (searches title, cert ID, location, notes)
+- [ ] **Raw Export** button — exports current filtered/sorted table to CSV with all columns
+- [ ] **Catalog Export** button — exports a curated CSV with shareable fields only: title, cert service, grade, cert ID, for sale, ask price, game date, signatories, tags. Excludes: notes, acquisition cost, auto total, location, purchase date, Cloudinary IDs, reference link
 
-### Item Viewer + Editor (`/admin/items/:id` + `/admin/items/new`)
-- [ ] `<ItemViewer>` page — default view at `/admin/items/:id`, shows ALL item data (every field, all certs, all signatories, all images with Cloudinary IDs). Read-only. Contains an "Edit" button that switches into edit mode.
-- [ ] Edit mode — inline form within the same page, pre-filled with current values, all item fields editable
-- [ ] `<CertForm>` — add/edit/delete certifications per item
-- [ ] `<SignatoryForm>` — add/edit/delete signatories per item
-- [ ] `<ImageUploader>` — Cloudinary unsigned upload widget, sets `is_primary`, allows reorder/delete
-- [ ] `/admin/items/new` — create mode (blank form, no viewer state)
+### Item Viewer + Editor (modal from overview + table view)
+- [x] `<ItemViewerModal>` — modal triggered by clicking any item row. Photo top-left, all fields displayed, edit icon. Read-only, frontend only.
+- [x] Edit mode — clicking the edit icon within the modal switches fields to editable inputs and saves back to Supabase
+- [x] `<CertForm>` — add/edit/delete certifications per item inside the modal
+- [x] `<SignatoryForm>` — add/edit/delete signatories per item inside the modal
+- [x] `<ImageUploader>` — delete + set-primary inside the modal (Cloudinary upload widget deferred)
+- [ ] `/admin/items/new` — create mode (blank form, separate page)
 
 ### PSA Sync (`/admin/psa-sync`)
 - [ ] `<PsaSync>` page — trigger manual PSA population refresh, show last sync time and result

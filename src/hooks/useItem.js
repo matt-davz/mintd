@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function useItem(id) {
@@ -10,11 +10,13 @@ export function useItem(id) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  const refetchRef = useRef(() => {})
+
   useEffect(() => {
     if (!id) return
     let cancelled = false
 
-    async function fetch() {
+    async function fetchData() {
       setLoading(true)
       setError(null)
 
@@ -38,7 +40,6 @@ export function useItem(id) {
       setCertifications(certRes.data ?? [])
       setImages(imgRes.data ?? [])
 
-      // Fetch population for any PSA/PSA-DNA certs
       const psaCerts = (certRes.data ?? []).filter(c =>
         ['PSA', 'PSA/DNA'].includes(c.cert_service)
       )
@@ -56,9 +57,12 @@ export function useItem(id) {
       if (!cancelled) setLoading(false)
     }
 
-    fetch()
+    refetchRef.current = fetchData
+    fetchData()
     return () => { cancelled = true }
   }, [id])
 
-  return { item, signatories, certifications, population, images, loading, error }
+  const refetch = useCallback(() => refetchRef.current(), [])
+
+  return { item, signatories, certifications, population, images, loading, error, refetch }
 }
