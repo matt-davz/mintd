@@ -255,10 +255,38 @@ const GradeBadge = styled.span`
   border-radius: var(--radius-sm);
 `
 
+const CertIdWrap = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+`
+
 const CertId = styled.span`
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: rgba(173, 198, 255, 0.8);
+`
+
+const CertLink = styled.a`
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity var(--transition-base);
+  &:hover { opacity: 0.7; }
+`
+
+const CopyBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-outline);
+  transition: color var(--transition-base);
+  flex-shrink: 0;
+
+  .material-symbols-outlined { font-size: 0.875rem; }
+  &:hover { color: var(--color-primary); }
 `
 
 const Muted = styled.span`
@@ -322,12 +350,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     let cancelled = false
-    supabase.from('items').select('id, item_total').then(({ data, error }) => {
+    supabase.from('items').select('id, price').then(({ data, error }) => {
       if (cancelled) return
+      console.log('stats query:', { data, error })
       if (!error && data) {
         setStats({
           count: data.length,
-          totalCost: data.reduce((sum, i) => sum + (i.item_total ?? 0), 0),
+          totalCost: data.reduce((sum, i) => sum + (parseFloat(i.price) || 0), 0),
         })
       }
       setStatsLoading(false)
@@ -342,8 +371,6 @@ export default function Dashboard() {
   })
 
   function formatCost(n) {
-    if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
-    if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`
     return `$${n.toLocaleString()}`
   }
 
@@ -354,7 +381,7 @@ export default function Dashboard() {
         <PageSub>
           {statsLoading
             ? 'Loading collection...'
-            : `Overseeing ${stats.count.toLocaleString()} high-value historical assets in secure storage.`}
+            : null }
         </PageSub>
       </PageHeading>
 
@@ -445,7 +472,27 @@ export default function Dashboard() {
                     : <Muted>—</Muted>}
                 </Td>
                 <Td>
-                  {item.cert_id ? <CertId>#{item.cert_id}</CertId> : <Muted>—</Muted>}
+                  {item.cert_id ? (
+                    <CertIdWrap>
+                      {['PSA', 'PSA/DNA'].includes(item.cert_service) ? (
+                        <CertLink
+                          href={`https://www.psacard.com/cert/${item.cert_id}/psa`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          #{item.cert_id}
+                        </CertLink>
+                      ) : (
+                        <CertId>#{item.cert_id}</CertId>
+                      )}
+                      <CopyBtn
+                        title="Copy cert ID"
+                        onClick={() => navigator.clipboard.writeText(item.cert_id)}
+                      >
+                        <span className="material-symbols-outlined">content_copy</span>
+                      </CopyBtn>
+                    </CertIdWrap>
+                  ) : <Muted>—</Muted>}
                 </Td>
                 <Td $right>
                   <ActionBtn to={`/admin/items/${item.id}`}>
