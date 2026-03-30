@@ -322,12 +322,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     let cancelled = false
-    supabase.from('items').select('id, acquisition_cost').then(({ data }) => {
-      if (cancelled || !data) return
-      setStats({
-        count: data.length,
-        totalCost: data.reduce((sum, i) => sum + (i.acquisition_cost ?? 0), 0),
-      })
+    supabase.from('items').select('id, acquisition_cost').then(({ data, error }) => {
+      if (cancelled) return
+      if (!error && data) {
+        setStats({
+          count: data.length,
+          totalCost: data.reduce((sum, i) => sum + (i.acquisition_cost ?? 0), 0),
+        })
+      }
       setStatsLoading(false)
     })
     return () => { cancelled = true }
