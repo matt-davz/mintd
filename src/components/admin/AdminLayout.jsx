@@ -328,6 +328,10 @@ export function AdminLayout() {
             <span className="material-symbols-outlined">table_view</span>
             <NavLabel $collapsed={collapsed}>Table View</NavLabel>
           </NavItem>
+          <NavItem to="/admin/psa-sync" $collapsed={collapsed} title="PSA Sync" onClick={closeMobile}>
+            <span className="material-symbols-outlined">sync</span>
+            <NavLabel $collapsed={collapsed}>PSA Sync</NavLabel>
+          </NavItem>
         </Nav>
 
         <SidebarBottom>

@@ -62,6 +62,28 @@ const ResultsMeta = styled.span`
   margin-left: auto;
 `
 
+const ExportBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.4rem 0.875rem;
+  background: transparent;
+  border: 1px solid rgba(173, 198, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base);
+
+  &:hover { background: rgba(173, 198, 255, 0.06); border-color: rgba(173, 198, 255, 0.4); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .material-symbols-outlined { font-size: 0.875rem; }
+`
+
 // ─── Table ────────────────────────────────────────────────────────────────────
 
 const TableWrap = styled.div`
@@ -227,6 +249,10 @@ const COLUMNS = [
   // Text
   { key: 'description',       label: 'Description',      sortable: false },
   { key: 'notes',             label: 'Notes',            sortable: false },
+  // Population
+  { key: 'pop_total',         label: 'Pop Total',        sortable: true  },
+  { key: 'pop_higher',        label: 'Pop Higher',       sortable: true  },
+  { key: 'pop_lower',         label: 'Pop Lower',        sortable: true  },
   // Meta
   { key: 'created_at',        label: 'Added',            sortable: true  },
   { key: 'updated_at',        label: 'Updated',          sortable: true  },
@@ -243,6 +269,34 @@ function formatDate(str) {
   return new Date(str).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
+// ─── CSV helpers ──────────────────────────────────────────────────────────────
+
+function csvEscape(val) {
+  if (val == null) return ''
+  const str = String(val)
+  return str.includes(',') || str.includes('"') || str.includes('\n')
+    ? `"${str.replace(/"/g, '""')}"`
+    : str
+}
+
+function downloadCsv(filename, headers, rows) {
+  const lines = [
+    headers.map(h => csvEscape(h.label)).join(','),
+    ...rows.map(row => headers.map(h => csvEscape(h.value(row))).join(',')),
+  ]
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function toHeaderLabel(key) {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ItemList() {
@@ -252,6 +306,7 @@ export default function ItemList() {
   const [sortKey, setSortKey] = useState('created_at')
   const [sortDir, setSortDir] = useState('desc')
   const [selectedItemId, setSelectedItemId] = useState(null)
+  const [exportingCatalog, setExportingCatalog] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -275,6 +330,30 @@ export default function ItemList() {
         imagesByItem[img.item_id] = img
       }
 
+      // Fetch latest population for all PSA/PSA-DNA certs
+      const psaCertIds = (certsRes.data ?? [])
+        .filter(c => ['PSA', 'PSA/DNA'].includes(c.cert_service) && c.id)
+        .map(c => c.id)
+
+      const popByItem = {}
+      if (psaCertIds.length > 0) {
+        const { data: popData } = await supabase
+          .from('latest_population')
+          .select('cert_id, total, higher, lower, recorded_at')
+          .in('cert_id', psaCertIds)
+
+        const certItemMap = {}
+        for (const c of certsRes.data ?? []) {
+          certItemMap[c.id] = c.item_id
+        }
+        for (const p of popData ?? []) {
+          const itemId = certItemMap[p.cert_id]
+          if (itemId) popByItem[itemId] = p
+        }
+      }
+
+      if (cancelled) return
+
       const merged = (itemsRes.data ?? []).map(item => ({
         ...item,
         cert_service:      certsByItem[item.id]?.cert_service ?? null,
@@ -285,6 +364,10 @@ export default function ItemList() {
         is_autograph_cert: certsByItem[item.id]?.is_autograph_cert ?? null,
         primary_image_url: imagesByItem[item.id]?.cloudinary_url ?? null,
         cloudinary_id:     imagesByItem[item.id]?.cloudinary_public_id ?? null,
+        pop_total:         popByItem[item.id]?.total ?? null,
+        pop_higher:        popByItem[item.id]?.higher ?? null,
+        pop_lower:         popByItem[item.id]?.lower ?? null,
+        pop_synced_at:     popByItem[item.id]?.recorded_at ?? null,
       }))
 
       setRows(merged)
@@ -338,6 +421,62 @@ export default function ItemList() {
     return sortDir === 'asc' ? '↑' : '↓'
   }
 
+  function handleRawExport() {
+    if (!sorted.length) return
+    const headers = Object.keys(sorted[0]).map(key => ({
+      label: toHeaderLabel(key),
+      value: r => r[key] ?? '',
+    }))
+    const ts = new Date().toISOString().slice(0, 10)
+    downloadCsv(`mintd-raw-${ts}.csv`, headers, sorted)
+  }
+
+  async function handleCatalogExport() {
+    setExportingCatalog(true)
+    const ids = sorted.map(r => r.id)
+
+    const [sigRes, tagRes] = await Promise.all([
+      supabase.from('signatories').select('item_id, name, is_featured').in('item_id', ids),
+      supabase.from('item_tags').select('item_id, tags(slug)').in('item_id', ids),
+    ])
+
+    const sigsByItem = {}
+    for (const s of sigRes.data ?? []) {
+      if (!sigsByItem[s.item_id]) sigsByItem[s.item_id] = []
+      sigsByItem[s.item_id].push(s)
+    }
+
+    const tagsByItem = {}
+    for (const t of tagRes.data ?? []) {
+      if (!tagsByItem[t.item_id]) tagsByItem[t.item_id] = []
+      if (t.tags?.slug) tagsByItem[t.item_id].push(t.tags.slug)
+    }
+
+    const catalogHeaders = [
+      { label: 'Title',              value: r => r.title },
+      { label: 'Cert Service',       value: r => r.cert_service ?? '' },
+      { label: 'Grade',              value: r => r.cert_grade ?? '' },
+      { label: 'Cert ID',            value: r => r.cert_id ?? '' },
+      { label: 'For Sale',           value: r => r.for_sale ? 'Yes' : 'No' },
+      { label: 'Acquisition Cost',   value: r => r.item_total ?? '' },
+      { label: 'Game Date',          value: r => r.game_date ?? '' },
+      { label: 'Pop Total',          value: r => r.pop_total ?? '' },
+      { label: 'Pop Higher',         value: r => r.pop_higher ?? '' },
+      { label: 'Pop Lower',          value: r => r.pop_lower ?? '' },
+      { label: 'Signatories',        value: r => {
+        const sigs = sigsByItem[r.id] ?? []
+        const featured = sigs.find(s => s.is_featured)
+        const others = sigs.filter(s => !s.is_featured)
+        return [featured, ...others].filter(Boolean).map(s => s.name).join('; ')
+      }},
+      { label: 'Tags',               value: r => (tagsByItem[r.id] ?? []).join('; ') },
+    ]
+
+    const ts = new Date().toISOString().slice(0, 10)
+    downloadCsv(`mintd-catalog-${ts}.csv`, catalogHeaders, sorted)
+    setExportingCatalog(false)
+  }
+
   return (
     <>
       {selectedItemId && (
@@ -357,10 +496,20 @@ export default function ItemList() {
           onChange={e => setSearch(e.target.value)}
         />
         {!loading && (
-          <ResultsMeta>
-            {sorted.length} {sorted.length === 1 ? 'item' : 'items'}
-            {sorted.length !== rows.length && ` of ${rows.length}`}
-          </ResultsMeta>
+          <>
+            <ExportBtn onClick={handleRawExport} title="Export all columns as CSV">
+              <span className="material-symbols-outlined">download</span>
+              Raw Export
+            </ExportBtn>
+            <ExportBtn onClick={handleCatalogExport} disabled={exportingCatalog} title="Export shareable fields only">
+              <span className="material-symbols-outlined">share</span>
+              {exportingCatalog ? 'Exporting...' : 'Catalog Export'}
+            </ExportBtn>
+            <ResultsMeta>
+              {sorted.length} {sorted.length === 1 ? 'item' : 'items'}
+              {sorted.length !== rows.length && ` of ${rows.length}`}
+            </ResultsMeta>
+          </>
         )}
       </Controls>
 
@@ -446,6 +595,10 @@ export default function ItemList() {
                 {/* Text */}
                 <Td $dim={!item.description} style={{ maxWidth: '16rem' }}>{item.description ?? '—'}</Td>
                 <Td $dim={!item.notes} style={{ maxWidth: '14rem' }}>{item.notes ?? '—'}</Td>
+                {/* Population */}
+                <Td $dim={item.pop_total == null}>{item.pop_total ?? '—'}</Td>
+                <Td $dim={item.pop_higher == null}>{item.pop_higher ?? '—'}</Td>
+                <Td $dim={item.pop_lower == null}>{item.pop_lower ?? '—'}</Td>
                 {/* Meta */}
                 <Td $dim>{formatDate(item.created_at)}</Td>
                 <Td $dim>{formatDate(item.updated_at)}</Td>

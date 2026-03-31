@@ -1,3 +1,5 @@
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { useItem } from '../../hooks/useItem'
@@ -64,13 +66,14 @@ const ImageFrame = styled.div`
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
   max-height: 80vh;
   aspect-ratio: 1;
+  cursor: crosshair;
 `
 
 const MainImage = styled.img`
   width: 100%;
   height: 100%;
   max-height: 80vh;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 `
 
@@ -82,6 +85,49 @@ const ImagePlaceholder = styled.div`
   color: var(--color-surface-bright);
 
   .material-symbols-outlined { font-size: 4rem; }
+`
+
+const ZoomLens = styled.div`
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1px solid rgba(173, 198, 255, 0.35);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.06);
+  z-index: 10;
+  opacity: ${({ $active }) => ($active ? 1 : 0)};
+  transition: opacity 120ms ease;
+  background-repeat: no-repeat;
+`
+
+const ExpandBtn = styled.button`
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(173, 198, 255, 0.2);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background var(--transition-base), border-color var(--transition-base);
+
+  &:hover {
+    background: rgba(77, 142, 255, 0.18);
+    border-color: rgba(173, 198, 255, 0.45);
+  }
+
+  .material-symbols-outlined {
+    font-size: 1.125rem;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  }
 `
 
 const OverlayGradeBadge = styled.div`
@@ -124,10 +170,83 @@ const Thumbnail = styled.button`
   border: 2px solid ${({ $active }) => $active ? 'var(--color-primary)' : 'transparent'};
   opacity: ${({ $active }) => $active ? 1 : 0.5};
   transition: opacity var(--transition-base), border-color var(--transition-base);
+  cursor: pointer;
 
   img { width: 100%; height: 100%; object-fit: cover; }
 
   &:hover { opacity: 1; }
+`
+
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+
+const LightboxOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`
+
+const LightboxImgWrap = styled.div`
+  position: relative;
+  display: inline-flex;
+  cursor: crosshair;
+`
+
+const LightboxImg = styled.img`
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8);
+  user-select: none;
+  display: block;
+`
+
+const LightboxClose = styled.button`
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-on-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--transition-base);
+
+  &:hover { background: rgba(255, 255, 255, 0.12); }
+
+  .material-symbols-outlined { font-size: 1.5rem; }
+`
+
+const LightboxNav = styled.button`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  ${({ $dir }) => $dir === 'prev' ? 'left: 1.5rem;' : 'right: 1.5rem;'}
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-on-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--transition-base);
+
+  &:hover { background: rgba(255, 255, 255, 0.12); }
+
+  .material-symbols-outlined { font-size: 1.5rem; }
 `
 
 // ─── Detail column ────────────────────────────────────────────────────────────
@@ -395,28 +514,85 @@ const StatusText = styled.p`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const LENS_SIZE = 160
+const LENS_RADIUS = LENS_SIZE / 2
+const ZOOM_FACTOR = 5
+
 export default function ItemDetail() {
   const { id } = useParams()
   const { item, signatories, certifications, population, images, loading, error } = useItem(id)
   const { items: allItems } = useItems()
 
+  const frameRef = useRef(null)
+  const lbImgWrapRef = useRef(null)
+  const [zoom, setZoom] = useState({ active: false, x: 0, y: 0, xPct: 0, yPct: 0 })
+  const [lbZoom, setLbZoom] = useState({ active: false, x: 0, y: 0, xPct: 0, yPct: 0 })
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [lightbox, setLightbox] = useState({ open: false, index: 0 })
+
+  // Derive image list early so the effect below can reference its length
+  const primaryImage = images.find(i => i.is_primary) ?? images[0]
+  const otherImages = images.filter(i => i.id !== primaryImage?.id)
+  const allImages = [primaryImage, ...otherImages].filter(Boolean)
+
+  useEffect(() => {
+    if (!lightbox.open) return
+    const total = allImages.length
+    const handler = (e) => {
+      if (e.key === 'Escape') setLightbox(l => ({ ...l, open: false }))
+      if (e.key === 'ArrowLeft' && total > 1)
+        setLightbox(l => ({ ...l, index: (l.index - 1 + total) % total }))
+      if (e.key === 'ArrowRight' && total > 1)
+        setLightbox(l => ({ ...l, index: (l.index + 1) % total }))
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [lightbox.open, allImages.length])
+
   if (loading) return <StatusText>Loading...</StatusText>
   if (error || !item) return <StatusText>{error ?? 'Item not found.'}</StatusText>
 
-  const primaryImage = images.find(i => i.is_primary) ?? images[0]
-  const otherImages = images.filter(i => i.id !== primaryImage?.id)
+  const displayImage = allImages[activeIndex] ?? null
 
   const psaCerts = certifications.filter(c => ['PSA', 'PSA/DNA'].includes(c.cert_service))
   const firstPsaCert = psaCerts[0]
   const pop = firstPsaCert ? population.find(p => p.cert_id === firstPsaCert.id) : null
 
-  // Badge shows for any cert with a known service
   const badgeCert = certifications.find(c => c.cert_service && c.cert_service.toLowerCase() !== 'unknown')
   const gradeLabel = badgeCert
     ? `${badgeCert.cert_service} ${badgeCert.item_grade ?? badgeCert.auto_grade ?? ''}`.trim()
     : null
 
   const related = allItems.filter(i => i.id !== id).slice(0, 3)
+
+  const handleMouseMove = (e) => {
+    const rect = frameRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    setZoom({ active: true, x, y, xPct: x / rect.width, yPct: y / rect.height })
+  }
+
+  const handleMouseLeave = () => setZoom(z => ({ ...z, active: false }))
+
+  const handleLbMouseMove = (e) => {
+    const rect = lbImgWrapRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    setLbZoom({ active: true, x, y, xPct: x / rect.width, yPct: y / rect.height })
+  }
+
+  const handleLbMouseLeave = () => setLbZoom(z => ({ ...z, active: false }))
+
+  const openLightbox = (e) => {
+    e.stopPropagation()
+    setLightbox({ open: true, index: activeIndex })
+  }
+
+  const closeLightbox = () => setLightbox(l => ({ ...l, open: false }))
+
+  const lightboxImg = allImages[lightbox.index] ?? null
 
   return (
     <Page>
@@ -429,26 +605,54 @@ export default function ItemDetail() {
         {/* ── Image column ── */}
         <ImageCol>
           <ImageGlow />
-          <ImageFrame>
-            {primaryImage ? (
-              <MainImage src={primaryImage.cloudinary_url} alt={item.title} />
+          <ImageFrame
+            ref={frameRef}
+            onMouseMove={displayImage ? handleMouseMove : undefined}
+            onMouseLeave={displayImage ? handleMouseLeave : undefined}
+          >
+            {displayImage ? (
+              <MainImage src={displayImage.cloudinary_url} alt={item.title} />
             ) : (
               <ImagePlaceholder>
                 <span className="material-symbols-outlined">image_not_supported</span>
               </ImagePlaceholder>
             )}
+
+            {displayImage && (
+              <ZoomLens
+                $active={zoom.active}
+                style={{
+                  left: zoom.x - LENS_RADIUS,
+                  top: zoom.y - LENS_RADIUS,
+                  backgroundImage: `url(${displayImage.cloudinary_url})`,
+                  backgroundSize: `${ZOOM_FACTOR * 100}%`,
+                  backgroundPosition: `${zoom.xPct * 100}% ${zoom.yPct * 100}%`,
+                }}
+              />
+            )}
+
             {gradeLabel && (
               <OverlayGradeBadge>
                 <span className="material-symbols-outlined">verified</span>
                 {gradeLabel}
               </OverlayGradeBadge>
             )}
+
+            {displayImage && (
+              <ExpandBtn onClick={openLightbox} title="View fullscreen">
+                <span className="material-symbols-outlined">open_in_full</span>
+              </ExpandBtn>
+            )}
           </ImageFrame>
 
-          {otherImages.length > 0 && (
+          {allImages.length > 1 && (
             <ThumbnailRow>
-              {[primaryImage, ...otherImages].filter(Boolean).map((img, i) => (
-                <Thumbnail key={img.id} $active={i === 0}>
+              {allImages.map((img, idx) => (
+                <Thumbnail
+                  key={img.id}
+                  $active={idx === activeIndex}
+                  onClick={() => setActiveIndex(idx)}
+                >
                   <img src={img.cloudinary_url} alt="" />
                 </Thumbnail>
               ))}
@@ -489,9 +693,10 @@ export default function ItemDetail() {
                 </DataRow>
               )}
 
-              {item.for_sale && item.price && (
+
+              {item.price && (
                 <DataRow>
-                  <DataLabel>Asking Price</DataLabel>
+                  <DataLabel>Acquisition Cost</DataLabel>
                   <DataValue>${Number(item.price).toLocaleString()}</DataValue>
                 </DataRow>
               )}
@@ -560,6 +765,56 @@ export default function ItemDetail() {
             ))}
           </RelatedGrid>
         </RelatedSection>
+      )}
+
+      {/* ── Lightbox portal ── */}
+      {lightbox.open && lightboxImg && createPortal(
+        <LightboxOverlay onClick={closeLightbox}>
+          <LightboxImgWrap
+            ref={lbImgWrapRef}
+            onMouseMove={handleLbMouseMove}
+            onMouseLeave={handleLbMouseLeave}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <LightboxImg src={lightboxImg.cloudinary_url} alt={item.title} />
+            <ZoomLens
+              $active={lbZoom.active}
+              style={{
+                left: lbZoom.x - LENS_RADIUS,
+                top: lbZoom.y - LENS_RADIUS,
+                backgroundImage: `url(${lightboxImg.cloudinary_url})`,
+                backgroundSize: `${ZOOM_FACTOR * 100}%`,
+                backgroundPosition: `${lbZoom.xPct * 100}% ${lbZoom.yPct * 100}%`,
+              }}
+            />
+          </LightboxImgWrap>
+          <LightboxClose onClick={closeLightbox}>
+            <span className="material-symbols-outlined">close</span>
+          </LightboxClose>
+          {allImages.length > 1 && (
+            <>
+              <LightboxNav
+                $dir="prev"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setLightbox(l => ({ ...l, index: (l.index - 1 + allImages.length) % allImages.length }))
+                }}
+              >
+                <span className="material-symbols-outlined">chevron_left</span>
+              </LightboxNav>
+              <LightboxNav
+                $dir="next"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setLightbox(l => ({ ...l, index: (l.index + 1) % allImages.length }))
+                }}
+              >
+                <span className="material-symbols-outlined">chevron_right</span>
+              </LightboxNav>
+            </>
+          )}
+        </LightboxOverlay>,
+        document.body
       )}
     </Page>
   )

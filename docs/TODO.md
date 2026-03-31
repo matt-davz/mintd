@@ -37,8 +37,10 @@
 
 ### Item Detail (`/item/:id`)
 - [x] `useItem` hook — fetches single item with signatories, certs, images
-- [x] `<ItemDetail>` page — full item view, PSA population table (from `latest_population`), signatory list
+- [x] `<ItemDetail>` page — full item view, PSA population table (from `latest_population`), signatory list, acquisition cost
 - [x] PSA population display — Higher / Same / Lower table, monospace numbers, only show if PSA/PSA-DNA cert exists
+- [x] Image column — hover magnifier lens (2.5× zoom follows cursor), fullscreen lightbox modal with keyboard nav + multi-image arrow navigation
+- [x] Thumbnail row — clicking thumbnails switches the displayed image
 - [ ] Add pagination / gallery card grade badge — requires adding cert fields to `item_cards` view
 - [ ] `item_cards` view cert data relies on a lateral join added in migration 0002 — verify it works correctly with real data and edge cases (items with no cert, multiple certs)
 - Note: each signatory must be a separate row in the `signatories` table — do not store multiple names as a single comma-separated string
@@ -52,7 +54,7 @@
 ## 6. Admin Panel
 
 ### Dashboard (`/admin/dashboard`) — Overview
-- [x] `<AdminLayout>` — sidebar nav (Overview, Table View, Sign Out) + sticky top bar with Add New Asset CTA
+- [x] `<AdminLayout>` — sidebar nav (Overview, Table View, PSA Sync, Sign Out) + sticky top bar with Add New Asset CTA
 - [x] Stats cards — total item count, total acquisition cost
 - [ ] Rebuild inventory feed into a full item grid — shows ALL items with photo + minimal info (title, grade, for-sale status)
 - [ ] Search bar + tag filter to narrow the grid
@@ -62,8 +64,8 @@
 - [x] `<ItemList>` page — raw data table, NO images, ALL fields visible (title, cert, grade, cert ID, cost, ask price, for_sale, signed, acq. type, game date, purchase date, location, notes, added)
 - [x] Sortable columns (click header to toggle asc/desc)
 - [x] Search bar (searches title, cert ID, location, notes)
-- [ ] **Raw Export** button — exports current filtered/sorted table to CSV with all columns
-- [ ] **Catalog Export** button — exports a curated CSV with shareable fields only: title, cert service, grade, cert ID, for sale, ask price, game date, signatories, tags. Excludes: notes, acquisition cost, auto total, location, purchase date, Cloudinary IDs, reference link
+- [x] **Raw Export** button — exports current filtered/sorted table to CSV with all columns (headers derived dynamically from data keys)
+- [x] **Catalog Export** button — exports a curated CSV: title, cert service, grade, cert ID, for sale, acquisition cost, game date, pop total/higher/lower, signatories, tags. Excludes: notes, ask price, auto total, location, purchase date, Cloudinary IDs, reference link
 
 ### Item Viewer + Editor (modal from overview + table view)
 - [x] `<ItemViewerModal>` — modal triggered by clicking any item row. Photo top-left, all fields displayed, edit icon. Read-only, frontend only.
@@ -72,15 +74,17 @@
 - [x] `<SignatoryForm>` — add/edit/delete signatories per item inside the modal
 - [x] `<ImageUploader>` — delete + set-primary inside the modal (Cloudinary upload widget deferred)
 - [ ] `/admin/items/new` — create mode (blank form, separate page)
+- [ ] **URL auto-fill on new item** — user pastes a reference link URL into the new item form, scraping + OpenClaw retrieves item data (title, grade, cert ID, signatories, etc.) and pre-fills the form fields. User reviews and saves. Scraping implementation TBD.
 
 ### PSA Sync (`/admin/psa-sync`)
-- [ ] `<PsaSync>` page — trigger manual PSA population refresh, show last sync time and result
+- [x] `<PsaSync>` page — trigger manual PSA population refresh, progress bar (synced/total), pending cert count, est. days remaining, rate-limit handling with "run again tomorrow" messaging
+- [x] `supabase/functions/psa-sync` — deployed Edge Function; fetches PSA certs sorted oldest-synced first, calls `GET /cert/GetByCertNumber/{certNumber}` (1 call/cert = 100 certs/day), inserts `population_snapshots` rows, returns synced/remaining/rate_limited
+- [x] Edge Function deployed with `--no-verify-jwt` (admin page is Clerk-protected; JWT not needed at function level)
+- [x] `PSA_API_KEY` set as Supabase secret via CLI
+- [ ] PSA/DNA autograph cert population — `GetByCertNumber` returns `DNACert` shape for these; need to map `DNACert` pop fields and store correctly
+- [ ] Configure `pg_cron` to call `psa-sync` weekly (Mondays 9am UTC) — see SQL snippet in conversation
 
-## 7. Edge Functions (Supabase)
-- [ ] `supabase/functions/psa-sync` — fetch PSA pop data for all PSA/PSA-DNA certs, insert `population_snapshots` rows
-- [ ] Configure `pg_cron` to call `psa-sync` weekly (Mondays 9am UTC)
-
-## 8. Deployment
+## 7. Deployment
 - [ ] Connect repo to Netlify
 - [ ] Set env vars in Netlify dashboard
 - [ ] Configure Netlify redirects for SPA routing (`/* → /index.html`)
