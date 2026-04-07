@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 import { supabase } from '../../lib/supabase'
+import { uploadToCloudinary } from '../../lib/cloudinary'
 import { CertForm } from '../../components/admin/CertForm'
 import { SignatoryForm } from '../../components/admin/SignatoryForm'
+import { ImageUploader } from '../../components/admin/ImageUploader'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -243,8 +245,10 @@ export default function ItemEditor() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [draftCerts, setDraftCerts] = useState([])
   const [draftSigs, setDraftSigs] = useState([])
+  const [draftImages, setDraftImages] = useState([])
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
+  const [saveStatus, setSaveStatus] = useState('')
 
   function setField(key, value) {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -258,6 +262,7 @@ export default function ItemEditor() {
 
     setIsSaving(true)
     setSaveError(null)
+    setSaveStatus('Saving item...')
 
     try {
       const { data: newItem, error: itemErr } = await supabase
@@ -313,11 +318,36 @@ export default function ItemEditor() {
         if (firstErr) throw new Error(firstErr.error.message)
       }
 
+      // ── Upload images to Cloudinary then insert into images table ────────────
+      if (draftImages.length > 0) {
+        const imageRows = []
+        for (let i = 0; i < draftImages.length; i++) {
+          const img = draftImages[i]
+          setSaveStatus(`Uploading image ${i + 1} of ${draftImages.length}...`)
+          const publicId = `import/${itemId.slice(0, 8)}/image_${i}`
+          const result = await uploadToCloudinary(img.file, publicId)
+          imageRows.push({
+            item_id:              itemId,
+            cloudinary_public_id: result.public_id,
+            cloudinary_url:       result.secure_url,
+            is_primary:           img.is_primary,
+            display_order:        i,
+          })
+        }
+
+        // Guarantee exactly one primary
+        if (!imageRows.some(r => r.is_primary)) imageRows[0].is_primary = true
+
+        const { error: imgErr } = await supabase.from('images').insert(imageRows)
+        if (imgErr) throw new Error(imgErr.message)
+      }
+
       navigate(-1)
     } catch (err) {
       setSaveError(err.message)
     } finally {
       setIsSaving(false)
+      setSaveStatus('')
     }
   }
 
@@ -566,11 +596,17 @@ export default function ItemEditor() {
           />
         </Section>
 
+        {/* ── Images ── */}
+        <Section>
+          <SectionLabel>Images</SectionLabel>
+          <ImageUploader draftImages={draftImages} setDraftImages={setDraftImages} />
+        </Section>
+
         {saveError && <ErrorBanner>Error: {saveError}</ErrorBanner>}
 
         <Actions>
           <SaveBtn onClick={handleCreate} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Create Asset'}
+            {isSaving ? (saveStatus || 'Saving...') : 'Create Asset'}
           </SaveBtn>
           <CancelBtn onClick={() => navigate(-1)}>Cancel</CancelBtn>
         </Actions>

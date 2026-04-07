@@ -54,6 +54,32 @@ Schema: `supabase/migrations/0001_initial_schema.sql`
 - One image per item must have `is_primary = true` (enforced by unique partial index)
 - Use Cloudinary URL transformation API for responsive sizes — never store multiple sizes
 
+#### Naming convention
+
+All item images use the following public ID pattern:
+
+```
+import/{first 8 chars of item UUID}/image_{n}
+```
+
+Examples:
+```
+import/af557e5a/image_0   ← primary image
+import/af557e5a/image_1
+import/af557e5a/image_2
+```
+
+`n` is zero-indexed and reflects the order images were uploaded (`display_order` column matches).
+
+#### Upload pipeline (new asset creation)
+
+1. User picks image files in `ItemEditor` — local blob URLs are shown as previews immediately
+2. User submits the form — item is inserted into Supabase and the DB-generated UUID is returned
+3. Images are uploaded to Cloudinary one-by-one using `uploadToCloudinary(file, publicId)` from `src/lib/cloudinary.js`, with `public_id` set to the naming convention above
+4. After all uploads succeed, rows are inserted into the `images` table (`cloudinary_public_id`, `cloudinary_url`, `is_primary`, `display_order`, `item_id`)
+5. If no image is marked primary by the user, the first image is automatically promoted
+6. If a Cloudinary upload fails, the error surfaces visibly — the item already exists in Supabase and images can be added later via the Item Viewer modal
+
 ### Edge Functions (`supabase/functions/`)
 
 - `psa-sync` — fetches PSA population data for all PSA/PSA-DNA certs, inserts `population_snapshots` rows. Called by `pg_cron` weekly (Mondays 9am UTC) and manually from admin panel

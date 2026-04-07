@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import styled from 'styled-components'
 import { useItem } from '../../hooks/useItem'
 import { supabase } from '../../lib/supabase'
+import { uploadToCloudinary } from '../../lib/cloudinary'
 import { CertForm } from './CertForm'
 import { SignatoryForm } from './SignatoryForm'
 import { ImageUploader } from './ImageUploader'
@@ -670,6 +671,14 @@ export function ItemViewerModal({ itemId, onClose }) {
       || JSON.stringify(draftSigs) !== JSON.stringify(orig?.ds)
       || JSON.stringify(draftImages) !== JSON.stringify(orig?.di)
 
+    console.log('[handleSave] dirty?', isDirty)
+    console.log('[handleSave] draftImages:', draftImages.map(i => ({
+      id: i.id,
+      hasFile: !!i.file,
+      is_primary: i.is_primary,
+      localUrl: i.localUrl ?? null,
+    })))
+
     if (!isDirty) {
       setIsEditing(false)
       setForm(null)
@@ -679,6 +688,8 @@ export function ItemViewerModal({ itemId, onClose }) {
     setIsSaving(true)
     setSaveError(null)
     try {
+      // ── 1. Update item fields ──────────────────────────────────────────────
+      console.log('[handleSave] step 1 — updating item fields')
       const { error: itemErr } = await supabase.from('items').update({
         title:               form.title,
         description:         form.description || null,
@@ -702,23 +713,67 @@ export function ItemViewerModal({ itemId, onClose }) {
       }).eq('id', itemId)
 
       if (itemErr) throw new Error(itemErr.message)
+      console.log('[handleSave] step 1 — item update OK')
 
+      // ── 2. Upload new images to Cloudinary ───────────────────────────────
+      const newImages = draftImages.filter(i => !i.id && i.file)
+      console.log('[handleSave] step 2 — new images to upload:', newImages.length)
+
+      if (newImages.length > 0) {
+        const maxExistingOrder = images.reduce((max, i) => Math.max(max, i.display_order ?? 0), -1)
+        const imageRows = []
+
+        for (let i = 0; i < newImages.length; i++) {
+          const img = newImages[i]
+          const displayOrder = maxExistingOrder + 1 + i
+          const publicId = `import/${itemId.slice(0, 8)}/image_${displayOrder}`
+          console.log(`[handleSave] step 2 — uploading image ${i + 1}/${newImages.length} → public_id: ${publicId}`)
+
+          const result = await uploadToCloudinary(img.file, publicId)
+          console.log(`[handleSave] step 2 — Cloudinary response:`, result)
+
+          imageRows.push({
+            item_id:              itemId,
+            cloudinary_public_id: result.public_id,
+            cloudinary_url:       result.secure_url,
+            is_primary:           img.is_primary,
+            display_order:        displayOrder,
+          })
+        }
+
+        // If no existing images remain primary, promote first new one
+        const existingPrimary = draftImages.some(i => i.id && i.is_primary)
+        if (!existingPrimary && !imageRows.some(r => r.is_primary)) {
+          imageRows[0].is_primary = true
+        }
+
+        console.log('[handleSave] step 2 — inserting image rows to DB:', imageRows)
+        const { error: imgErr } = await supabase.from('images').insert(imageRows)
+        if (imgErr) throw new Error(imgErr.message)
+        console.log('[handleSave] step 2 — image insert OK')
+      }
+
+      // ── 3. Reconcile certs, sigs, existing images ────────────────────────
+      console.log('[handleSave] step 3 — reconciling certs/sigs/existing images')
       const ops = [
         ...reconcileCerts(draftCerts, certifications, itemId),
         ...reconcileSigs(draftSigs, signatories, itemId),
         ...reconcileImages(draftImages, images),
       ]
+      console.log('[handleSave] step 3 — ops count:', ops.length)
 
       if (ops.length) {
         const results = await Promise.all(ops)
         const firstErr = results.find(r => r.error)
         if (firstErr) throw new Error(firstErr.error.message)
       }
+      console.log('[handleSave] step 3 — reconcile OK')
 
       refetch()
       setIsEditing(false)
       setForm(null)
     } catch (err) {
+      console.error('[handleSave] ERROR:', err)
       setSaveError(err.message)
     } finally {
       setIsSaving(false)

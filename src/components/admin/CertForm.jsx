@@ -2,6 +2,14 @@ import styled from 'styled-components'
 
 const CERT_SERVICES = ['PSA', 'PSA/DNA', 'BGS', 'JSA', 'SGC', 'Steiner', 'CGC', 'MLB Auth', 'Beckett', 'K&D']
 
+function buildCertLink(service, certId) {
+  const id = certId?.trim()
+  if (!id) return ''
+  if (service === 'PSA')     return `https://www.psacard.com/cert/${id}/psa`
+  if (service === 'PSA/DNA') return `https://www.psacard.com/cert/${id}/dna`
+  return ''
+}
+
 // ─── Shared input primitives ───────────────────────────────────────────────────
 
 const EditInput = styled.input`
@@ -170,7 +178,24 @@ const Empty = styled.p`
 
 export function CertForm({ draftCerts, setDraftCerts }) {
   function updateCert(key, field, value) {
-    setDraftCerts(prev => prev.map(c => c._key === key ? { ...c, [field]: value } : c))
+    setDraftCerts(prev => prev.map(c => {
+      if (c._key !== key) return c
+      const updated = { ...c, [field]: value }
+      if (field === 'cert_service') {
+        const auto = buildCertLink(updated.cert_service, updated.cert_id)
+        if (auto) updated.cert_link = auto
+      }
+      return updated
+    }))
+  }
+
+  function handleCertIdBlur(key) {
+    setDraftCerts(prev => prev.map(c => {
+      if (c._key !== key) return c
+      const auto = buildCertLink(c.cert_service, c.cert_id)
+      if (!auto) return c
+      return { ...c, cert_link: auto }
+    }))
   }
 
   function removeCert(key) {
@@ -218,6 +243,7 @@ export function CertForm({ draftCerts, setDraftCerts }) {
                 value={cert.cert_id ?? ''}
                 placeholder="e.g. 12345678"
                 onChange={e => updateCert(cert._key, 'cert_id', e.target.value)}
+                onBlur={() => handleCertIdBlur(cert._key)}
               />
             </FieldGroup>
 

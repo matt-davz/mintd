@@ -82,7 +82,7 @@ Add a required `item_type` selector to the item form. Selecting a type reveals a
 - [ ] **Baseball** — game-used vs display, inscription text, team-signed vs individual, specific game it was used in
 - [ ] **Bat** — player name, model number, length/weight, game-used vs display, year used
 - [ ] **Jersey** — player name, number, team, year worn, game-used vs display, size, any special patch (WS patch, memorial patch)
-- [ ] **Photo** — photographer credit, original publication/source, print size, colour vs B&W, edition (e.g. 1 of 100)
+- [ ] **Photo** — photographer credit, original publication/source, print size, colour vs B&W, edition (e.g. 1 of 100). Add a `is_type_1` boolean field (Type 1 = original print direct from the photographer/negative; not a reprint). Display "Type 1 Original" badge prominently when true.
 - [ ] **Program / Magazine / Book** — publication date, issue number, publisher, featured player/team on cover
 - [ ] **UI** — in the item form, show a `Type` dropdown at the top of Core Info. When a type is selected, a new collapsible "Type Details" section slides in below with only the relevant fields for that type. No type selected = section hidden.
 
