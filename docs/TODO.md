@@ -13,6 +13,7 @@
 - [x] Create views: `item_cards`, `latest_population`
 - [x] Configure RLS on all tables
 - [x] Seed pre-defined tags (item type, attribute, era tags from CLAUDE.md)
+- [x] **Apply migration `0003_admin_write_policies.sql`** — run `supabase db push` to add INSERT/UPDATE/DELETE policies for admin tables (items, certifications, signatories, images, population_snapshots, item_tags). Without this, all admin writes fail with RLS violation errors. Migration file is ready at `supabase/migrations/0003_admin_write_policies.sql`.
 
 ## 3. Auth (Clerk)
 - [x] Add Clerk provider to `main.jsx`
@@ -66,6 +67,24 @@
 - [x] Search bar (searches title, cert ID, location, notes)
 - [x] **Raw Export** button — exports current filtered/sorted table to CSV with all columns (headers derived dynamically from data keys)
 - [x] **Catalog Export** button — exports a curated CSV: title, cert service, grade, cert ID, for sale, acquisition cost, game date, pop total/higher/lower, signatories, tags. Excludes: notes, ask price, auto total, location, purchase date, Cloudinary IDs, reference link
+
+### Tags & Categories
+- [ ] **Missing cert IDs** — audit items with no `cert_id`; determine if uncertified or data gap. Add a flag/filter in Table View to surface items with missing cert data
+- [ ] **Tag UI in Item Editor** — add tag selection UI to the new item form (`/admin/items/new`) and edit mode in `<ItemViewerModal>`. Should allow selecting from pre-seeded tags (item type, attribute, era) as pills/checkboxes
+- [ ] **Tag display in Table View** — show tags column in `<ItemList>` (or as an expandable cell)
+
+### Item Type System — Contextual Fields
+Add a required `item_type` selector to the item form. Selecting a type reveals a contextual section with type-specific fields. Proposed types and their extra fields:
+
+- [ ] **Schema** — add `item_type` enum column to `items` table (`ticket`, `stub`, `card`, `baseball`, `bat`, `jersey`, `photo`, `magazine`, `program`, `book`, `base`, `glove`). Add a `game_context` JSONB column (or separate `game_details` table) to store type-specific structured data without polluting the main `items` schema.
+- [ ] **Ticket / Stub** — home team, away team, stadium/venue, section, row, seat number, face value, game result (W/L), postseason round (ALDS/NLCS/WS/etc.), game number within series
+- [ ] **Card** — card set name, card number (e.g. #/500), manufacturer (Topps, Panini, Leaf), parallel/variation name, year issued, rookie card flag (already have `rookie-card` tag — link these)
+- [ ] **Baseball** — game-used vs display, inscription text, team-signed vs individual, specific game it was used in
+- [ ] **Bat** — player name, model number, length/weight, game-used vs display, year used
+- [ ] **Jersey** — player name, number, team, year worn, game-used vs display, size, any special patch (WS patch, memorial patch)
+- [ ] **Photo** — photographer credit, original publication/source, print size, colour vs B&W, edition (e.g. 1 of 100)
+- [ ] **Program / Magazine / Book** — publication date, issue number, publisher, featured player/team on cover
+- [ ] **UI** — in the item form, show a `Type` dropdown at the top of Core Info. When a type is selected, a new collapsible "Type Details" section slides in below with only the relevant fields for that type. No type selected = section hidden.
 
 ### Item Viewer + Editor (modal from overview + table view)
 - [x] `<ItemViewerModal>` — modal triggered by clicking any item row. Photo top-left, all fields displayed, edit icon. Read-only, frontend only.

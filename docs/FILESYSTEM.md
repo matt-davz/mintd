@@ -17,6 +17,8 @@ src/
 │   │   └── SignatoryList.jsx
 │   └── admin/
 │       ├── AdminGuard.jsx      # Clerk auth wrapper for /admin/* routes
+│       ├── AdminLayout.jsx     # Sidebar nav + top bar shell for all admin pages
+│       ├── ItemViewerModal.jsx # Modal: read-only item view + inline edit mode
 │       ├── ImageUploader.jsx   # Cloudinary upload widget
 │       ├── CertForm.jsx
 │       └── SignatoryForm.jsx
@@ -26,6 +28,7 @@ src/
 ├── hooks/
 │   ├── useItems.js
 │   ├── useItem.js
-│   └── useTags.js
+│   ├── useTags.js
+│   └── useSupabaseClient.js    # Clerk-authenticated Supabase client for admin writes
 └── main.jsx                    # React Router + Clerk provider setup
 ```
