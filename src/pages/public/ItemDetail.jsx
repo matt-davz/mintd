@@ -5,6 +5,7 @@ import styled from 'styled-components'
 import { useItem } from '../../hooks/useItem'
 import { useItems } from '../../hooks/useItems'
 import { SignatoryList } from '../../components/public/SignatoryList'
+import { ItemTypeDetails } from '../../components/itemDetail/ItemTypeDetails'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -520,7 +521,7 @@ const ZOOM_FACTOR = 5
 
 export default function ItemDetail() {
   const { id } = useParams()
-  const { item, signatories, certifications, population, images, loading, error } = useItem(id)
+  const { item, signatories, certifications, population, images, detail, gameContext, loading, error } = useItem(id)
   const { items: allItems } = useItems()
 
   const frameRef = useRef(null)
@@ -697,6 +698,12 @@ export default function ItemDetail() {
               )}
             </DataGrid>
           </TitleSection>
+
+          <ItemTypeDetails
+            itemType={item.item_type}
+            detail={detail}
+            gameContext={gameContext}
+          />
 
           {pop && (
             <>

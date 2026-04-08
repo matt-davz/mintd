@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { DETAIL_TABLE, HAS_GAME_CONTEXT } from '../lib/itemTypeConfig'
 
 export function useItem(id) {
   const [item, setItem] = useState(null)
@@ -7,6 +8,8 @@ export function useItem(id) {
   const [certifications, setCertifications] = useState([])
   const [population, setPopulation] = useState([])
   const [images, setImages] = useState([])
+  const [detail, setDetail] = useState(null)
+  const [gameContext, setGameContext] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -40,6 +43,33 @@ export function useItem(id) {
       setCertifications(certRes.data ?? [])
       setImages(imgRes.data ?? [])
 
+      // Fetch type-specific detail + game context
+      const itemType = itemRes.data.item_type
+      const detailTable = itemType ? DETAIL_TABLE[itemType] : null
+
+      if (detailTable) {
+        const { data: detailData } = await supabase
+          .from(detailTable)
+          .select()
+          .eq('item_id', id)
+          .maybeSingle()
+
+        if (!cancelled && detailData) {
+          setDetail(detailData)
+
+          if (HAS_GAME_CONTEXT.has(itemType) && detailData.game_context_id) {
+            const { data: gcData } = await supabase
+              .from('game_context')
+              .select()
+              .eq('id', detailData.game_context_id)
+              .single()
+
+            if (!cancelled) setGameContext(gcData ?? null)
+          }
+        }
+      }
+
+      // Fetch population data
       const psaCerts = (certRes.data ?? []).filter(c =>
         ['PSA', 'PSA/DNA'].includes(c.cert_service)
       )
@@ -64,5 +94,5 @@ export function useItem(id) {
 
   const refetch = useCallback(() => refetchRef.current(), [])
 
-  return { item, signatories, certifications, population, images, loading, error, refetch }
+  return { item, signatories, certifications, population, images, detail, gameContext, loading, error, refetch }
 }

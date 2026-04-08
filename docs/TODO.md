@@ -36,10 +36,11 @@
 - [x] `<Gallery>` page — hero heading, filter bar, responsive 1-2-3-4 col grid, pagination
 
 ### Item Detail (`/item/:id`)
-- [x] `useItem` hook — fetches single item with signatories, certs, images
+- [x] `useItem` hook — fetches single item with signatories, certs, images, type detail, game context
 - [x] `<ItemDetail>` page — full item view, PSA population table, signatory list, acquisition cost
 - [x] PSA population display — Higher / Same / Lower table, monospace numbers
 - [x] Image column — hover magnifier lens, fullscreen lightbox, thumbnail nav
+- [x] Type-specific detail display — `components/itemDetail/` with per-type display components + game context
 - [ ] Verify `item_gallery` cert data works correctly with edge cases (0 certs, multiple certs)
 
 ### Contact (`/contact`)
@@ -61,8 +62,8 @@
 
 ### Item Viewer / Editor / Creator — unified modal
 - [x] `<ItemViewerModal>` — single modal component for view, edit, and create:
-  - **View mode** (`itemId` set): read-only display of all item data, certs, sigs, images. Edit button toggles to edit mode.
-  - **Edit mode** (`itemId` set, edit toggled): inline editing of all fields, reconciles certs/sigs/images on save.
+  - **View mode** (`itemId` set): read-only display of all item data, certs, sigs, images, type details, game context. Edit button toggles to edit mode.
+  - **Edit mode** (`itemId` set, edit toggled): inline editing of all fields, reconciles certs/sigs/images on save. Saves type detail + game context rows.
   - **Create mode** (`itemId={null}`): blank form, starts in edit state, INSERT on save. Opened from "Add New Asset" button in AdminLayout.
 - [x] Item type selector — selecting a type shows type-specific fields + game context (where applicable)
 - [x] `<CertForm>` — add/edit/delete certifications

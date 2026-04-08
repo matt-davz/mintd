@@ -597,7 +597,7 @@ const EMPTY_FORM = {
 
 export function ItemViewerModal({ itemId, onClose }) {
   const isCreateMode = !itemId
-  const { item, signatories, certifications, images, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
+  const { item, signatories, certifications, images, detail, gameContext, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
 
   const [isEditing, setIsEditing] = useState(isCreateMode)
   const [isSaving, setIsSaving] = useState(false)
@@ -634,11 +634,43 @@ export function ItemViewerModal({ itemId, onClose }) {
     setDraftCerts(dc)
     setDraftSigs(ds)
     setDraftImages(di)
+
+    // Populate type detail form from existing data
+    let initDetail = null
+    let initGc = null
+    if (item.item_type && EMPTY_DETAIL[item.item_type]) {
+      const template = EMPTY_DETAIL[item.item_type]
+      initDetail = { ...template }
+      if (detail) {
+        for (const key of Object.keys(template)) {
+          if (detail[key] != null) initDetail[key] = detail[key]
+        }
+      }
+      setDetailForm(initDetail)
+
+      if (HAS_GAME_CONTEXT.has(item.item_type)) {
+        initGc = { ...EMPTY_GAME_CONTEXT }
+        if (gameContext) {
+          for (const key of Object.keys(initGc)) {
+            if (gameContext[key] != null) initGc[key] = gameContext[key]
+          }
+        }
+        setGcForm(initGc)
+      } else {
+        setGcForm(null)
+      }
+    } else {
+      setDetailForm(null)
+      setGcForm(null)
+    }
+
     originalRef.current = {
       f: JSON.parse(JSON.stringify(f)),
       dc: JSON.parse(JSON.stringify(dc)),
       ds: JSON.parse(JSON.stringify(ds)),
       di: JSON.parse(JSON.stringify(di)),
+      df: initDetail ? JSON.parse(JSON.stringify(initDetail)) : null,
+      gc: initGc ? JSON.parse(JSON.stringify(initGc)) : null,
     }
     setIsEditing(true)
   }
@@ -717,6 +749,8 @@ export function ItemViewerModal({ itemId, onClose }) {
         || JSON.stringify(draftCerts) !== JSON.stringify(orig?.dc)
         || JSON.stringify(draftSigs) !== JSON.stringify(orig?.ds)
         || JSON.stringify(draftImages) !== JSON.stringify(orig?.di)
+        || JSON.stringify(detailForm) !== JSON.stringify(orig?.df)
+        || JSON.stringify(gcForm) !== JSON.stringify(orig?.gc)
       if (!isDirty) {
         setIsEditing(false)
         setForm(null)
@@ -801,6 +835,44 @@ export function ItemViewerModal({ itemId, onClose }) {
         const { error: itemErr } = await supabase
           .from('items').update(itemPayload).eq('id', itemId)
         if (itemErr) throw new Error(itemErr.message)
+
+        // Upsert game_context if applicable
+        let resolvedGcId = gameContext?.id ?? null
+        if (form.item_type && HAS_GAME_CONTEXT.has(form.item_type) && gcForm && !isFormEmpty(gcForm)) {
+          const gcPayload = serializeForm(gcForm)
+          for (const k of ['season_year', 'series_game_number', 'home_score', 'away_score']) {
+            if (gcPayload[k] !== null) gcPayload[k] = Number(gcPayload[k])
+          }
+          if (resolvedGcId) {
+            const { error: gcErr } = await supabase
+              .from('game_context').update(gcPayload).eq('id', resolvedGcId)
+            if (gcErr) throw new Error(gcErr.message)
+          } else {
+            const { data: gc, error: gcErr } = await supabase
+              .from('game_context').insert(gcPayload).select('id').single()
+            if (gcErr) throw new Error(gcErr.message)
+            resolvedGcId = gc.id
+          }
+        }
+
+        // Upsert type detail row
+        if (form.item_type && detailForm) {
+          const tableName = DETAIL_TABLE[form.item_type]
+          const detailPayload = serializeForm(detailForm)
+          detailPayload.item_id = itemId
+          if (HAS_GAME_CONTEXT.has(form.item_type) && resolvedGcId) {
+            detailPayload.game_context_id = resolvedGcId
+          }
+          if (detail?.id) {
+            const { error: detailErr } = await supabase
+              .from(tableName).update(detailPayload).eq('id', detail.id)
+            if (detailErr) throw new Error(detailErr.message)
+          } else {
+            const { error: detailErr } = await supabase
+              .from(tableName).insert(detailPayload)
+            if (detailErr) throw new Error(detailErr.message)
+          }
+        }
 
         // Reconcile certs, sigs, existing images
         const ops = [
@@ -933,17 +1005,19 @@ export function ItemViewerModal({ itemId, onClose }) {
                     <ItemTitle>{item.title}</ItemTitle>
                   )}
 
-                  <BadgeRow>
-                    {certifications[0] && (
-                      <GradeBadge>
-                        {certifications[0].cert_service} {certifications[0].item_grade ?? certifications[0].auto_grade ?? ''}
-                      </GradeBadge>
-                    )}
-                    {item.for_sale && <ForSaleTag>For Sale</ForSaleTag>}
-                    {item.is_autographed && <Tag>Signed</Tag>}
-                  </BadgeRow>
+                  {!isCreateMode && (
+                    <BadgeRow>
+                      {certifications[0] && (
+                        <GradeBadge>
+                          {certifications[0].cert_service} {certifications[0].item_grade ?? certifications[0].auto_grade ?? ''}
+                        </GradeBadge>
+                      )}
+                      {item.for_sale && <ForSaleTag>For Sale</ForSaleTag>}
+                      {item.is_autographed && <Tag>Signed</Tag>}
+                    </BadgeRow>
+                  )}
 
-                  {!isEditing && item.price && (
+                  {!isEditing && item?.price && (
                     <FieldValue $accent="blue" style={{ fontSize: '1.25rem' }}>
                       ${Number(item.price).toLocaleString()}
                     </FieldValue>
@@ -1046,19 +1120,72 @@ export function ItemViewerModal({ itemId, onClose }) {
                 </Section>
               )}
 
-              {/* ── Type Details (create/edit mode only) ── */}
+              {/* ── Type Details ── */}
               {isEditing && TypeFields && detailForm && (
                 <Section>
                   <SectionLabel>Type Details — {form.item_type.charAt(0).toUpperCase() + form.item_type.slice(1)}</SectionLabel>
                   <TypeFields form={detailForm} setField={setDetailField} />
                 </Section>
               )}
+              {!isEditing && detail && item.item_type && (
+                <Section>
+                  <SectionLabel>Type Details — {item.item_type.charAt(0).toUpperCase() + item.item_type.slice(1)}</SectionLabel>
+                  <FieldGrid>
+                    {Object.entries(EMPTY_DETAIL[item.item_type] ?? {}).map(([key, defaultVal]) => {
+                      const val = detail[key]
+                      if (val == null && typeof defaultVal !== 'boolean') return null
+                      const label = key.replace(/^is_|^has_/, '').replace(/_/g, ' ')
+                      if (typeof defaultVal === 'boolean') {
+                        return (
+                          <Field key={key}>
+                            <FieldLabel>{label}</FieldLabel>
+                            <Bool value={!!val} />
+                          </Field>
+                        )
+                      }
+                      if (val == null || val === '') return null
+                      const display = typeof val === 'string' && val.includes('_')
+                        ? val.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                        : String(val)
+                      return (
+                        <Field key={key}>
+                          <FieldLabel>{label}</FieldLabel>
+                          <Val value={display} />
+                        </Field>
+                      )
+                    })}
+                  </FieldGrid>
+                </Section>
+              )}
 
-              {/* ── Game Context (create/edit mode only) ── */}
+              {/* ── Game Context ── */}
               {isEditing && gcForm && (
                 <Section>
                   <SectionLabel>Game Context</SectionLabel>
                   <GameContextFields form={gcForm} setField={setGcField} />
+                </Section>
+              )}
+              {!isEditing && gameContext && (
+                <Section>
+                  <SectionLabel>Game Context</SectionLabel>
+                  <FieldGrid>
+                    {Object.keys(EMPTY_GAME_CONTEXT).map(key => {
+                      const val = gameContext[key]
+                      if (val == null || val === '') return null
+                      const label = key.replace(/_/g, ' ')
+                      const display = key.includes('date')
+                        ? formatDate(val)
+                        : typeof val === 'string' && val.includes('_')
+                          ? val.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                          : String(val)
+                      return (
+                        <Field key={key}>
+                          <FieldLabel>{label}</FieldLabel>
+                          <Val value={display} />
+                        </Field>
+                      )
+                    })}
+                  </FieldGrid>
                 </Section>
               )}
 
@@ -1214,15 +1341,19 @@ export function ItemViewerModal({ itemId, onClose }) {
                       <Bool value={item.is_part_of_set} />
                     )}
                   </Field>
-                  <Field>
-                    <FieldLabel>Added</FieldLabel>
-                    <Val value={formatDate(item.created_at)} />
-                  </Field>
-                  <Field>
-                    <FieldLabel>Updated</FieldLabel>
-                    <Val value={formatDate(item.updated_at)} />
-                  </Field>
-                  {(isEditing || item.reference_link) && (
+                  {!isCreateMode && (
+                    <Field>
+                      <FieldLabel>Added</FieldLabel>
+                      <Val value={formatDate(item.created_at)} />
+                    </Field>
+                  )}
+                  {!isCreateMode && (
+                    <Field>
+                      <FieldLabel>Updated</FieldLabel>
+                      <Val value={formatDate(item.updated_at)} />
+                    </Field>
+                  )}
+                  {(isEditing || item?.reference_link) && (
                     <Field>
                       <FieldLabel>Reference Link</FieldLabel>
                       {isEditing ? (
@@ -1247,7 +1378,7 @@ export function ItemViewerModal({ itemId, onClose }) {
                       placeholder="Internal notes..."
                       onChange={e => setField('notes', e.target.value)}
                     />
-                  ) : item.notes ? (
+                  ) : item?.notes ? (
                     <FieldValue style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem', lineHeight: 1.6 }}>
                       {item.notes}
                     </FieldValue>

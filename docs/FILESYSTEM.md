@@ -14,6 +14,21 @@ src/
 │   │   ├── ItemCard.jsx
 │   │   ├── FilterBar.jsx       # Item type pill filters + search
 │   │   └── SignatoryList.jsx
+│   ├── itemDetail/             # Public item detail display components
+│   │   ├── styles.js           # Shared styled components + formatters
+│   │   ├── ItemTypeDetails.jsx # Dispatcher — picks correct type display
+│   │   ├── GameContextDisplay.jsx
+│   │   ├── TicketDisplay.jsx
+│   │   ├── CardDisplay.jsx
+│   │   ├── BaseballDisplay.jsx
+│   │   ├── BatDisplay.jsx
+│   │   ├── JerseyDisplay.jsx
+│   │   ├── PhotoDisplay.jsx
+│   │   ├── MagazineDisplay.jsx
+│   │   ├── ProgramDisplay.jsx
+│   │   ├── BookDisplay.jsx
+│   │   ├── BaseDisplay.jsx
+│   │   └── GloveDisplay.jsx
 │   └── admin/
 │       ├── AdminGuard.jsx      # Clerk auth wrapper for /admin/* routes
 │       ├── AdminLayout.jsx     # Sidebar nav + top bar + create modal
@@ -42,7 +57,7 @@ src/
 │   └── itemTypeConfig.js       # Item type metadata, empty forms, serialization
 ├── hooks/
 │   ├── useItems.js             # Queries item_gallery view
-│   ├── useItem.js              # Single item with certs, sigs, images
+│   ├── useItem.js              # Single item with certs, sigs, images, type detail, game context
 │   └── useTags.js
 ├── styles/
 │   └── GlobalStyles.js         # Design tokens + global CSS
