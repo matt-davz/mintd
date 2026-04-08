@@ -3,9 +3,16 @@ import styled from 'styled-components'
 import { useItem } from '../../hooks/useItem'
 import { supabase } from '../../lib/supabase'
 import { uploadToCloudinary } from '../../lib/cloudinary'
+import {
+  ITEM_TYPES, HAS_GAME_CONTEXT, DETAIL_TABLE,
+  EMPTY_DETAIL, EMPTY_GAME_CONTEXT,
+  isFormEmpty, serializeForm,
+} from '../../lib/itemTypeConfig'
 import { CertForm } from './CertForm'
 import { SignatoryForm } from './SignatoryForm'
 import { ImageUploader } from './ImageUploader'
+import { GameContextFields } from './GameContextFields'
+import { TYPE_FIELDS_MAP } from './itemTypes'
 
 // ─── Reconcile helpers ────────────────────────────────────────────────────────
 
@@ -580,13 +587,24 @@ function Val({ value, accent, href }) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ItemViewerModal({ itemId, onClose }) {
-  const { item, signatories, certifications, images, loading, error, refetch } = useItem(itemId)
+const EMPTY_FORM = {
+  title: '', description: '', reference_link: '',
+  price: '', auto_total: '', acquisition_type: 'unknown',
+  item_type: '', is_autographed: false, for_sale: false,
+  is_visible: false, is_baseball: false, is_part_of_set: false,
+  purchase_date: '', notes: '',
+}
 
-  const [isEditing, setIsEditing] = useState(false)
+export function ItemViewerModal({ itemId, onClose }) {
+  const isCreateMode = !itemId
+  const { item, signatories, certifications, images, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
+
+  const [isEditing, setIsEditing] = useState(isCreateMode)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
-  const [form, setForm] = useState(null)
+  const [form, setForm] = useState(isCreateMode ? { ...EMPTY_FORM } : null)
+  const [detailForm, setDetailForm] = useState(null)
+  const [gcForm, setGcForm] = useState(null)
   const [draftCerts, setDraftCerts] = useState([])
   const [draftSigs, setDraftSigs] = useState([])
   const [draftImages, setDraftImages] = useState([])
@@ -600,18 +618,13 @@ export function ItemViewerModal({ itemId, onClose }) {
       price:               item.price ?? '',
       auto_total:          item.auto_total ?? '',
       acquisition_type:    item.acquisition_type ?? 'unknown',
+      item_type:           item.item_type ?? '',
       is_autographed:      item.is_autographed ?? false,
-      is_world_series_game: item.is_world_series_game ?? false,
-      is_clinch_game:      item.is_clinch_game ?? false,
       for_sale:            item.for_sale ?? false,
       is_visible:          item.is_visible ?? false,
       is_baseball:         item.is_baseball ?? false,
       is_part_of_set:      item.is_part_of_set ?? false,
-      ws_game_number:      item.ws_game_number ?? '',
-      clinch_number:       item.clinch_number ?? '',
-      game_date:           item.game_date ?? '',
       purchase_date:       item.purchase_date ?? '',
-      location:            item.location ?? '',
       notes:               item.notes ?? '',
     }
     const dc = certifications.map(c => ({ ...c, _key: c.id }))
@@ -652,7 +665,32 @@ export function ItemViewerModal({ itemId, onClose }) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
+  function setDetailField(key, value) {
+    setDetailForm(prev => ({ ...prev, [key]: value }))
+  }
+
+  function setGcField(key, value) {
+    setGcForm(prev => ({ ...prev, [key]: value }))
+  }
+
+  function handleTypeChange(newType) {
+    setField('item_type', newType)
+    if (newType) {
+      setDetailForm({ ...EMPTY_DETAIL[newType] })
+      setGcForm(HAS_GAME_CONTEXT.has(newType) ? { ...EMPTY_GAME_CONTEXT } : null)
+    } else {
+      setDetailForm(null)
+      setGcForm(null)
+    }
+  }
+
   function handleCancel() {
+    if (isCreateMode) {
+      const hasContent = form.title.trim() || draftCerts.length || draftSigs.length || draftImages.length
+      if (hasContent && !window.confirm('Discard new asset?')) return
+      onClose()
+      return
+    }
     const orig = originalRef.current
     const dirty = JSON.stringify(form) !== JSON.stringify(orig?.f)
       || JSON.stringify(draftCerts) !== JSON.stringify(orig?.dc)
@@ -661,119 +699,158 @@ export function ItemViewerModal({ itemId, onClose }) {
     if (dirty && !window.confirm('Discard unsaved changes?')) return
     setIsEditing(false)
     setForm(null)
+    setDetailForm(null)
+    setGcForm(null)
     setSaveError(null)
   }
 
   async function handleSave() {
-    const orig = originalRef.current
-    const isDirty = JSON.stringify(form) !== JSON.stringify(orig?.f)
-      || JSON.stringify(draftCerts) !== JSON.stringify(orig?.dc)
-      || JSON.stringify(draftSigs) !== JSON.stringify(orig?.ds)
-      || JSON.stringify(draftImages) !== JSON.stringify(orig?.di)
-
-    console.log('[handleSave] dirty?', isDirty)
-    console.log('[handleSave] draftImages:', draftImages.map(i => ({
-      id: i.id,
-      hasFile: !!i.file,
-      is_primary: i.is_primary,
-      localUrl: i.localUrl ?? null,
-    })))
-
-    if (!isDirty) {
-      setIsEditing(false)
-      setForm(null)
+    if (!form.title.trim()) {
+      setSaveError('Title is required.')
       return
+    }
+
+    // Skip save if nothing changed (edit mode only)
+    if (!isCreateMode) {
+      const orig = originalRef.current
+      const isDirty = JSON.stringify(form) !== JSON.stringify(orig?.f)
+        || JSON.stringify(draftCerts) !== JSON.stringify(orig?.dc)
+        || JSON.stringify(draftSigs) !== JSON.stringify(orig?.ds)
+        || JSON.stringify(draftImages) !== JSON.stringify(orig?.di)
+      if (!isDirty) {
+        setIsEditing(false)
+        setForm(null)
+        return
+      }
     }
 
     setIsSaving(true)
     setSaveError(null)
+
     try {
-      // ── 1. Update item fields ──────────────────────────────────────────────
-      console.log('[handleSave] step 1 — updating item fields')
-      const { error: itemErr } = await supabase.from('items').update({
-        title:               form.title,
-        description:         form.description || null,
-        reference_link:      form.reference_link || null,
-        price:               form.price === '' ? null : Number(form.price),
-        auto_total:          form.auto_total === '' ? null : Number(form.auto_total),
-        acquisition_type:    form.acquisition_type,
-        is_autographed:      form.is_autographed,
-        is_world_series_game: form.is_world_series_game,
-        ws_game_number:      form.ws_game_number === '' ? null : Number(form.ws_game_number),
-        is_clinch_game:      form.is_clinch_game,
-        clinch_number:       form.clinch_number === '' ? null : Number(form.clinch_number),
-        for_sale:            form.for_sale,
-        is_visible:          form.is_visible,
-        is_baseball:         form.is_baseball,
-        is_part_of_set:      form.is_part_of_set,
-        game_date:           form.game_date || null,
-        purchase_date:       form.purchase_date || null,
-        location:            form.location || null,
-        notes:               form.notes || null,
-      }).eq('id', itemId)
+      const itemPayload = {
+        title:            form.title.trim(),
+        description:      form.description || null,
+        reference_link:   form.reference_link || null,
+        price:            form.price === '' ? null : Number(form.price),
+        auto_total:       form.auto_total === '' ? null : Number(form.auto_total),
+        acquisition_type: form.acquisition_type,
+        item_type:        form.item_type || null,
+        is_autographed:   form.is_autographed,
+        for_sale:         form.for_sale,
+        is_visible:       form.is_visible,
+        is_baseball:      form.is_baseball,
+        is_part_of_set:   form.is_part_of_set,
+        purchase_date:    form.purchase_date || null,
+        notes:            form.notes || null,
+      }
 
-      if (itemErr) throw new Error(itemErr.message)
-      console.log('[handleSave] step 1 — item update OK')
+      let savedItemId
+      if (isCreateMode) {
+        // ── CREATE: insert new item ───────────────────────────────────────────
+        const { data: newItem, error: itemErr } = await supabase
+          .from('items').insert(itemPayload).select('id').single()
+        if (itemErr) throw new Error(itemErr.message)
+        savedItemId = newItem.id
 
-      // ── 2. Upload new images to Cloudinary ───────────────────────────────
+        // Insert game_context if applicable
+        let gameContextId = null
+        if (gcForm && !isFormEmpty(gcForm)) {
+          const gcPayload = serializeForm(gcForm)
+          for (const k of ['season_year', 'series_game_number', 'home_score', 'away_score']) {
+            if (gcPayload[k] !== null) gcPayload[k] = Number(gcPayload[k])
+          }
+          const { data: gc, error: gcErr } = await supabase
+            .from('game_context').insert(gcPayload).select('id').single()
+          if (gcErr) throw new Error(gcErr.message)
+          gameContextId = gc.id
+        }
+
+        // Insert type detail row
+        if (form.item_type && detailForm) {
+          const tableName = DETAIL_TABLE[form.item_type]
+          const detailPayload = serializeForm(detailForm)
+          detailPayload.item_id = savedItemId
+          if (gameContextId && HAS_GAME_CONTEXT.has(form.item_type)) {
+            detailPayload.game_context_id = gameContextId
+          }
+          const { error: detailErr } = await supabase.from(tableName).insert(detailPayload)
+          if (detailErr) throw new Error(detailErr.message)
+        }
+
+        // Insert certs + sigs
+        const ops = []
+        if (draftCerts.length) {
+          ops.push(supabase.from('certifications').insert(
+            draftCerts.map(({ _key, id, ...c }) => ({ ...c, item_id: savedItemId }))
+          ))
+        }
+        if (draftSigs.length) {
+          ops.push(supabase.from('signatories').insert(
+            draftSigs.map(({ _key, id, ...s }) => ({ ...s, item_id: savedItemId }))
+          ))
+        }
+        if (ops.length) {
+          const results = await Promise.all(ops)
+          const firstErr = results.find(r => r.error)
+          if (firstErr) throw new Error(firstErr.error.message)
+        }
+      } else {
+        // ── UPDATE: update existing item ──────────────────────────────────────
+        savedItemId = itemId
+        const { error: itemErr } = await supabase
+          .from('items').update(itemPayload).eq('id', itemId)
+        if (itemErr) throw new Error(itemErr.message)
+
+        // Reconcile certs, sigs, existing images
+        const ops = [
+          ...reconcileCerts(draftCerts, certifications, itemId),
+          ...reconcileSigs(draftSigs, signatories, itemId),
+          ...reconcileImages(draftImages, images),
+        ]
+        if (ops.length) {
+          const results = await Promise.all(ops)
+          const firstErr = results.find(r => r.error)
+          if (firstErr) throw new Error(firstErr.error.message)
+        }
+      }
+
+      // ── Upload new images (both modes) ──────────────────────────────────────
       const newImages = draftImages.filter(i => !i.id && i.file)
-      console.log('[handleSave] step 2 — new images to upload:', newImages.length)
-
       if (newImages.length > 0) {
-        const maxExistingOrder = images.reduce((max, i) => Math.max(max, i.display_order ?? 0), -1)
+        const maxExistingOrder = (images ?? []).reduce((max, i) => Math.max(max, i.display_order ?? 0), -1)
         const imageRows = []
-
         for (let i = 0; i < newImages.length; i++) {
           const img = newImages[i]
           const displayOrder = maxExistingOrder + 1 + i
-          const publicId = `import/${itemId.slice(0, 8)}/image_${displayOrder}`
-          console.log(`[handleSave] step 2 — uploading image ${i + 1}/${newImages.length} → public_id: ${publicId}`)
-
+          const publicId = `import/${savedItemId.slice(0, 8)}/image_${displayOrder}`
           const result = await uploadToCloudinary(img.file, publicId)
-          console.log(`[handleSave] step 2 — Cloudinary response:`, result)
-
           imageRows.push({
-            item_id:              itemId,
+            item_id:              savedItemId,
             cloudinary_public_id: result.public_id,
             cloudinary_url:       result.secure_url,
             is_primary:           img.is_primary,
             display_order:        displayOrder,
           })
         }
-
-        // If no existing images remain primary, promote first new one
         const existingPrimary = draftImages.some(i => i.id && i.is_primary)
-        if (!existingPrimary && !imageRows.some(r => r.is_primary)) {
+        if (!existingPrimary && imageRows.length && !imageRows.some(r => r.is_primary)) {
           imageRows[0].is_primary = true
         }
-
-        console.log('[handleSave] step 2 — inserting image rows to DB:', imageRows)
         const { error: imgErr } = await supabase.from('images').insert(imageRows)
         if (imgErr) throw new Error(imgErr.message)
-        console.log('[handleSave] step 2 — image insert OK')
       }
 
-      // ── 3. Reconcile certs, sigs, existing images ────────────────────────
-      console.log('[handleSave] step 3 — reconciling certs/sigs/existing images')
-      const ops = [
-        ...reconcileCerts(draftCerts, certifications, itemId),
-        ...reconcileSigs(draftSigs, signatories, itemId),
-        ...reconcileImages(draftImages, images),
-      ]
-      console.log('[handleSave] step 3 — ops count:', ops.length)
-
-      if (ops.length) {
-        const results = await Promise.all(ops)
-        const firstErr = results.find(r => r.error)
-        if (firstErr) throw new Error(firstErr.error.message)
+      if (isCreateMode) {
+        onClose()
+      } else {
+        refetch()
+        setIsEditing(false)
+        setForm(null)
+        setDetailForm(null)
+        setGcForm(null)
       }
-      console.log('[handleSave] step 3 — reconcile OK')
-
-      refetch()
-      setIsEditing(false)
-      setForm(null)
     } catch (err) {
-      console.error('[handleSave] ERROR:', err)
       setSaveError(err.message)
     } finally {
       setIsSaving(false)
@@ -782,9 +859,13 @@ export function ItemViewerModal({ itemId, onClose }) {
 
   function handleOverlayClick() {
     if (isEditing) {
-      if (window.confirm('Discard unsaved changes?')) {
+      if (isCreateMode) {
+        handleCancel()
+      } else if (window.confirm('Discard unsaved changes?')) {
         setIsEditing(false)
         setForm(null)
+        setDetailForm(null)
+        setGcForm(null)
         setSaveError(null)
         onClose()
       }
@@ -793,7 +874,8 @@ export function ItemViewerModal({ itemId, onClose }) {
     }
   }
 
-  const primaryImage = images.find(i => i.is_primary) ?? images[0]
+  const primaryImage = (images ?? []).find(i => i.is_primary) ?? (images ?? [])[0]
+  const TypeFields = form?.item_type ? TYPE_FIELDS_MAP[form.item_type] : null
 
   return (
     <Overlay onClick={handleOverlayClick}>
@@ -801,13 +883,13 @@ export function ItemViewerModal({ itemId, onClose }) {
 
         <PanelHeader>
           <PanelTitle $editing={isEditing}>
-            {isEditing ? 'Editing Item' : 'Item Record'}
+            {isCreateMode ? 'New Asset' : isEditing ? 'Editing Item' : 'Item Record'}
           </PanelTitle>
           <HeaderActions>
             {isEditing ? (
               <>
                 <SaveBtn onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? 'Saving...' : 'Save'}
+                  {isSaving ? 'Saving...' : isCreateMode ? 'Create' : 'Save'}
                 </SaveBtn>
                 <CancelBtn onClick={handleCancel}>Cancel</CancelBtn>
               </>
@@ -826,10 +908,10 @@ export function ItemViewerModal({ itemId, onClose }) {
         {isEditing && saveError && <SaveErrorBanner>Error: {saveError}</SaveErrorBanner>}
 
         <PanelBody>
-          {loading && <StatusMsg>Loading...</StatusMsg>}
-          {error && <StatusMsg>Error: {error}</StatusMsg>}
+          {!isCreateMode && loading && <StatusMsg>Loading...</StatusMsg>}
+          {!isCreateMode && error && <StatusMsg>Error: {error}</StatusMsg>}
 
-          {!loading && !error && item && (
+          {(isCreateMode || (!loading && !error && item)) && (
             <>
               {/* ── Top: photo + key info ── */}
               <TopSection>
@@ -859,14 +941,27 @@ export function ItemViewerModal({ itemId, onClose }) {
                     )}
                     {item.for_sale && <ForSaleTag>For Sale</ForSaleTag>}
                     {item.is_autographed && <Tag>Signed</Tag>}
-                    {item.is_world_series_game && <Tag>World Series</Tag>}
-                    {item.is_clinch_game && <Tag>Clinch Game</Tag>}
                   </BadgeRow>
 
                   {!isEditing && item.price && (
                     <FieldValue $accent="blue" style={{ fontSize: '1.25rem' }}>
                       ${Number(item.price).toLocaleString()}
                     </FieldValue>
+                  )}
+
+                  {isEditing && (
+                    <div style={{ marginBottom: 'var(--space-2)' }}>
+                      <FieldLabel>Item Type</FieldLabel>
+                      <EditSelect value={form.item_type} onChange={e => handleTypeChange(e.target.value)}>
+                        <option value="">— Select type —</option>
+                        {ITEM_TYPES.map(t => (
+                          <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                        ))}
+                      </EditSelect>
+                    </div>
+                  )}
+                  {!isEditing && item.item_type && (
+                    <Tag>{item.item_type.charAt(0).toUpperCase() + item.item_type.slice(1)}</Tag>
                   )}
 
                   {isEditing ? (
@@ -951,6 +1046,22 @@ export function ItemViewerModal({ itemId, onClose }) {
                 </Section>
               )}
 
+              {/* ── Type Details (create/edit mode only) ── */}
+              {isEditing && TypeFields && detailForm && (
+                <Section>
+                  <SectionLabel>Type Details — {form.item_type.charAt(0).toUpperCase() + form.item_type.slice(1)}</SectionLabel>
+                  <TypeFields form={detailForm} setField={setDetailField} />
+                </Section>
+              )}
+
+              {/* ── Game Context (create/edit mode only) ── */}
+              {isEditing && gcForm && (
+                <Section>
+                  <SectionLabel>Game Context</SectionLabel>
+                  <GameContextFields form={gcForm} setField={setGcField} />
+                </Section>
+              )}
+
               {/* ── Financials ── */}
               <Section>
                 <SectionLabel>Financials</SectionLabel>
@@ -1020,22 +1131,10 @@ export function ItemViewerModal({ itemId, onClose }) {
                 </FieldGrid>
               </Section>
 
-              {/* ── Game context ── */}
+              {/* ── Dates & Flags ── */}
               <Section>
-                <SectionLabel>Game Context</SectionLabel>
+                <SectionLabel>Dates & Flags</SectionLabel>
                 <FieldGrid>
-                  <Field>
-                    <FieldLabel>Game Date</FieldLabel>
-                    {isEditing ? (
-                      <EditInput
-                        type="date"
-                        value={form.game_date}
-                        onChange={e => setField('game_date', e.target.value)}
-                      />
-                    ) : (
-                      <Val value={formatDate(item.game_date)} />
-                    )}
-                  </Field>
                   <Field>
                     <FieldLabel>Purchase Date</FieldLabel>
                     {isEditing ? (
@@ -1046,69 +1145,6 @@ export function ItemViewerModal({ itemId, onClose }) {
                       />
                     ) : (
                       <Val value={formatDate(item.purchase_date)} />
-                    )}
-                  </Field>
-                  <Field>
-                    <FieldLabel>World Series</FieldLabel>
-                    {isEditing ? (
-                      <CheckboxLabel>
-                        <input
-                          type="checkbox"
-                          checked={form.is_world_series_game}
-                          onChange={e => setField('is_world_series_game', e.target.checked)}
-                        />
-                        Yes
-                      </CheckboxLabel>
-                    ) : (
-                      <Bool value={item.is_world_series_game} />
-                    )}
-                  </Field>
-                  <Field>
-                    <FieldLabel>WS Game #</FieldLabel>
-                    {isEditing ? (
-                      <EditInput
-                        type="number"
-                        min="1"
-                        max="7"
-                        value={form.ws_game_number}
-                        placeholder="—"
-                        disabled={!form.is_world_series_game}
-                        onChange={e => setField('ws_game_number', e.target.value)}
-                        style={{ opacity: form.is_world_series_game ? 1 : 0.3 }}
-                      />
-                    ) : (
-                      <Val value={item.ws_game_number} />
-                    )}
-                  </Field>
-                  <Field>
-                    <FieldLabel>Clinch Game</FieldLabel>
-                    {isEditing ? (
-                      <CheckboxLabel>
-                        <input
-                          type="checkbox"
-                          checked={form.is_clinch_game}
-                          onChange={e => setField('is_clinch_game', e.target.checked)}
-                        />
-                        Yes
-                      </CheckboxLabel>
-                    ) : (
-                      <Bool value={item.is_clinch_game} />
-                    )}
-                  </Field>
-                  <Field>
-                    <FieldLabel>Clinch #</FieldLabel>
-                    {isEditing ? (
-                      <EditInput
-                        type="number"
-                        min="1"
-                        value={form.clinch_number}
-                        placeholder="—"
-                        disabled={!form.is_clinch_game}
-                        onChange={e => setField('clinch_number', e.target.value)}
-                        style={{ opacity: form.is_clinch_game ? 1 : 0.3 }}
-                      />
-                    ) : (
-                      <Val value={item.clinch_number} />
                     )}
                   </Field>
                   <Field>
@@ -1124,19 +1160,6 @@ export function ItemViewerModal({ itemId, onClose }) {
                       </CheckboxLabel>
                     ) : (
                       <Bool value={item.is_autographed} />
-                    )}
-                  </Field>
-                  <Field>
-                    <FieldLabel>Location</FieldLabel>
-                    {isEditing ? (
-                      <EditInput
-                        type="text"
-                        value={form.location}
-                        placeholder="Storage location"
-                        onChange={e => setField('location', e.target.value)}
-                      />
-                    ) : (
-                      <Val value={item.location} />
                     )}
                   </Field>
                 </FieldGrid>

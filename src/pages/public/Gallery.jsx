@@ -115,16 +115,16 @@ function buildPages(current, total) {
 }
 
 export default function Gallery() {
-  const [activeTag, setActiveTag] = useState(null)
+  const [activeType, setActiveType] = useState(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
 
   const { items, loading, error } = useItems()
 
   const filtered = items.filter(item => {
-    const matchesTag = !activeTag || (item.tag_slugs ?? []).includes(activeTag)
+    const matchesType = !activeType || item.item_type === activeType
     const matchesSearch = !search.trim() || item.title.toLowerCase().includes(search.trim().toLowerCase())
-    return matchesTag && matchesSearch
+    return matchesType && matchesSearch
   })
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
@@ -132,15 +132,15 @@ export default function Gallery() {
   const pages = buildPages(page, totalPages)
 
   // Reset to page 1 when filters change
-  useEffect(() => { setPage(1) }, [activeTag, search])
+  useEffect(() => { setPage(1) }, [activeType, search])
 
   return (
     <Page>
       <Hero>
         <Heading>The Archive</Heading>
         <FilterBar
-          activeTag={activeTag}
-          onTagChange={setActiveTag}
+          activeType={activeType}
+          onTypeChange={setActiveType}
           search={search}
           onSearchChange={setSearch}
         />

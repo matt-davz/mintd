@@ -10,10 +10,11 @@
 
 ## 2. Database (Supabase)
 - [x] Create tables: `items`, `signatories`, `certifications`, `population_snapshots`, `tags`, `item_tags`, `sets`, `images`
-- [x] Create views: `item_cards`, `latest_population`
+- [x] Create views: `item_gallery` (renamed from `item_cards`), `latest_population`
 - [x] Configure RLS on all tables
-- [x] Seed pre-defined tags (item type, attribute, era tags from CLAUDE.md)
-- [x] **Apply migration `0003_admin_write_policies.sql`** — run `supabase db push` to add INSERT/UPDATE/DELETE policies for admin tables (items, certifications, signatories, images, population_snapshots, item_tags). Without this, all admin writes fail with RLS violation errors. Migration file is ready at `supabase/migrations/0003_admin_write_policies.sql`.
+- [x] Seed pre-defined tags (item type, attribute, era tags)
+- [x] Admin write policies (migration `0003`)
+- [x] Item type system — `item_type` enum on `items`, `game_context` table, 11 `item_*` detail tables (migrations `0004`–`0012`)
 
 ## 3. Auth (Clerk)
 - [x] Add Clerk provider to `main.jsx`
@@ -23,88 +24,67 @@
 
 ## 4. Supabase Connection Test
 - [x] Add real values to `.env.local`
-- [x] Build a temporary test page at `/test` that queries the `tags` table and renders the results
 - [x] Verify data returns correctly in the browser
 - [x] Remove the test page once confirmed working
 
 ## 5. Public Site
 
 ### Gallery (`/`)
-- [x] `useItems` hook — queries `item_gallery` view, supports tag filter + search
-- [x] `useTags` hook — fetches all tags
-- [x] `<FilterBar>` — item_type tag pills + search input
-- [x] `<ItemCard>` — image, for-sale badge, grade badge (muted gold), title, featured signer with multi-signer "+N others" rule, cert ID, price
-- [x] `<Gallery>` page — hero heading, filter bar, responsive 1-2-3-4 col grid
+- [x] `useItems` hook — queries `item_gallery` view
+- [x] `<FilterBar>` — item type pill filters (from `ITEM_TYPES` config) + search input
+- [x] `<ItemCard>` — image, for-sale badge, grade badge, title, featured signer with multi-signer "+N others" rule, cert ID, price
+- [x] `<Gallery>` page — hero heading, filter bar, responsive 1-2-3-4 col grid, pagination
 
 ### Item Detail (`/item/:id`)
 - [x] `useItem` hook — fetches single item with signatories, certs, images
-- [x] `<ItemDetail>` page — full item view, PSA population table (from `latest_population`), signatory list, acquisition cost
-- [x] PSA population display — Higher / Same / Lower table, monospace numbers, only show if PSA/PSA-DNA cert exists
-- [x] Image column — hover magnifier lens (2.5× zoom follows cursor), fullscreen lightbox modal with keyboard nav + multi-image arrow navigation
-- [x] Thumbnail row — clicking thumbnails switches the displayed image
-- [ ] Add pagination / gallery card grade badge — requires adding cert fields to `item_cards` view
-- [ ] `item_cards` view cert data relies on a lateral join added in migration 0002 — verify it works correctly with real data and edge cases (items with no cert, multiple certs)
-- Note: each signatory must be a separate row in the `signatories` table — do not store multiple names as a single comma-separated string
+- [x] `<ItemDetail>` page — full item view, PSA population table, signatory list, acquisition cost
+- [x] PSA population display — Higher / Same / Lower table, monospace numbers
+- [x] Image column — hover magnifier lens, fullscreen lightbox, thumbnail nav
+- [ ] Verify `item_gallery` cert data works correctly with edge cases (0 certs, multiple certs)
 
 ### Contact (`/contact`)
 - [x] `<Contact>` page — simple form (name, email, phone, message)
-- [ ] Decide and implement submission method (Supabase insert → Edge Function email, or Formspree)
-- [ ] Replace placeholder email + phone in Footer and Contact page with real client details
-- [ ] Prompt injection protection — sanitise all form fields before submission (strip HTML tags, limit length, reject suspicious patterns)
+- [ ] Decide and implement submission method (Supabase insert + Edge Function email, or Formspree)
+- [ ] Replace placeholder email + phone with real client details
 
 ## 6. Admin Panel
 
 ### Dashboard (`/admin/dashboard`) — Overview
-- [x] `<AdminLayout>` — sidebar nav (Overview, Table View, PSA Sync, Sign Out) + sticky top bar with Add New Asset CTA
+- [x] `<AdminLayout>` — sidebar nav + sticky top bar with "Add New Asset" button (opens create modal)
 - [x] Stats cards — total item count, total acquisition cost
-- [ ] Rebuild inventory feed into a full item grid — shows ALL items with photo + minimal info (title, grade, for-sale status)
-- [ ] Search bar + tag filter to narrow the grid
-- [ ] Each card links to the item editor
+- [ ] Rebuild inventory feed into a full item grid — shows ALL items with photo + minimal info
+- [ ] Search bar + type filter to narrow the grid
 
 ### Item List (`/admin/items`) — Table View
-- [x] `<ItemList>` page — raw data table, NO images, ALL fields visible (title, cert, grade, cert ID, cost, ask price, for_sale, signed, acq. type, game date, purchase date, location, notes, added)
-- [x] Sortable columns (click header to toggle asc/desc)
-- [x] Search bar (searches title, cert ID, location, notes)
-- [x] **Raw Export** button — exports current filtered/sorted table to CSV with all columns (headers derived dynamically from data keys)
-- [x] **Catalog Export** button — exports a curated CSV: title, cert service, grade, cert ID, for sale, acquisition cost, game date, pop total/higher/lower, signatories, tags. Excludes: notes, ask price, auto total, location, purchase date, Cloudinary IDs, reference link
+- [x] `<ItemList>` page — raw data table, sortable columns, search bar
+- [x] **Raw Export** + **Catalog Export** CSV buttons
+
+### Item Viewer / Editor / Creator — unified modal
+- [x] `<ItemViewerModal>` — single modal component for view, edit, and create:
+  - **View mode** (`itemId` set): read-only display of all item data, certs, sigs, images. Edit button toggles to edit mode.
+  - **Edit mode** (`itemId` set, edit toggled): inline editing of all fields, reconciles certs/sigs/images on save.
+  - **Create mode** (`itemId={null}`): blank form, starts in edit state, INSERT on save. Opened from "Add New Asset" button in AdminLayout.
+- [x] Item type selector — selecting a type shows type-specific fields + game context (where applicable)
+- [x] `<CertForm>` — add/edit/delete certifications
+- [x] `<SignatoryForm>` — add/edit/delete signatories
+- [x] `<ImageUploader>` — upload, delete, set primary
+- [x] `<GameContextFields>` — shared game context sub-form (8 item types)
+- [x] 11 type-specific field components in `components/admin/itemTypes/`
+- [ ] **URL auto-fill on new item** — paste reference link to scrape + pre-fill form fields (TBD)
 
 ### Tags & Categories
-- [ ] **Missing cert IDs** — audit items with no `cert_id`; determine if uncertified or data gap. Add a flag/filter in Table View to surface items with missing cert data
-- [ ] **Tag UI in Item Editor** — add tag selection UI to the new item form (`/admin/items/new`) and edit mode in `<ItemViewerModal>`. Should allow selecting from pre-seeded tags (item type, attribute, era) as pills/checkboxes
-- [ ] **Tag display in Table View** — show tags column in `<ItemList>` (or as an expandable cell)
-
-### Item Type System — Contextual Fields
-Add a required `item_type` selector to the item form. Selecting a type reveals a contextual section with type-specific fields. Proposed types and their extra fields:
-
-- [x] **Schema** — added `item_type` enum column to `items`; created `game_context` table; created 11 `item_*` detail tables (`item_tickets`, `item_cards`, `item_baseballs`, `item_bats`, `item_jerseys`, `item_photos`, `item_magazines`, `item_programs`, `item_books`, `item_bases`, `item_gloves`). Gallery view renamed `item_cards` → `item_gallery`. Migrations `0004`–`0012`.
-- [ ] **Ticket / Stub** — home team, away team, stadium/venue, section, row, seat number, face value, game result (W/L), postseason round (ALDS/NLCS/WS/etc.), game number within series
-- [ ] **Card** — card set name, card number (e.g. #/500), manufacturer (Topps, Panini, Leaf), parallel/variation name, year issued, rookie card flag (already have `rookie-card` tag — link these)
-- [ ] **Baseball** — game-used vs display, inscription text, team-signed vs individual, specific game it was used in
-- [ ] **Bat** — player name, model number, length/weight, game-used vs display, year used
-- [ ] **Jersey** — player name, number, team, year worn, game-used vs display, size, any special patch (WS patch, memorial patch)
-- [ ] **Photo** — photographer credit, original publication/source, print size, colour vs B&W, edition (e.g. 1 of 100). Add a `is_type_1` boolean field (Type 1 = original print direct from the photographer/negative; not a reprint). Display "Type 1 Original" badge prominently when true.
-- [ ] **Program / Magazine / Book** — publication date, issue number, publisher, featured player/team on cover
-- [ ] **UI** — in the item form, show a `Type` dropdown at the top of Core Info. When a type is selected, a new collapsible "Type Details" section slides in below with only the relevant fields for that type. No type selected = section hidden.
-
-### Item Viewer + Editor (modal from overview + table view)
-- [x] `<ItemViewerModal>` — modal triggered by clicking any item row. Photo top-left, all fields displayed, edit icon. Read-only, frontend only.
-- [x] Edit mode — clicking the edit icon within the modal switches fields to editable inputs and saves back to Supabase
-- [x] `<CertForm>` — add/edit/delete certifications per item inside the modal
-- [x] `<SignatoryForm>` — add/edit/delete signatories per item inside the modal
-- [x] `<ImageUploader>` — delete + set-primary inside the modal (Cloudinary upload widget deferred)
-- [ ] `/admin/items/new` — create mode (blank form, separate page)
-- [ ] **URL auto-fill on new item** — user pastes a reference link URL into the new item form, scraping + OpenClaw retrieves item data (title, grade, cert ID, signatories, etc.) and pre-fills the form fields. User reviews and saves. Scraping implementation TBD.
+- [ ] **Missing cert IDs** — audit items with no `cert_id`; add flag/filter in Table View
+- [ ] **Tag UI** — add tag selection pills/checkboxes in the modal editor
+- [ ] **Tag display in Table View** — show tags column in `<ItemList>`
 
 ### PSA Sync (`/admin/psa-sync`)
-- [x] `<PsaSync>` page — trigger manual PSA population refresh, progress bar (synced/total), pending cert count, est. days remaining, rate-limit handling with "run again tomorrow" messaging
-- [x] `supabase/functions/psa-sync` — deployed Edge Function; fetches PSA certs sorted oldest-synced first, calls `GET /cert/GetByCertNumber/{certNumber}` (1 call/cert = 100 certs/day), inserts `population_snapshots` rows, returns synced/remaining/rate_limited
-- [x] Edge Function deployed with `--no-verify-jwt` (admin page is Clerk-protected; JWT not needed at function level)
-- [x] `PSA_API_KEY` set as Supabase secret via CLI
-- [ ] PSA/DNA autograph cert population — `GetByCertNumber` returns `DNACert` shape for these; need to map `DNACert` pop fields and store correctly
-- [ ] Configure `pg_cron` to call `psa-sync` weekly (Mondays 9am UTC) — see SQL snippet in conversation
+- [x] `<PsaSync>` page — manual refresh trigger, progress bar, rate-limit handling
+- [x] `supabase/functions/psa-sync` — deployed Edge Function
+- [ ] PSA/DNA autograph cert population — map `DNACert` pop fields correctly
+- [ ] Configure `pg_cron` to call `psa-sync` weekly (Mondays 9am UTC)
 
 ## 7. Deployment
 - [ ] Connect repo to Netlify
 - [ ] Set env vars in Netlify dashboard
 - [ ] Configure Netlify redirects for SPA routing (`/* → /index.html`)
-- [ ] Set Supabase Edge Function secrets (service role key, PSA API key if needed)
+- [ ] Set Supabase Edge Function secrets

@@ -686,12 +686,7 @@ export default function ItemDetail() {
                 </DataRow>
               ))}
 
-              {item.game_date && (
-                <DataRow>
-                  <DataLabel>Game Date</DataLabel>
-                  <DataValue>{new Date(item.game_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</DataValue>
-                </DataRow>
-              )}
+              {/* Game date now lives on game_context — will be fetched via detail tables */}
 
 
               {item.price && (
@@ -734,7 +729,7 @@ export default function ItemDetail() {
             <>
               <Divider />
               <section>
-                <SectionLabel>Provenance</SectionLabel>
+                <SectionLabel>Description</SectionLabel>
                 <p style={{ fontFamily: 'var(--font-body)', color: 'var(--color-on-surface-variant)', lineHeight: 1.7, fontSize: '0.9375rem' }}>
                   {item.description}
                 </p>

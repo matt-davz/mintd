@@ -10,7 +10,6 @@ import Contact from './pages/public/Contact'
 
 import Dashboard from './pages/admin/Dashboard'
 import ItemList from './pages/admin/ItemList'
-import ItemEditor from './pages/admin/ItemEditor'
 import PsaSync from './pages/admin/PsaSync'
 import { AdminGuard } from './components/admin/AdminGuard'
 import { AdminLayout } from './components/admin/AdminLayout'
@@ -39,8 +38,6 @@ createRoot(document.getElementById('root')).render(
             <Route element={<AdminLayout />}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="items" element={<ItemList />} />
-              <Route path="items/new" element={<ItemEditor />} />
-              <Route path="items/:id" element={<ItemEditor />} />
               <Route path="psa-sync" element={<PsaSync />} />
             </Route>
           </Route>

@@ -15,21 +15,20 @@ No test runner is configured.
 
 ## Stack
 
-Entry point: `index.html` → `src/main.jsx` → `src/App.jsx`
+Entry point: `index.html` → `src/main.jsx`
 
 ## What this project is
 
 A private baseball memorabilia collection showcase website for a single client. The public site lets visitors browse the collection and submit inquiries via a contact form. An admin panel at `/admin` lets the client manage his collection, edit items, upload images, and trigger PSA population data syncs.
 
-## Core features of the app would be: 
+## Core features
 
-- Gallery viewing for outside users.
-- Inquiry via simplt contact form sent to an email
-- Admin dashboard only accessable via Clerk's auth for the website owner.
-    - **Overview (`/admin/dashboard`)** — stats cards (total items, total cost) + a filterable/searchable table of ALL items showing photo + minimal info (title, grade, for-sale status). Each row links to the item viewer. Market value stat is a future feature (requires scraping).
-    - **Table View (`/admin/items`)** — no images, shows every field as raw data (title, acquisition cost, price, for_sale, game_date, grade, cert_id, cert_service, condition, notes, created_at). Think spreadsheet. Sortable columns, search/filter bar.
-    - **Item Viewer (`/admin/items/:id`)** — read-only display of all data for a single item (every field, all certs, all signatories, all images with Cloudinary IDs). Has an "Edit" button that switches the page into inline edit mode. This is the default destination when clicking an item from Overview or Table View.
-    - **Item Editor (`/admin/items/new`)** — blank create form for adding a new item.
+- Gallery viewing for outside users with item type filtering.
+- Inquiry via simple contact form sent to an email.
+- Admin dashboard accessible via Clerk auth for the website owner.
+    - **Overview (`/admin/dashboard`)** — stats cards (total items, total cost) + item grid.
+    - **Table View (`/admin/items`)** — no images, raw data table. Sortable columns, search/filter bar, CSV exports.
+    - **Item Modal** — unified `<ItemViewerModal>` for viewing, editing, and creating items. Opened from dashboard, table view (existing items), or "Add New Asset" button (create mode). Supports type-specific detail fields and game context.
 
 `mintd` is a high-end memorabilia collector app. Design system: see `docs/DESIGN.md`.
 
@@ -51,11 +50,11 @@ Single Vite + React app. Public and admin share one codebase, split by route.
 
 ## Build Todo
 
-See `docs/TODO.md` for the full ordered task list. When completing each task on the todo check it off. When each todo is complete commit and push to the remote repo.
+See `docs/TODO.md` for the full ordered task list.
 
 ## File System
 
-File system go to docs/FILESYSTEM.md
+See `docs/FILESYSTEM.md`.
 
 ## Routing
 
@@ -69,10 +68,10 @@ File system go to docs/FILESYSTEM.md
 /admin               → redirect to /admin/dashboard
 /admin/dashboard     → Dashboard
 /admin/items         → ItemList
-/admin/items/new     → ItemEditor (create mode — blank form)
-/admin/items/:id    → ItemViewer (read-only by default; "Edit" button switches to inline edit mode)
 /admin/psa-sync      → PsaSync
 ```
+
+Item viewing/editing/creating is handled by `<ItemViewerModal>` (modal), not page routes. "Add New Asset" opens the modal in create mode from AdminLayout. Clicking an item in Dashboard or ItemList opens the modal in view mode.
 
 ## Auth rules
 
@@ -82,9 +81,17 @@ File system go to docs/FILESYSTEM.md
 - Never use the Supabase service role key on the public site — anon key only
 - The admin site may use the service role key server-side via Edge Functions only — never expose it in the browser
 
-## Databse 
+## Database
 
-For all things database and image retrievel check docs/DATABSE.md
+For all things database and image retrieval check `docs/DATABASE.md`. Full schema reference: `docs/DATABASE_SCHEMA.md`.
+
+## Item Type System
+
+Items have an `item_type` enum column (ticket, card, baseball, bat, jersey, photo, magazine, program, book, base, glove). Each type has a corresponding detail table (`item_tickets`, `item_cards`, etc.) with type-specific fields.
+
+Types with game context (linked via `game_context_id` on the detail table): ticket, baseball, bat, jersey, photo, program, base, glove.
+
+Configuration lives in `src/lib/itemTypeConfig.js`. Type-specific form components are in `src/components/admin/itemTypes/`.
 
 ## Design — important
 
@@ -104,11 +111,11 @@ Design direction:
 
 ## Tags — pre-seeded categories
 
-Item type tags: `ticket-stub`, `full-ticket`, `card`, `baseball`, `bat`, `jersey`, `photo`, `magazine`, `program`, `book`, `base`, `glove`
-
 Attribute tags: `autographed`, `game-used`, `world-series`, `clinch-game`, `rookie-card`, `team-signed`, `proof-card`
 
 Era tags: `pre-1920`, `1920s`, `1930s`, `1940s`, `1950s`, `1960s`, `modern`
+
+Item type tags (legacy — `item_type` column is now the primary way to categorize): `ticket-stub`, `full-ticket`, `card`, `baseball`, `bat`, `jersey`, `photo`, `magazine`, `program`, `book`, `base`, `glove`
 
 ## Multi-signer display rule
 

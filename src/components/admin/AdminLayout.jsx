@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { NavLink, Outlet, Link } from 'react-router-dom'
+import { NavLink, Outlet } from 'react-router-dom'
 import styled from 'styled-components'
 import { useClerk } from '@clerk/react'
+import { ItemViewerModal } from './ItemViewerModal'
 
 const EXPANDED_W = '16rem'
 const COLLAPSED_W = '4rem'
@@ -267,7 +268,7 @@ const VaultLabel = styled.div`
   flex: 1;
 `
 
-const AddBtn = styled(Link)`
+const AddBtn = styled.button`
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-container));
   color: var(--color-on-primary);
   font-family: var(--font-headline);
@@ -279,6 +280,7 @@ const AddBtn = styled(Link)`
   border-radius: var(--radius-md);
   transition: opacity var(--transition-base);
   white-space: nowrap;
+  cursor: pointer;
 
   &:hover { opacity: 0.9; }
   &:active { transform: scale(0.97); }
@@ -299,6 +301,7 @@ const Content = styled.div`
 export function AdminLayout() {
   const { signOut } = useClerk()
   const [collapsed, setCollapsed] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   function closeMobile() {
     if (window.innerWidth <= 768) setCollapsed(true)
@@ -348,12 +351,16 @@ export function AdminLayout() {
             <span className="material-symbols-outlined">menu</span>
           </MobileMenuBtn>
           <VaultLabel>Vault Admin</VaultLabel>
-          <AddBtn to="/admin/items/new">Add New Asset</AddBtn>
+          <AddBtn onClick={() => setShowCreateModal(true)}>Add New Asset</AddBtn>
         </TopBar>
         <Content>
           <Outlet />
         </Content>
       </MainCanvas>
+
+      {showCreateModal && (
+        <ItemViewerModal itemId={null} onClose={() => setShowCreateModal(false)} />
+      )}
     </>
   )
 }

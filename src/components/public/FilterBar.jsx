@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import styled from 'styled-components'
-import { useTags } from '../../hooks/useTags'
+import { ITEM_TYPES } from '../../lib/itemTypeConfig'
 
 const Wrapper = styled.div`
   display: flex;
@@ -107,11 +107,8 @@ const Pill = styled.button`
   `}
 `
 
-export function FilterBar({ activeTag, onTagChange, search, onSearchChange }) {
+export function FilterBar({ activeType, onTypeChange, search, onSearchChange }) {
   const [pillsOpen, setPillsOpen] = useState(false)
-  const { tags } = useTags()
-
-  const typeTags = tags.filter(t => t.category === 'item_type')
 
   return (
     <Wrapper>
@@ -133,16 +130,16 @@ export function FilterBar({ activeTag, onTagChange, search, onSearchChange }) {
       </TopRow>
 
       <Pills $open={pillsOpen}>
-        <Pill $active={!activeTag} onClick={() => onTagChange(null)}>
+        <Pill $active={!activeType} onClick={() => onTypeChange(null)}>
           All
         </Pill>
-        {typeTags.map(tag => (
+        {ITEM_TYPES.map(type => (
           <Pill
-            key={tag.id}
-            $active={activeTag === tag.slug}
-            onClick={() => onTagChange(tag.slug)}
+            key={type}
+            $active={activeType === type}
+            onClick={() => onTypeChange(type)}
           >
-            {tag.name}
+            {type.charAt(0).toUpperCase() + type.slice(1)}
           </Pill>
         ))}
       </Pills>

@@ -345,15 +345,9 @@ const COLUMNS = [
   { key: 'acquisition_type',  label: 'Acq. Type',    sortable: true  },
   // Attributes
   { key: 'is_autographed',       label: 'Signed',       sortable: true },
-  { key: 'is_world_series_game', label: 'World Series', sortable: true },
-  { key: 'ws_game_number',       label: 'WS Game #',    sortable: true },
-  { key: 'is_clinch_game',       label: 'Clinch Game',  sortable: true },
-  { key: 'clinch_number',        label: 'Clinch #',     sortable: true },
   { key: 'is_part_of_set',       label: 'In Set',       sortable: true },
-  // Dates & location
-  { key: 'game_date',         label: 'Game Date',    sortable: true  },
+  // Dates
   { key: 'purchase_date',     label: 'Purchase Date',sortable: true  },
-  { key: 'location',          label: 'Location',     sortable: true  },
   // Visibility
   { key: 'is_visible',        label: 'Visible',      sortable: true  },
   { key: 'is_baseball',       label: 'Baseball',     sortable: true  },
@@ -523,12 +517,11 @@ export default function ItemList() {
       !q ||
       r.title.toLowerCase().includes(q) ||
       (r.cert_id ?? '').toLowerCase().includes(q) ||
-      (r.notes ?? '').toLowerCase().includes(q) ||
-      (r.location ?? '').toLowerCase().includes(q)
+      (r.notes ?? '').toLowerCase().includes(q)
     )
   }, [rows, search])
 
-  const DATE_KEYS = new Set(['created_at', 'updated_at', 'game_date', 'purchase_date'])
+  const DATE_KEYS = new Set(['created_at', 'updated_at', 'purchase_date'])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -589,7 +582,6 @@ export default function ItemList() {
       { label: 'Cert ID',          value: r => r.cert_id ?? '' },
       { label: 'For Sale',         value: r => r.for_sale ? 'Yes' : 'No' },
       { label: 'Acquisition Cost', value: r => r.item_total ?? '' },
-      { label: 'Game Date',        value: r => r.game_date ?? '' },
       { label: 'Pop Total',        value: r => r.pop_total ?? '' },
       { label: 'Pop Higher',       value: r => r.pop_higher ?? '' },
       { label: 'Pop Lower',        value: r => r.pop_lower ?? '' },
@@ -622,7 +614,7 @@ export default function ItemList() {
         <Controls>
           <SearchInput
             type="text"
-            placeholder="Search title, cert ID, location, notes..."
+            placeholder="Search title, cert ID, notes..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -728,15 +720,9 @@ export default function ItemList() {
                   <Td $dim>{item.acquisition_type ?? '—'}</Td>
                   {/* Attributes */}
                   <Td><BoolBadge $on={item.is_autographed}>{item.is_autographed ? 'Yes' : 'No'}</BoolBadge></Td>
-                  <Td><BoolBadge $on={item.is_world_series_game}>{item.is_world_series_game ? 'Yes' : 'No'}</BoolBadge></Td>
-                  <Td $dim={!item.ws_game_number}>{item.ws_game_number ?? '—'}</Td>
-                  <Td><BoolBadge $on={item.is_clinch_game}>{item.is_clinch_game ? 'Yes' : 'No'}</BoolBadge></Td>
-                  <Td $dim={!item.clinch_number}>{item.clinch_number ?? '—'}</Td>
                   <Td><BoolBadge $on={item.is_part_of_set}>{item.is_part_of_set ? 'Yes' : 'No'}</BoolBadge></Td>
-                  {/* Dates & location */}
-                  <Td $dim={!item.game_date}>{formatDate(item.game_date)}</Td>
+                  {/* Dates */}
                   <Td $dim={!item.purchase_date}>{formatDate(item.purchase_date)}</Td>
-                  <Td $dim={!item.location}>{item.location ?? '—'}</Td>
                   {/* Visibility */}
                   <Td><BoolBadge $on={item.is_visible}>{item.is_visible ? 'Yes' : 'No'}</BoolBadge></Td>
                   <Td><BoolBadge $on={item.is_baseball}>{item.is_baseball ? 'Yes' : 'No'}</BoolBadge></Td>
