@@ -14,7 +14,7 @@ export function useItems() {
       setError(null)
 
       const { data, error } = await supabase
-        .from('item_cards')
+        .from('item_gallery')
         .select()
         .order('created_at', { ascending: false })
 

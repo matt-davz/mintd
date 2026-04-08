@@ -1,11 +1,12 @@
 ## Database — Supabase
 
-Schema: `supabase/migrations/0001_initial_schema.sql`
+Schema: `supabase/migrations/`. Full reference: `docs/DATABASE_SCHEMA.md`.
 
 ### Tables
 
 - `sets` — named groupings of items (e.g. "Mickey Mantle WS Home Runs")
 - `items` — core collection items (everything hangs off this)
+- `game_context` — structured game metadata (date, teams, venue, game type, score); linked from detail tables
 - `signatories` — one row per signer per item; `is_featured = true` drives card display
 - `certifications` — PSA, PSA/DNA, BGS, JSA, SGC, Steiner, CGC etc. — one row per cert per item
 - `population_snapshots` — append-only PSA pop report history, hangs off `certifications`
@@ -13,15 +14,37 @@ Schema: `supabase/migrations/0001_initial_schema.sql`
 - `images` — Cloudinary references; unique constraint enforces one `is_primary = true` per item
 - `inquiries` — visitor contact form submissions; stored in DB and emailed via Edge Function
 
+### Item detail tables (one row per item, linked by `item_id`)
+
+Each type-specific table holds fields that only apply to that item type. Populated when `items.item_type` is set.
+
+| Table | Item type |
+|---|---|
+| `item_tickets` | Ticket / stub |
+| `item_cards` | Trading card |
+| `item_baseballs` | Baseball |
+| `item_bats` | Bat |
+| `item_jerseys` | Jersey |
+| `item_photos` | Photo / print |
+| `item_magazines` | Magazine |
+| `item_programs` | Game program |
+| `item_books` | Book |
+| `item_bases` | Base |
+| `item_gloves` | Glove |
+
+Tables with game context (tickets, baseballs, bats, jerseys, photos, programs, bases, gloves) have a `game_context_id` FK → `game_context`.
+
 ### Key item fields
 
 - `title` — display name (not `name`)
+- `item_type` — `item_type_enum` — drives which detail table is populated (nullable; back-fill via admin UI)
 - `is_visible` — draft flag; false hides from public
 - `is_baseball` — false hides from public (non-baseball items stored but not shown)
 - `for_sale` — drives "For Sale" badge
 - `acquisition_type` — `purchased` | `gifted` | `inherited` | `consignment` | `unknown`
 - `item_total` / `auto_total` — cost breakdown fields
-- `is_world_series_game`, `ws_game_number`, `is_clinch_game`, `clinch_number` — game context
+
+> Game context (game date, venue, teams, WS/clinch flags) lives in the `game_context` table, linked from detail tables via `game_context_id`. These fields were removed from `items` in migration `0009`.
 
 ### Certifications fields
 
@@ -38,25 +61,25 @@ Schema: `supabase/migrations/0001_initial_schema.sql`
 
 ### Views (always use these in queries, not raw tables)
 
-- `item_cards` — denormalised gallery view; one row per item with primary image, featured signer, tag slugs, set name. Already filtered to `is_visible = true AND is_baseball = true`
+- `item_gallery` — denormalised gallery view; one row per item with primary image, featured signer, tag slugs, set name, primary cert. Filtered to `is_visible = true AND is_baseball = true`. Previously named `item_cards` — renamed in migration `0011` (`item_cards` is now the trading card detail table).
 - `latest_population` — most recent population snapshot per cert
 
 ### RLS
 
 - Public: read `items` where `is_visible = true AND is_baseball = true`; related data follows same rule
+- Public: read `game_context`, `tags`, `sets` freely (shared lookups)
 - Public: can INSERT `inquiries` but cannot read them
-- Admin: full access via service role key in Edge Functions only — never expose service role key in browser
+- Admin: full access via anon key (Clerk guards `/admin/*` routes — security boundary is at the route layer)
+- Never expose service role key in the browser; use it in Edge Functions only
 
 ### Images — Cloudinary
 
-- Upload preset: `mintd` (unsigned); all uploads go into the `mintd` folder
+- Upload preset: `mintd` (unsigned)
 - Store `cloudinary_public_id` + `cloudinary_url` in `images` table
 - One image per item must have `is_primary = true` (enforced by unique partial index)
 - Use Cloudinary URL transformation API for responsive sizes — never store multiple sizes
 
 #### Naming convention
-
-All item images use the following public ID pattern:
 
 ```
 import/{first 8 chars of item UUID}/image_{n}
@@ -66,19 +89,18 @@ Examples:
 ```
 import/af557e5a/image_0   ← primary image
 import/af557e5a/image_1
-import/af557e5a/image_2
 ```
 
-`n` is zero-indexed and reflects the order images were uploaded (`display_order` column matches).
+`n` is zero-indexed; `display_order` matches.
 
-#### Upload pipeline (new asset creation)
+#### Upload pipeline
 
-1. User picks image files in `ItemEditor` — local blob URLs are shown as previews immediately
-2. User submits the form — item is inserted into Supabase and the DB-generated UUID is returned
-3. Images are uploaded to Cloudinary one-by-one using `uploadToCloudinary(file, publicId)` from `src/lib/cloudinary.js`, with `public_id` set to the naming convention above
-4. After all uploads succeed, rows are inserted into the `images` table (`cloudinary_public_id`, `cloudinary_url`, `is_primary`, `display_order`, `item_id`)
-5. If no image is marked primary by the user, the first image is automatically promoted
-6. If a Cloudinary upload fails, the error surfaces visibly — the item already exists in Supabase and images can be added later via the Item Viewer modal
+1. User picks image files — local blob URLs shown as previews immediately
+2. User submits form — item inserted into Supabase, DB-generated UUID returned
+3. Images uploaded to Cloudinary via `uploadToCloudinary(file, publicId)` in `src/lib/cloudinary.js`
+4. After all uploads succeed, rows inserted into `images` table
+5. If no image marked primary, first image is automatically promoted
+6. If upload fails, error surfaces visibly — item already exists and images can be added later
 
 ### Edge Functions (`supabase/functions/`)
 

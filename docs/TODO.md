@@ -30,7 +30,7 @@
 ## 5. Public Site
 
 ### Gallery (`/`)
-- [x] `useItems` hook — queries `item_cards` view, supports tag filter + search
+- [x] `useItems` hook — queries `item_gallery` view, supports tag filter + search
 - [x] `useTags` hook — fetches all tags
 - [x] `<FilterBar>` — item_type tag pills + search input
 - [x] `<ItemCard>` — image, for-sale badge, grade badge (muted gold), title, featured signer with multi-signer "+N others" rule, cert ID, price
@@ -76,7 +76,7 @@
 ### Item Type System — Contextual Fields
 Add a required `item_type` selector to the item form. Selecting a type reveals a contextual section with type-specific fields. Proposed types and their extra fields:
 
-- [ ] **Schema** — add `item_type` enum column to `items` table (`ticket`, `stub`, `card`, `baseball`, `bat`, `jersey`, `photo`, `magazine`, `program`, `book`, `base`, `glove`). Add a `game_context` JSONB column (or separate `game_details` table) to store type-specific structured data without polluting the main `items` schema.
+- [x] **Schema** — added `item_type` enum column to `items`; created `game_context` table; created 11 `item_*` detail tables (`item_tickets`, `item_cards`, `item_baseballs`, `item_bats`, `item_jerseys`, `item_photos`, `item_magazines`, `item_programs`, `item_books`, `item_bases`, `item_gloves`). Gallery view renamed `item_cards` → `item_gallery`. Migrations `0004`–`0012`.
 - [ ] **Ticket / Stub** — home team, away team, stadium/venue, section, row, seat number, face value, game result (W/L), postseason round (ALDS/NLCS/WS/etc.), game number within series
 - [ ] **Card** — card set name, card number (e.g. #/500), manufacturer (Topps, Panini, Leaf), parallel/variation name, year issued, rookie card flag (already have `rookie-card` tag — link these)
 - [ ] **Baseball** — game-used vs display, inscription text, team-signed vs individual, specific game it was used in
