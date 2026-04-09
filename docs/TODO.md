@@ -71,6 +71,7 @@
 - [x] `<ImageUploader>` — upload, delete, set primary
 - [x] `<GameContextFields>` — shared game context sub-form (8 item types)
 - [x] 11 type-specific field components in `components/admin/itemTypes/`
+- [x] **MLB game autofill** — inline lookup toolbar in game context section (by date, matchup, or World Series game #). Calls MLB Stats API, populates all game context fields on click.
 - [ ] **URL auto-fill on new item** — paste reference link to scrape + pre-fill form fields (TBD)
 
 ### Tags & Categories

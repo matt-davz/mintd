@@ -38,6 +38,9 @@ src/
 │       ├── SignatoryForm.jsx
 │       ├── FormFields.jsx      # Shared styled form components
 │       ├── GameContextFields.jsx # Game context sub-form (shared by 8 item types)
+│       ├── GameLookupToolbar.jsx # MLB game lookup — inline search toolbar
+│       ├── GameLookupResults.jsx # MLB lookup results list with clickable game cards
+│       ├── TeamSelect.jsx       # Searchable MLB team dropdown (current + historical)
 │       └── itemTypes/          # Type-specific field components
 │           ├── index.js        # Registry mapping type → component
 │           ├── TicketFields.jsx
@@ -54,7 +57,8 @@ src/
 ├── lib/
 │   ├── supabase.js             # Supabase client (anon key)
 │   ├── cloudinary.js           # Cloudinary helpers
-│   └── itemTypeConfig.js       # Item type metadata, empty forms, serialization
+│   ├── itemTypeConfig.js       # Item type metadata, empty forms, serialization
+│   └── mlbApi.js               # MLB Stats API client — team data, fetch, game parsing
 ├── hooks/
 │   ├── useItems.js             # Queries item_gallery view
 │   ├── useItem.js              # Single item with certs, sigs, images, type detail, game context

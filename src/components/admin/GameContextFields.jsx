@@ -2,10 +2,21 @@ import {
   FieldGrid, Field, FullField, FieldLabel,
   EditInput, EditSelect, EditTextarea,
 } from './FormFields'
+import { GameLookupToolbar } from './GameLookupToolbar'
 
 export function GameContextFields({ form, setField }) {
+  function handleSelectGame(gameData) {
+    for (const [key, value] of Object.entries(gameData)) {
+      if (value !== '' && value != null) {
+        setField(key, value)
+      }
+    }
+  }
+
   return (
-    <FieldGrid>
+    <>
+      <GameLookupToolbar onSelectGame={handleSelectGame} />
+      <FieldGrid>
       <Field>
         <FieldLabel>Game Date</FieldLabel>
         <EditInput
@@ -124,5 +135,6 @@ export function GameContextFields({ form, setField }) {
         />
       </FullField>
     </FieldGrid>
+    </>
   )
 }
