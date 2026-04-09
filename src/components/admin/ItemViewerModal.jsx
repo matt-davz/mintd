@@ -13,6 +13,7 @@ import { SignatoryForm } from './SignatoryForm'
 import { ImageUploader } from './ImageUploader'
 import { GameContextFields } from './GameContextFields'
 import { TYPE_FIELDS_MAP } from './itemTypes'
+import { ImageLightbox } from '../ImageLightbox'
 
 // ─── Reconcile helpers ────────────────────────────────────────────────────────
 
@@ -615,6 +616,37 @@ const PrimaryBadge = styled.div`
   padding: 2px 0;
 `
 
+const ThumbExpandBtn = styled.button`
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(173, 198, 255, 0.2);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-base), background var(--transition-base);
+
+  ${ImageThumb}:hover & { opacity: 1; }
+
+  &:hover {
+    background: rgba(77, 142, 255, 0.18);
+    border-color: rgba(173, 198, 255, 0.45);
+  }
+
+  .material-symbols-outlined {
+    font-size: 0.75rem;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  }
+`
+
 // ─── Loading / error ──────────────────────────────────────────────────────────
 
 const StatusMsg = styled.p`
@@ -674,6 +706,7 @@ export function ItemViewerModal({ itemId, onClose }) {
   const [draftCerts, setDraftCerts] = useState([])
   const [draftSigs, setDraftSigs] = useState([])
   const [draftImages, setDraftImages] = useState([])
+  const [lightbox, setLightbox] = useState({ open: false, index: 0 })
   const originalRef = useRef(null)
 
   function enterEditMode() {
@@ -1521,10 +1554,13 @@ export function ItemViewerModal({ itemId, onClose }) {
                   ) : (
                     <>
                       <ImageStrip>
-                        {images.map(img => (
+                        {images.map((img, idx) => (
                           <ImageThumb key={img.id} $primary={img.is_primary}>
                             <img src={img.cloudinary_url} alt="" />
                             {img.is_primary && <PrimaryBadge>Primary</PrimaryBadge>}
+                            <ThumbExpandBtn onClick={() => setLightbox({ open: true, index: idx })}>
+                              <span className="material-symbols-outlined">open_in_full</span>
+                            </ThumbExpandBtn>
                           </ImageThumb>
                         ))}
                       </ImageStrip>
@@ -1544,6 +1580,13 @@ export function ItemViewerModal({ itemId, onClose }) {
           )}
         </PanelBody>
       </Panel>
+      {lightbox.open && images.length > 0 && (
+        <ImageLightbox
+          images={images}
+          initialIndex={lightbox.index}
+          onClose={() => setLightbox(l => ({ ...l, open: false }))}
+        />
+      )}
     </Overlay>
   )
 }

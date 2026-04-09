@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { useItem } from '../../hooks/useItem'
 import { useItems } from '../../hooks/useItems'
 import { SignatoryList } from '../../components/public/SignatoryList'
 import { ItemTypeDetails } from '../../components/itemDetail/ItemTypeDetails'
+import { ImageLightbox } from '../../components/ImageLightbox'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -76,6 +76,7 @@ const MainImage = styled.img`
   max-height: 80vh;
   object-fit: contain;
   display: block;
+  transition: transform 200ms ease;
 `
 
 const ImagePlaceholder = styled.div`
@@ -88,19 +89,6 @@ const ImagePlaceholder = styled.div`
   .material-symbols-outlined { font-size: 4rem; }
 `
 
-const ZoomLens = styled.div`
-  position: absolute;
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  pointer-events: none;
-  border: 1px solid rgba(173, 198, 255, 0.35);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.06);
-  z-index: 10;
-  opacity: ${({ $active }) => ($active ? 1 : 0)};
-  transition: opacity 120ms ease;
-  background-repeat: no-repeat;
-`
 
 const ExpandBtn = styled.button`
   position: absolute;
@@ -179,76 +167,7 @@ const Thumbnail = styled.button`
 `
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
-
-const LightboxOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: rgba(0, 0, 0, 0.92);
-  backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`
-
-const LightboxImgWrap = styled.div`
-  position: relative;
-  display: inline-flex;
-  cursor: crosshair;
-`
-
-const LightboxImg = styled.img`
-  max-width: 90vw;
-  max-height: 90vh;
-  object-fit: contain;
-  border-radius: var(--radius-md);
-  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8);
-  user-select: none;
-  display: block;
-`
-
-const LightboxClose = styled.button`
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  width: 3rem;
-  height: 3rem;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--color-on-surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background var(--transition-base);
-
-  &:hover { background: rgba(255, 255, 255, 0.12); }
-
-  .material-symbols-outlined { font-size: 1.5rem; }
-`
-
-const LightboxNav = styled.button`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  ${({ $dir }) => $dir === 'prev' ? 'left: 1.5rem;' : 'right: 1.5rem;'}
-  width: 3rem;
-  height: 3rem;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--color-on-surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background var(--transition-base);
-
-  &:hover { background: rgba(255, 255, 255, 0.12); }
-
-  .material-symbols-outlined { font-size: 1.5rem; }
-`
+// Shared <ImageLightbox> component handles fullscreen viewing
 
 // ─── Detail column ────────────────────────────────────────────────────────────
 
@@ -515,9 +434,7 @@ const StatusText = styled.p`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const LENS_SIZE = 160
-const LENS_RADIUS = LENS_SIZE / 2
-const ZOOM_FACTOR = 5
+const ZOOM_FACTOR = 3
 
 export default function ItemDetail() {
   const { id } = useParams()
@@ -525,30 +442,14 @@ export default function ItemDetail() {
   const { items: allItems } = useItems()
 
   const frameRef = useRef(null)
-  const lbImgWrapRef = useRef(null)
-  const [zoom, setZoom] = useState({ active: false, x: 0, y: 0, xPct: 0, yPct: 0 })
-  const [lbZoom, setLbZoom] = useState({ active: false, x: 0, y: 0, xPct: 0, yPct: 0 })
+  const [zoom, setZoom] = useState({ active: false, xPct: 0, yPct: 0 })
   const [activeIndex, setActiveIndex] = useState(0)
   const [lightbox, setLightbox] = useState({ open: false, index: 0 })
 
-  // Derive image list early so the effect below can reference its length
+  // Derive image list early
   const primaryImage = images.find(i => i.is_primary) ?? images[0]
   const otherImages = images.filter(i => i.id !== primaryImage?.id)
   const allImages = [primaryImage, ...otherImages].filter(Boolean)
-
-  useEffect(() => {
-    if (!lightbox.open) return
-    const total = allImages.length
-    const handler = (e) => {
-      if (e.key === 'Escape') setLightbox(l => ({ ...l, open: false }))
-      if (e.key === 'ArrowLeft' && total > 1)
-        setLightbox(l => ({ ...l, index: (l.index - 1 + total) % total }))
-      if (e.key === 'ArrowRight' && total > 1)
-        setLightbox(l => ({ ...l, index: (l.index + 1) % total }))
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [lightbox.open, allImages.length])
 
   if (loading) return <StatusText>Loading...</StatusText>
   if (error || !item) return <StatusText>{error ?? 'Item not found.'}</StatusText>
@@ -569,31 +470,17 @@ export default function ItemDetail() {
   const handleMouseMove = (e) => {
     const rect = frameRef.current?.getBoundingClientRect()
     if (!rect) return
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    setZoom({ active: true, x, y, xPct: x / rect.width, yPct: y / rect.height })
+    const xPct = (e.clientX - rect.left) / rect.width
+    const yPct = (e.clientY - rect.top) / rect.height
+    setZoom({ active: true, xPct, yPct })
   }
 
   const handleMouseLeave = () => setZoom(z => ({ ...z, active: false }))
-
-  const handleLbMouseMove = (e) => {
-    const rect = lbImgWrapRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    setLbZoom({ active: true, x, y, xPct: x / rect.width, yPct: y / rect.height })
-  }
-
-  const handleLbMouseLeave = () => setLbZoom(z => ({ ...z, active: false }))
 
   const openLightbox = (e) => {
     e.stopPropagation()
     setLightbox({ open: true, index: activeIndex })
   }
-
-  const closeLightbox = () => setLightbox(l => ({ ...l, open: false }))
-
-  const lightboxImg = allImages[lightbox.index] ?? null
 
   return (
     <Page>
@@ -612,24 +499,18 @@ export default function ItemDetail() {
             onMouseLeave={displayImage ? handleMouseLeave : undefined}
           >
             {displayImage ? (
-              <MainImage src={displayImage.cloudinary_url} alt={item.title} />
+              <MainImage
+                src={displayImage.cloudinary_url}
+                alt={item.title}
+                style={{
+                  transform: zoom.active ? `scale(${ZOOM_FACTOR})` : 'scale(1)',
+                  transformOrigin: `${zoom.xPct * 100}% ${zoom.yPct * 100}%`,
+                }}
+              />
             ) : (
               <ImagePlaceholder>
                 <span className="material-symbols-outlined">image_not_supported</span>
               </ImagePlaceholder>
-            )}
-
-            {displayImage && (
-              <ZoomLens
-                $active={zoom.active}
-                style={{
-                  left: zoom.x - LENS_RADIUS,
-                  top: zoom.y - LENS_RADIUS,
-                  backgroundImage: `url(${displayImage.cloudinary_url})`,
-                  backgroundSize: `${ZOOM_FACTOR * 100}%`,
-                  backgroundPosition: `${zoom.xPct * 100}% ${zoom.yPct * 100}%`,
-                }}
-              />
             )}
 
             {gradeLabel && (
@@ -769,54 +650,13 @@ export default function ItemDetail() {
         </RelatedSection>
       )}
 
-      {/* ── Lightbox portal ── */}
-      {lightbox.open && lightboxImg && createPortal(
-        <LightboxOverlay onClick={closeLightbox}>
-          <LightboxImgWrap
-            ref={lbImgWrapRef}
-            onMouseMove={handleLbMouseMove}
-            onMouseLeave={handleLbMouseLeave}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <LightboxImg src={lightboxImg.cloudinary_url} alt={item.title} />
-            <ZoomLens
-              $active={lbZoom.active}
-              style={{
-                left: lbZoom.x - LENS_RADIUS,
-                top: lbZoom.y - LENS_RADIUS,
-                backgroundImage: `url(${lightboxImg.cloudinary_url})`,
-                backgroundSize: `${ZOOM_FACTOR * 100}%`,
-                backgroundPosition: `${lbZoom.xPct * 100}% ${lbZoom.yPct * 100}%`,
-              }}
-            />
-          </LightboxImgWrap>
-          <LightboxClose onClick={closeLightbox}>
-            <span className="material-symbols-outlined">close</span>
-          </LightboxClose>
-          {allImages.length > 1 && (
-            <>
-              <LightboxNav
-                $dir="prev"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setLightbox(l => ({ ...l, index: (l.index - 1 + allImages.length) % allImages.length }))
-                }}
-              >
-                <span className="material-symbols-outlined">chevron_left</span>
-              </LightboxNav>
-              <LightboxNav
-                $dir="next"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setLightbox(l => ({ ...l, index: (l.index + 1) % allImages.length }))
-                }}
-              >
-                <span className="material-symbols-outlined">chevron_right</span>
-              </LightboxNav>
-            </>
-          )}
-        </LightboxOverlay>,
-        document.body
+      {/* ── Lightbox ── */}
+      {lightbox.open && allImages.length > 0 && (
+        <ImageLightbox
+          images={allImages}
+          initialIndex={lightbox.index}
+          onClose={() => setLightbox(l => ({ ...l, open: false }))}
+        />
       )}
     </Page>
   )

@@ -10,6 +10,7 @@ src/
 │       ├── ItemList.jsx
 │       └── PsaSync.jsx         # Manual PSA refresh trigger
 ├── components/
+│   ├── ImageLightbox.jsx        # Shared fullscreen lightbox with rotate controls
 │   ├── public/
 │   │   ├── ItemCard.jsx
 │   │   ├── FilterBar.jsx       # Item type pill filters + search
