@@ -49,42 +49,67 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'PSA_API_KEY secret is not configured' }, 500)
   }
 
+  // ── Parse optional body for per-item sync ──────────────────────────────────
+  let requestedCertIds: string[] | null = null
+  try {
+    const body = await req.json()
+    if (Array.isArray(body?.cert_ids) && body.cert_ids.length > 0) {
+      requestedCertIds = body.cert_ids
+    }
+  } catch { /* no body or invalid JSON — proceed with full sync */ }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
 
-  // ── Fetch all PSA / PSA-DNA certs with a cert number ──────────────────────
-  const { data: allCerts, error: certsError } = await supabase
+  // ── Fetch PSA / PSA-DNA certs with a cert number ──────────────────────────
+  let certsQuery = supabase
     .from('certifications')
     .select('id, cert_id, cert_service, is_autograph_cert')
     .in('cert_service', ['PSA', 'PSA/DNA'])
     .not('cert_id', 'is', null)
+
+  if (requestedCertIds) {
+    certsQuery = certsQuery.in('id', requestedCertIds)
+  }
+
+  const { data: allCerts, error: certsError } = await certsQuery
 
   if (certsError) return jsonResponse({ error: certsError.message }, 500)
   if (!allCerts || allCerts.length === 0) {
     return jsonResponse({ synced: 0, total_certs: 0, remaining: 0, rate_limited: false, errors: [] })
   }
 
-  // ── Sort: never-synced first, then oldest-synced ──────────────────────────
-  const certIds = allCerts.map((c) => c.id)
-  const { data: latestPops } = await supabase
-    .from('latest_population')
-    .select('cert_id, recorded_at')
-    .in('cert_id', certIds)
+  // ── Determine which certs to sync ─────────────────────────────────────────
+  let toSync: typeof allCerts
+  let remainingAfter: number
 
-  const lastSyncedMap = new Map<string, number>(
-    (latestPops ?? []).map((p) => [p.cert_id as string, new Date(p.recorded_at as string).getTime()])
-  )
+  if (requestedCertIds) {
+    // Per-item sync: sync all requested certs directly (small set)
+    toSync = allCerts
+    remainingAfter = 0
+  } else {
+    // Full batch sync: sort by oldest-synced, take BATCH_SIZE
+    const certIds = allCerts.map((c) => c.id)
+    const { data: latestPops } = await supabase
+      .from('latest_population')
+      .select('cert_id, recorded_at')
+      .in('cert_id', certIds)
 
-  const sortedCerts = [...allCerts].sort((a, b) => {
-    const aTime: number = lastSyncedMap.get(a.id) ?? 0
-    const bTime: number = lastSyncedMap.get(b.id) ?? 0
-    return aTime - bTime
-  })
+    const lastSyncedMap = new Map<string, number>(
+      (latestPops ?? []).map((p) => [p.cert_id as string, new Date(p.recorded_at as string).getTime()])
+    )
 
-  const toSync = sortedCerts.slice(0, BATCH_SIZE)
-  const remainingAfter = Math.max(0, sortedCerts.length - BATCH_SIZE)
+    const sortedCerts = [...allCerts].sort((a, b) => {
+      const aTime: number = lastSyncedMap.get(a.id) ?? 0
+      const bTime: number = lastSyncedMap.get(b.id) ?? 0
+      return aTime - bTime
+    })
+
+    toSync = sortedCerts.slice(0, BATCH_SIZE)
+    remainingAfter = Math.max(0, sortedCerts.length - BATCH_SIZE)
+  }
 
   const psaHeaders = {
     'Authorization': `Bearer ${psaApiKey}`,

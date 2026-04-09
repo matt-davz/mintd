@@ -330,6 +330,7 @@ const StatusRow = styled.tr`
 const COLUMNS = [
   { key: '_num',              label: '#',            sortable: false },
   { key: 'title',             label: 'Title',        sortable: true  },
+  { key: 'item_type',         label: 'Type',         sortable: true  },
   // Cert
   { key: 'cert_service',      label: 'Cert Service', sortable: true  },
   { key: 'cert_grade',        label: 'Grade',        sortable: true  },
@@ -687,6 +688,7 @@ export default function ItemList() {
                   <StickyTitleTd>
                     <TitleCell onClick={() => setSelectedItemId(item.id)}>{item.title}</TitleCell>
                   </StickyTitleTd>
+                  <Td $dim={!item.item_type}>{item.item_type ? item.item_type.charAt(0).toUpperCase() + item.item_type.slice(1) : '—'}</Td>
                   {/* Cert */}
                   <Td $dim={!item.cert_service}>{item.cert_service ?? '—'}</Td>
                   <Td>

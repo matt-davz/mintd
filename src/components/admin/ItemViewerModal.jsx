@@ -399,6 +399,70 @@ const ForSaleTag = styled(Tag)`
   background-color: rgba(173, 198, 255, 0.08);
 `
 
+// ─── Inline population display ───────────────────────────────────────────────
+
+const PopInline = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+`
+
+const PopInlineCell = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.2rem var(--space-2);
+  border-radius: var(--radius-sm);
+  background-color: ${({ $type }) =>
+    $type === 'higher' ? 'rgba(147, 0, 10, 0.15)' :
+    $type === 'same'   ? 'rgba(77, 142, 255, 0.15)' :
+    'var(--color-surface-high)'};
+
+  span {
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-outline);
+  }
+
+  strong {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: ${({ $type }) =>
+      $type === 'higher' ? 'var(--color-error)' :
+      $type === 'same'   ? 'var(--color-primary)' :
+      'var(--color-on-surface)'};
+  }
+`
+
+const PopSyncBtn = styled(IconBtn)`
+  width: 1.5rem;
+  height: 1.5rem;
+
+  .material-symbols-outlined {
+    font-size: 0.875rem;
+    ${({ $syncing }) => $syncing ? 'animation: pop-spin 1s linear infinite;' : ''}
+  }
+
+  @keyframes pop-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`
+
+const PopSyncStatus = styled.span`
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.05em;
+  color: ${({ $type }) =>
+    $type === 'error' ? 'var(--color-error)' :
+    $type === 'warn'  ? 'var(--color-secondary-fixed)' :
+    'var(--color-primary)'};
+`
+
 // ─── Fields grid ──────────────────────────────────────────────────────────────
 
 const Section = styled.div`
@@ -597,9 +661,11 @@ const EMPTY_FORM = {
 
 export function ItemViewerModal({ itemId, onClose }) {
   const isCreateMode = !itemId
-  const { item, signatories, certifications, images, detail, gameContext, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
+  const { item, signatories, certifications, population, images, detail, gameContext, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
 
   const [isEditing, setIsEditing] = useState(isCreateMode)
+  const [syncing, setSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState(null) // { type: 'error'|'warn'|'ok', msg }
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [form, setForm] = useState(isCreateMode ? { ...EMPTY_FORM } : null)
@@ -949,6 +1015,35 @@ export function ItemViewerModal({ itemId, onClose }) {
   const primaryImage = (images ?? []).find(i => i.is_primary) ?? (images ?? [])[0]
   const TypeFields = form?.item_type ? TYPE_FIELDS_MAP[form.item_type] : null
 
+  const psaCerts = (certifications ?? []).filter(c => ['PSA', 'PSA/DNA'].includes(c.cert_service))
+  const pop = psaCerts.length > 0 ? (population ?? []).find(p => p.cert_id === psaCerts[0].id) : null
+
+  const handlePopSync = async () => {
+    const syncIds = psaCerts.filter(c => c.cert_id).map(c => c.id)
+    if (!syncIds.length) return
+    setSyncing(true)
+    setSyncStatus(null)
+    try {
+      const { data, error } = await supabase.functions.invoke('psa-sync', {
+        body: { cert_ids: syncIds },
+      })
+      if (error) {
+        setSyncStatus({ type: 'error', msg: error.message || 'Sync failed' })
+      } else if (data?.rate_limited) {
+        setSyncStatus({ type: 'warn', msg: 'PSA daily rate limit reached — try again tomorrow' })
+      } else if (data?.errors?.length) {
+        setSyncStatus({ type: 'error', msg: data.errors[0].error })
+      } else if (data?.synced > 0) {
+        setSyncStatus({ type: 'ok', msg: 'Synced' })
+      }
+      await refetch()
+    } catch (e) {
+      setSyncStatus({ type: 'error', msg: 'Sync request failed' })
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   return (
     <Overlay onClick={handleOverlayClick}>
       <Panel onClick={e => e.stopPropagation()}>
@@ -1015,6 +1110,35 @@ export function ItemViewerModal({ itemId, onClose }) {
                       {item.for_sale && <ForSaleTag>For Sale</ForSaleTag>}
                       {item.is_autographed && <Tag>Signed</Tag>}
                     </BadgeRow>
+                  )}
+
+                  {!isCreateMode && psaCerts.length > 0 && (
+                    <PopInline>
+                      {pop ? (
+                        <>
+                          <PopInlineCell $type="total">
+                            <span>Pop</span> <strong>{pop.total}</strong>
+                          </PopInlineCell>
+                          <PopInlineCell $type="higher">
+                            <span>Higher</span> <strong>{pop.higher}</strong>
+                          </PopInlineCell>
+                          <PopInlineCell $type="same">
+                            <span>Same</span> <strong>{pop.same}</strong>
+                          </PopInlineCell>
+                          <PopInlineCell $type="lower">
+                            <span>Lower</span> <strong>{pop.lower}</strong>
+                          </PopInlineCell>
+                        </>
+                      ) : (
+                        <PopInlineCell $type="lower">
+                          <span>No pop data</span>
+                        </PopInlineCell>
+                      )}
+                      <PopSyncBtn onClick={handlePopSync} disabled={syncing} $syncing={syncing} title="Sync PSA population">
+                        <span className="material-symbols-outlined">sync</span>
+                      </PopSyncBtn>
+                      {syncStatus && <PopSyncStatus $type={syncStatus.type}>{syncStatus.msg}</PopSyncStatus>}
+                    </PopInline>
                   )}
 
                   {!isEditing && item?.price && (

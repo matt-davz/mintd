@@ -104,4 +104,4 @@ import/af557e5a/image_1
 
 ### Edge Functions (`supabase/functions/`)
 
-- `psa-sync` — fetches PSA population data for all PSA/PSA-DNA certs, inserts `population_snapshots` rows. Called by `pg_cron` weekly (Mondays 9am UTC) and manually from admin panel
+- `psa-sync` — fetches PSA population data for PSA/PSA-DNA certs, inserts `population_snapshots` rows. Called by `pg_cron` weekly (Mondays 9am UTC), manually from admin panel (full batch), or per-item from the `ItemViewerModal` sync button. Accepts optional `{ cert_ids: string[] }` body to sync specific certs instead of the full batch.
