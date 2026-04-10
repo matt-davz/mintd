@@ -331,9 +331,9 @@ Sets `new.updated_at = now()` on update. Used by all tables with `updated_at`.
 Most recent population snapshot per cert. **Always query this instead of `population_snapshots` directly.**
 
 ### `item_gallery`
-Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Filtered to `WHERE is_visible = true AND is_baseball = true`.
+Denormalised view for the public gallery. One row per item with primary image, featured signer, signatory count, tags array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
-**Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `item_type`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `tag_slugs` (array), `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`
+**Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `item_type`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count`, `tag_slugs` (array), `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`
 
 > Previously named `item_cards`. Renamed in migration `0011` — `item_cards` is now the trading card detail table.
 
@@ -375,6 +375,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0010_detail_tables.sql` | All 11 `item_*` type-specific detail tables |
 | `0011_item_gallery_view.sql` | Gallery view recreated as `item_gallery` |
 | `0012_rls_policies.sql` | RLS for `game_context` + all 11 detail tables |
+| `0013_fix_gallery_duplicate_signers.sql` | Fix duplicate rows for multi-signer items; lateral subquery for featured signer + `signatory_count` |
 
 ---
 

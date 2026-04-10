@@ -30,13 +30,17 @@ function reconcileCerts(draft, original, itemId) {
   if (toDelete.length) {
     ops.push(supabase.from('certifications').delete().in('id', toDelete))
   }
-  const toUpsert = draft.map(c => {
+  const existing = draft.filter(c => c.id).map(c => ({ ...stripKey(c), item_id: itemId }))
+  const fresh = draft.filter(c => !c.id).map(c => {
     const row = { ...stripKey(c), item_id: itemId }
-    if (!row.id) delete row.id
+    delete row.id
     return row
   })
-  if (toUpsert.length) {
-    ops.push(supabase.from('certifications').upsert(toUpsert, { onConflict: 'id' }))
+  if (existing.length) {
+    ops.push(supabase.from('certifications').upsert(existing, { onConflict: 'id' }))
+  }
+  if (fresh.length) {
+    ops.push(supabase.from('certifications').insert(fresh))
   }
   return ops
 }
@@ -48,13 +52,17 @@ function reconcileSigs(draft, original, itemId) {
   if (toDelete.length) {
     ops.push(supabase.from('signatories').delete().in('id', toDelete))
   }
-  const toUpsert = draft.map(s => {
+  const existing = draft.filter(s => s.id).map(s => ({ ...stripKey(s), item_id: itemId }))
+  const fresh = draft.filter(s => !s.id).map(s => {
     const row = { ...stripKey(s), item_id: itemId }
-    if (!row.id) delete row.id
+    delete row.id
     return row
   })
-  if (toUpsert.length) {
-    ops.push(supabase.from('signatories').upsert(toUpsert, { onConflict: 'id' }))
+  if (existing.length) {
+    ops.push(supabase.from('signatories').upsert(existing, { onConflict: 'id' }))
+  }
+  if (fresh.length) {
+    ops.push(supabase.from('signatories').insert(fresh))
   }
   return ops
 }
@@ -209,6 +217,75 @@ const SaveErrorBanner = styled.div`
   letter-spacing: 0.05em;
   color: #ffb4ab;
 `
+
+const DeleteBtn = styled(IconBtn)`
+  color: #ffb4ab;
+  &:hover { background-color: rgba(147, 0, 10, 0.25); color: #ffb4ab; }
+`
+
+const ConfirmOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`
+
+const ConfirmBox = styled.div`
+  background-color: var(--color-surface-high);
+  border: 1px solid rgba(140, 144, 159, 0.15);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  max-width: 24rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+`
+
+const ConfirmTitle = styled.h3`
+  font-family: var(--font-headline);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  margin: 0;
+`
+
+const ConfirmText = styled.p`
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-on-surface-variant);
+  margin: 0;
+`
+
+const ConfirmActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+`
+
+const ConfirmDeleteBtn = styled.button`
+  padding: 0 var(--space-5);
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  background-color: rgba(147, 0, 10, 0.6);
+  color: #ffb4ab;
+  font-family: var(--font-headline);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition: background-color var(--transition-base);
+
+  &:hover { background-color: rgba(147, 0, 10, 0.85); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`
+
+const ConfirmCancelBtn = styled(CancelBtn)``
 
 const PanelBody = styled.div`
   overflow-y: auto;
@@ -707,6 +784,8 @@ export function ItemViewerModal({ itemId, onClose }) {
   const [draftSigs, setDraftSigs] = useState([])
   const [draftImages, setDraftImages] = useState([])
   const [lightbox, setLightbox] = useState({ open: false, index: 0 })
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const originalRef = useRef(null)
 
   function enterEditMode() {
@@ -1028,6 +1107,20 @@ export function ItemViewerModal({ itemId, onClose }) {
     }
   }
 
+  async function handleDelete() {
+    setIsDeleting(true)
+    try {
+      const { error } = await supabase.from('items').delete().eq('id', itemId)
+      if (error) throw error
+      onClose()
+    } catch (err) {
+      setSaveError(`Delete failed: ${err.message}`)
+      setConfirmDelete(false)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   function handleOverlayClick() {
     if (isEditing) {
       if (isCreateMode) {
@@ -1094,9 +1187,14 @@ export function ItemViewerModal({ itemId, onClose }) {
                 <CancelBtn onClick={handleCancel}>Cancel</CancelBtn>
               </>
             ) : (
-              <EditBtn onClick={enterEditMode} title="Edit item">
-                <span className="material-symbols-outlined">edit</span>
-              </EditBtn>
+              <>
+                <EditBtn onClick={enterEditMode} title="Edit item">
+                  <span className="material-symbols-outlined">edit</span>
+                </EditBtn>
+                <DeleteBtn onClick={() => setConfirmDelete(true)} title="Delete item">
+                  <span className="material-symbols-outlined">delete</span>
+                </DeleteBtn>
+              </>
             )}
             <IconBtn onClick={isEditing ? handleOverlayClick : onClose} title="Close">
               <span className="material-symbols-outlined">close</span>
@@ -1586,6 +1684,22 @@ export function ItemViewerModal({ itemId, onClose }) {
           initialIndex={lightbox.index}
           onClose={() => setLightbox(l => ({ ...l, open: false }))}
         />
+      )}
+      {confirmDelete && (
+        <ConfirmOverlay onClick={() => setConfirmDelete(false)}>
+          <ConfirmBox onClick={e => e.stopPropagation()}>
+            <ConfirmTitle>Delete Item</ConfirmTitle>
+            <ConfirmText>
+              Are you sure you want to delete <strong>{item?.title}</strong>? This will permanently remove the item and all associated data. This action cannot be undone.
+            </ConfirmText>
+            <ConfirmActions>
+              <ConfirmCancelBtn onClick={() => setConfirmDelete(false)}>Cancel</ConfirmCancelBtn>
+              <ConfirmDeleteBtn onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </ConfirmDeleteBtn>
+            </ConfirmActions>
+          </ConfirmBox>
+        </ConfirmOverlay>
       )}
     </Overlay>
   )
