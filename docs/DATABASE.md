@@ -50,9 +50,22 @@ Tables with game context (tickets, baseballs, bats, jerseys, photos, programs, b
 
 - `cert_service` — `PSA` | `PSA/DNA` | `BGS` | `JSA` | `SGC` | `Steiner` | `CGC` | `MLB Auth` | `Beckett` | `K&D`
 - `cert_id` — the cert/serial number
+- `cert_link` — verification URL; auto-populated on blur for supported services (see below)
 - `item_grade` — card/item grade e.g. `NM-MT 8`, `Authentic`
 - `auto_grade` — autograph grade e.g. `GEM MT 10` (null if not an auto cert)
 - `is_autograph_cert` — true for PSA/DNA, JSA etc.; false for card graders
+
+#### Cert link autofill
+
+When a cert ID is entered in the admin form, `CertForm.jsx` auto-generates `cert_link` on blur for supported services via a `CERT_LINK_BUILDERS` config map. Currently supported:
+
+| Service | URL pattern |
+|---|---|
+| PSA | `https://www.psacard.com/cert/{id}/psa` |
+| PSA/DNA | `https://www.psacard.com/cert/{id}/dna` |
+| JSA | `https://www.spenceloa.com/verify-authenticity/results?certificateNumber={id}` |
+
+To add a new service, add an entry to `CERT_LINK_BUILDERS` in `src/components/admin/CertForm.jsx`.
 
 ### Population snapshots fields
 
