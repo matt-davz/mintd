@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import styled from 'styled-components'
+import { Carousel } from 'react-responsive-carousel'
+import 'react-responsive-carousel/lib/styles/carousel.min.css'
 import { useItem } from '../../hooks/useItem'
 import { useItems } from '../../hooks/useItems'
 import { SignatoryList } from '../../components/public/SignatoryList'
@@ -32,14 +34,22 @@ const BackLink = styled(Link)`
   .material-symbols-outlined { font-size: 0.875rem; }
 `
 
+const ContentWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  max-width: 1200px;
+  margin: 0 auto;
+`
+
 const Grid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-12);
   align-items: start;
 
-  @media (min-width: 1024px) {
-    grid-template-columns: 7fr 5fr;
+  @media (min-width: 768px) {
+    grid-template-columns: auto 1fr;
   }
 `
 
@@ -47,6 +57,8 @@ const Grid = styled.div`
 
 const ImageCol = styled.div`
   position: relative;
+  width: 300px;
+  min-width: 300px;
 `
 
 const ImageGlow = styled.div`
@@ -65,19 +77,8 @@ const ImageFrame = styled.div`
   background-color: var(--color-surface-low);
   border: 1px solid rgba(66, 71, 84, 0.1);
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
-  max-height: 80vh;
-  aspect-ratio: 1;
-  cursor: crosshair;
 `
 
-const MainImage = styled.img`
-  width: 100%;
-  height: 100%;
-  max-height: 80vh;
-  object-fit: contain;
-  display: block;
-  transition: transform 200ms ease;
-`
 
 const ImagePlaceholder = styled.div`
   aspect-ratio: 4/5;
@@ -90,34 +91,6 @@ const ImagePlaceholder = styled.div`
 `
 
 
-const ExpandBtn = styled.button`
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-md);
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(173, 198, 255, 0.2);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10;
-  transition: background var(--transition-base), border-color var(--transition-base);
-
-  &:hover {
-    background: rgba(77, 142, 255, 0.18);
-    border-color: rgba(173, 198, 255, 0.45);
-  }
-
-  .material-symbols-outlined {
-    font-size: 1.125rem;
-    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-  }
-`
 
 const OverlayGradeBadge = styled.div`
   position: absolute;
@@ -145,25 +118,11 @@ const OverlayGradeBadge = styled.div`
   }
 `
 
-const ThumbnailRow = styled.div`
-  display: flex;
-  gap: var(--space-3);
-  margin-top: var(--space-4);
-`
-
-const Thumbnail = styled.button`
-  width: 5rem;
-  aspect-ratio: 1;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  border: 2px solid ${({ $active }) => $active ? 'var(--color-primary)' : 'transparent'};
-  opacity: ${({ $active }) => $active ? 1 : 0.5};
-  transition: opacity var(--transition-base), border-color var(--transition-base);
-  cursor: pointer;
-
-  img { width: 100%; height: 100%; object-fit: cover; }
-
-  &:hover { opacity: 1; }
+const CarouselWrap = styled.div`
+  .carousel .slide img {
+    max-height: 40vh;
+    object-fit: contain;
+  }
 `
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
@@ -434,7 +393,6 @@ const StatusText = styled.p`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const ZOOM_FACTOR = 3
 
 export default function ItemDetail() {
   const { id } = useParams()
@@ -442,7 +400,6 @@ export default function ItemDetail() {
   const { items: allItems } = useItems()
 
   const frameRef = useRef(null)
-  const [zoom, setZoom] = useState({ active: false, xPct: 0, yPct: 0 })
   const [activeIndex, setActiveIndex] = useState(0)
   const [lightbox, setLightbox] = useState({ open: false, index: 0 })
 
@@ -453,8 +410,6 @@ export default function ItemDetail() {
 
   if (loading) return <StatusText>Loading...</StatusText>
   if (error || !item) return <StatusText>{error ?? 'Item not found.'}</StatusText>
-
-  const displayImage = allImages[activeIndex] ?? null
 
   const psaCerts = certifications.filter(c => ['PSA', 'PSA/DNA'].includes(c.cert_service))
   const firstPsaCert = psaCerts[0]
@@ -467,21 +422,6 @@ export default function ItemDetail() {
 
   const related = allItems.filter(i => i.id !== id).slice(0, 3)
 
-  const handleMouseMove = (e) => {
-    const rect = frameRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const xPct = (e.clientX - rect.left) / rect.width
-    const yPct = (e.clientY - rect.top) / rect.height
-    setZoom({ active: true, xPct, yPct })
-  }
-
-  const handleMouseLeave = () => setZoom(z => ({ ...z, active: false }))
-
-  const openLightbox = (e) => {
-    e.stopPropagation()
-    setLightbox({ open: true, index: activeIndex })
-  }
-
   return (
     <Page>
       <BackLink to="/">
@@ -489,66 +429,61 @@ export default function ItemDetail() {
         The Archive
       </BackLink>
 
-      <Grid>
-        {/* ── Image column ── */}
-        <ImageCol>
-          <ImageGlow />
-          <ImageFrame
-            ref={frameRef}
-            onMouseMove={displayImage ? handleMouseMove : undefined}
-            onMouseLeave={displayImage ? handleMouseLeave : undefined}
-          >
-            {displayImage ? (
-              <MainImage
-                src={displayImage.cloudinary_url}
-                alt={item.title}
-                style={{
-                  transform: zoom.active ? `scale(${ZOOM_FACTOR})` : 'scale(1)',
-                  transformOrigin: `${zoom.xPct * 100}% ${zoom.yPct * 100}%`,
-                }}
-              />
-            ) : (
-              <ImagePlaceholder>
-                <span className="material-symbols-outlined">image_not_supported</span>
-              </ImagePlaceholder>
-            )}
+      <ContentWrap>
+        {/* ── Title ── */}
+        <TitleSection>
+          {item.for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
+          <PageLabel>Collection Asset</PageLabel>
+          <Title>{item.title}</Title>
+        </TitleSection>
 
-            {gradeLabel && (
-              <OverlayGradeBadge>
-                <span className="material-symbols-outlined">verified</span>
-                {gradeLabel}
-              </OverlayGradeBadge>
-            )}
-
-            {displayImage && (
-              <ExpandBtn onClick={openLightbox} title="View fullscreen">
-                <span className="material-symbols-outlined">open_in_full</span>
-              </ExpandBtn>
-            )}
-          </ImageFrame>
-
-          {allImages.length > 1 && (
-            <ThumbnailRow>
-              {allImages.map((img, idx) => (
-                <Thumbnail
-                  key={img.id}
-                  $active={idx === activeIndex}
-                  onClick={() => setActiveIndex(idx)}
+        {/* ── Image + Details side by side ── */}
+        <Grid>
+          <ImageCol>
+            <ImageGlow />
+            {allImages.length > 0 ? (
+              <CarouselWrap>
+                <ImageFrame
+                  ref={frameRef}
+                  style={{ position: 'relative' }}
                 >
-                  <img src={img.cloudinary_url} alt="" />
-                </Thumbnail>
-              ))}
-            </ThumbnailRow>
-          )}
-        </ImageCol>
+                  <Carousel
+                    selectedItem={activeIndex}
+                    onChange={(idx) => setActiveIndex(idx)}
+                    showArrows
+                    showThumbs
+                    showStatus={false}
+                    showIndicators={false}
+                    infiniteLoop
+                    thumbWidth={80}
+                    onClickItem={() => setLightbox({ open: true, index: activeIndex })}
+                  >
+                    {allImages.map((img) => (
+                      <div key={img.id}>
+                        <img src={img.cloudinary_url} alt={item.title} />
+                      </div>
+                    ))}
+                  </Carousel>
 
-        {/* ── Detail column ── */}
-        <DetailCol>
-          <TitleSection>
-            {item.for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
-            <PageLabel>Collection Asset</PageLabel>
-            <Title>{item.title}</Title>
+                  {gradeLabel && (
+                    <OverlayGradeBadge>
+                      <span className="material-symbols-outlined">verified</span>
+                      {gradeLabel}
+                    </OverlayGradeBadge>
+                  )}
+                </ImageFrame>
+              </CarouselWrap>
+            ) : (
+              <ImageFrame>
+                <ImagePlaceholder>
+                  <span className="material-symbols-outlined">image_not_supported</span>
+                </ImagePlaceholder>
+              </ImageFrame>
+            )}
+          </ImageCol>
 
+          {/* ── Details (right of image) ── */}
+          <DetailCol>
             <DataGrid>
               {signatories.length > 0 && (
                 <SignatoryList signatories={signatories} />
@@ -568,9 +503,6 @@ export default function ItemDetail() {
                 </DataRow>
               ))}
 
-              {/* Game date now lives on game_context — will be fetched via detail tables */}
-
-
               {item.price && (
                 <DataRow>
                   <DataLabel>Acquisition Cost</DataLabel>
@@ -578,54 +510,52 @@ export default function ItemDetail() {
                 </DataRow>
               )}
             </DataGrid>
-          </TitleSection>
 
-          <ItemTypeDetails
-            itemType={item.item_type}
-            detail={detail}
-            gameContext={gameContext}
-          />
+            <ItemTypeDetails
+              itemType={item.item_type}
+              detail={detail}
+              gameContext={gameContext}
+            />
 
-          {pop && (
-            <>
-              <Divider />
-              <PopSection>
-                <SectionLabel>Population Analysis</SectionLabel>
-                <TotalPop>
-                  <TotalNum>{Number(pop.total).toLocaleString()}</TotalNum>
-                  <TotalLabel>Total Population</TotalLabel>
-                </TotalPop>
-                <PopGrid>
-                  <PopCell $type="higher">
-                    <PopCellLabel>Higher</PopCellLabel>
-                    <PopCellValue $type="higher">{pop.higher}</PopCellValue>
-                  </PopCell>
-                  <PopCell $type="same">
-                    <PopCellLabel>Same</PopCellLabel>
-                    <PopCellValue $type="same">{pop.same}</PopCellValue>
-                  </PopCell>
-                  <PopCell $type="lower" $last>
-                    <PopCellLabel>Lower</PopCellLabel>
-                    <PopCellValue $type="lower">{pop.lower}</PopCellValue>
-                  </PopCell>
-                </PopGrid>
-              </PopSection>
-            </>
-          )}
+            {pop && (
+              <>
+                <Divider />
+                <PopSection>
+                  <SectionLabel>Population Analysis</SectionLabel>
+                  <TotalPop>
+                    <TotalNum>{Number(pop.total).toLocaleString()}</TotalNum>
+                    <TotalLabel>Total Population</TotalLabel>
+                  </TotalPop>
+                  <PopGrid>
+                    <PopCell $type="higher">
+                      <PopCellLabel>Higher</PopCellLabel>
+                      <PopCellValue $type="higher">{pop.higher}</PopCellValue>
+                    </PopCell>
+                    <PopCell $type="same">
+                      <PopCellLabel>Same</PopCellLabel>
+                      <PopCellValue $type="same">{pop.same}</PopCellValue>
+                    </PopCell>
+                    <PopCell $type="lower" $last>
+                      <PopCellLabel>Lower</PopCellLabel>
+                      <PopCellValue $type="lower">{pop.lower}</PopCellValue>
+                    </PopCell>
+                  </PopGrid>
+                </PopSection>
+              </>
+            )}
+          </DetailCol>
+        </Grid>
 
-          {item.description && (
-            <>
-              <Divider />
-              <section>
-                <SectionLabel>Description</SectionLabel>
-                <p style={{ fontFamily: 'var(--font-body)', color: 'var(--color-on-surface-variant)', lineHeight: 1.7, fontSize: '0.9375rem' }}>
-                  {item.description}
-                </p>
-              </section>
-            </>
-          )}
-        </DetailCol>
-      </Grid>
+        {/* ── Description (full width below) ── */}
+        {item.description && (
+          <section>
+            <SectionLabel>Description</SectionLabel>
+            <p style={{ fontFamily: 'var(--font-body)', color: 'var(--color-on-surface-variant)', lineHeight: 1.7, fontSize: '0.9375rem' }}>
+              {item.description}
+            </p>
+          </section>
+        )}
+      </ContentWrap>
 
       {/* ── Related items ── */}
       {related.length > 0 && (
