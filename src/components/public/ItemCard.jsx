@@ -124,13 +124,6 @@ const CertId = styled.div`
   text-transform: uppercase;
 `
 
-const Price = styled.div`
-  font-family: var(--font-headline);
-  font-weight: 900;
-  font-size: 1rem;
-  color: var(--color-on-background);
-`
-
 export function ItemCard({ item }) {
   const {
     id,
@@ -142,7 +135,6 @@ export function ItemCard({ item }) {
     cert_grader,
     cert_number,
     for_sale,
-    price,
   } = item
 
   const gradeLabel = cert_grade
@@ -156,10 +148,6 @@ export function ItemCard({ item }) {
     : null
 
   const certDisplay = cert_number ? `Cert ID: ${cert_number}` : null
-
-  const priceDisplay = price
-    ? `$${Number(price).toLocaleString('en-US', { notation: 'compact', maximumFractionDigits: 1 })}`
-    : null
 
   return (
     <Card to={`/item/${id}`}>
@@ -180,7 +168,6 @@ export function ItemCard({ item }) {
         {signerDisplay && <Signer>{signerDisplay}</Signer>}
         <Footer>
           <CertId>{certDisplay}</CertId>
-          {priceDisplay && <Price>{priceDisplay}</Price>}
         </Footer>
       </Body>
     </Card>

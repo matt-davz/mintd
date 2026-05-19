@@ -503,12 +503,6 @@ export default function ItemDetail() {
                 </DataRow>
               ))}
 
-              {item.price && (
-                <DataRow>
-                  <DataLabel>Acquisition Cost</DataLabel>
-                  <DataValue>${Number(item.price).toLocaleString()}</DataValue>
-                </DataRow>
-              )}
             </DataGrid>
 
             <ItemTypeDetails
