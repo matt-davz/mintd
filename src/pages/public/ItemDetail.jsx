@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { Carousel } from 'react-responsive-carousel'
@@ -39,6 +39,7 @@ const ContentWrap = styled.div`
   flex-direction: column;
   gap: var(--space-12);
   max-width: 1200px;
+  min-height: 50vh;
   margin: 0 auto;
 `
 
@@ -402,6 +403,8 @@ export default function ItemDetail() {
   const frameRef = useRef(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [lightbox, setLightbox] = useState({ open: false, index: 0 })
+
+  useEffect(() => { window.scrollTo(0, 0) }, [id])
 
   // Derive image list early
   const primaryImage = images.find(i => i.is_primary) ?? images[0]
