@@ -444,7 +444,7 @@ export default function ItemDetail() {
         <Grid>
           <ImageCol>
             <ImageGlow />
-            {allImages.length > 0 ? (
+            {allImages.length > 1 ? (
               <CarouselWrap>
                 <ImageFrame
                   ref={frameRef}
@@ -476,6 +476,20 @@ export default function ItemDetail() {
                   )}
                 </ImageFrame>
               </CarouselWrap>
+            ) : allImages.length === 1 ? (
+              <ImageFrame
+                ref={frameRef}
+                style={{ position: 'relative', cursor: 'pointer' }}
+                onClick={() => setLightbox({ open: true, index: 0 })}
+              >
+                <img src={allImages[0].cloudinary_url} alt={item.title} style={{ width: '100%', display: 'block' }} />
+                {gradeLabel && (
+                  <OverlayGradeBadge>
+                    <span className="material-symbols-outlined">verified</span>
+                    {gradeLabel}
+                  </OverlayGradeBadge>
+                )}
+              </ImageFrame>
             ) : (
               <ImageFrame>
                 <ImagePlaceholder>
@@ -499,9 +513,22 @@ export default function ItemDetail() {
                     {cert.item_grade ?? cert.auto_grade ?? 'Authenticated'}
                   </DataValue>
                   {cert.cert_id && (
-                    <DataValue $accent="primary" style={{ fontSize: '1rem' }}>
-                      #{cert.cert_id}
-                    </DataValue>
+                    cert.cert_link ? (
+                      <DataValue
+                        as="a"
+                        href={cert.cert_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        $accent="primary"
+                        style={{ fontSize: '1rem', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                      >
+                        #{cert.cert_id}
+                      </DataValue>
+                    ) : (
+                      <DataValue $accent="primary" style={{ fontSize: '1rem' }}>
+                        #{cert.cert_id}
+                      </DataValue>
+                    )
                   )}
                 </DataRow>
               ))}

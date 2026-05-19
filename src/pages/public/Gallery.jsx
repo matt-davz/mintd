@@ -162,6 +162,9 @@ export default function Gallery() {
   // Reset to page 1 when filters or page size change
   useEffect(() => { setPage(1) }, [activeType, search, pageSize])
 
+  // Scroll to top when page changes
+  useEffect(() => { window.scrollTo(0, 0) }, [page])
+
   return (
     <Page>
       <Hero>
