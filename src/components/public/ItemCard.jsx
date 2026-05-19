@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 
@@ -31,8 +32,13 @@ const Image = styled.img`
   transition: transform 700ms cubic-bezier(0.2, 0, 0.2, 1);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
 
+  ${({ $rotate }) => $rotate && `
+    transform: rotate(-90deg) scale(1.4);
+    object-fit: contain;
+  `}
+
   ${Card}:hover & {
-    transform: scale(1.05);
+    transform: ${({ $rotate }) => $rotate ? 'rotate(-90deg) scale(1.5)' : 'scale(1.05)'};
   }
 `
 
@@ -135,7 +141,10 @@ export function ItemCard({ item }) {
     cert_grader,
     cert_number,
     for_sale,
+    item_type,
   } = item
+
+  const [shouldRotate, setShouldRotate] = useState(false)
 
   const gradeLabel = cert_grade
     ? `${cert_grader ?? ''} ${cert_grade}`.trim()
@@ -153,7 +162,18 @@ export function ItemCard({ item }) {
     <Card to={`/item/${id}`}>
       <ImageWrapper>
         {primary_image_url ? (
-          <Image src={primary_image_url} alt={title} loading="lazy" />
+          <Image
+            src={primary_image_url}
+            alt={title}
+            loading="lazy"
+            $rotate={shouldRotate}
+            onLoad={e => {
+              if (item_type === 'bat') {
+                const { naturalWidth, naturalHeight } = e.target
+                setShouldRotate(naturalWidth / naturalHeight > 2)
+              }
+            }}
+          />
         ) : (
           <ImagePlaceholder>
             <span className="material-symbols-outlined">image_not_supported</span>

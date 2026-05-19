@@ -67,6 +67,8 @@ When a cert ID is entered in the admin form, `CertForm.jsx` auto-generates `cert
 
 To add a new service, add an entry to `CERT_LINK_BUILDERS` in `src/components/admin/CertForm.jsx`.
 
+> **Backfill (2026-05-19):** 160 existing PSA, PSA/DNA, and JSA certs were backfilled with auto-generated `cert_link` values. The remaining ~20 certs without links are services without URL templates (BGS, SGC, Steiner, MLB Auth, Beckett, etc.).
+
 ### Population snapshots fields
 
 - `snapshot_type` — `psa_grade` | `psa_dna`

@@ -32,14 +32,14 @@
 ### Gallery (`/`)
 - [x] `useItems` hook — queries `item_gallery` view
 - [x] `<FilterBar>` — item type pill filters (from `ITEM_TYPES` config) + search input
-- [x] `<ItemCard>` — image, for-sale badge, grade badge, title, featured signer with multi-signer "+N others" rule, cert ID, price
-- [x] `<Gallery>` page — hero heading, filter bar, responsive 1-2-3-4 col grid, pagination
+- [x] `<ItemCard>` — image, for-sale badge, grade badge, title, featured signer with multi-signer "+N others" rule, cert ID. Bat images with wide aspect ratio (>2:1) auto-rotated 90° to fit portrait card.
+- [x] `<Gallery>` page — hero heading, filter bar, responsive 1-2-3-4 col grid, pagination, page size selector (16/32/64), scroll-to-top on page change
 
 ### Item Detail (`/item/:id`)
 - [x] `useItem` hook — fetches single item with signatories, certs, images, type detail, game context
-- [x] `<ItemDetail>` page — full item view, PSA population table, signatory list, acquisition cost
+- [x] `<ItemDetail>` page — full item view, PSA population table, signatory list. Scroll-to-top on load. Cert IDs link to verification URL when `cert_link` exists.
 - [x] PSA population display — Higher / Same / Lower table, monospace numbers
-- [x] Image column — hover magnifier lens, fullscreen lightbox, thumbnail nav
+- [x] Image column — single image shows plain (no carousel); multiple images use carousel with thumbs. Fullscreen lightbox on click.
 - [x] Type-specific detail display — `components/itemDetail/` with per-type display components + game context
 - [ ] Verify `item_gallery` cert data works correctly with edge cases (0 certs, multiple certs)
 
@@ -87,6 +87,6 @@
 
 ## 7. Deployment
 - [ ] Connect repo to Netlify
-- [ ] Set env vars in Netlify dashboard
+- [ ] Set env vars in Netlify dashboard (VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY, VITE_CLERK_PUBLISHABLE_KEY, VITE_CLOUDINARY_CLOUD_NAME, VITE_CLOUDINARY_UPLOAD_PRESET — required after .env was removed from git)
 - [ ] Configure Netlify redirects for SPA routing (`/* → /index.html`)
 - [ ] Set Supabase Edge Function secrets

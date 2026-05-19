@@ -117,6 +117,15 @@ Era tags: `pre-1920`, `1920s`, `1930s`, `1940s`, `1950s`, `1960s`, `modern`
 
 Item type tags (legacy — `item_type` column is now the primary way to categorize): `ticket-stub`, `full-ticket`, `card`, `baseball`, `bat`, `jersey`, `photo`, `magazine`, `program`, `book`, `base`, `glove`
 
+## Public site display rules
+
+- **No prices on public site** — acquisition cost / price is hidden from the gallery cards and item detail page. Price data remains in the DB and is visible in admin only.
+- **Cert ID hyperlinks** — on the item detail page, cert IDs link to the verification URL (`cert_link`) when available. Supported services: PSA, PSA/DNA, JSA (auto-generated via `CERT_LINK_BUILDERS` in `CertForm.jsx`).
+- **Single-image items** — item detail shows a plain image (no carousel) when only one image exists. Carousel only renders for 2+ images.
+- **Bat image rotation** — gallery cards for `item_type === 'bat'` auto-rotate the thumbnail 90° counter-clockwise when the image aspect ratio is wider than 2:1 (landscape bat photos). Normal aspect ratio bat photos are not rotated.
+- **Page size selector** — gallery has a dropdown to show 16, 32, or 64 items per page.
+- **Scroll-to-top** — gallery scrolls to top on page change; item detail scrolls to top on load.
+
 ## Multi-signer display rule
 
 On gallery cards: show the `is_featured = true` signatory name prominently. If there are additional signers, show "+ N others" that expands inline. Never show a raw comma-separated string.
