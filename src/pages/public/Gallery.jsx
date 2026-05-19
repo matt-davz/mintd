@@ -4,7 +4,7 @@ import { useItems } from '../../hooks/useItems'
 import { ItemCard } from '../../components/public/ItemCard'
 import { FilterBar } from '../../components/public/FilterBar'
 
-const PAGE_SIZE = 16
+const PAGE_SIZE_OPTIONS = [16, 32, 64]
 
 const Page = styled.div`
   max-width: 1536px;
@@ -107,6 +107,33 @@ const StatusText = styled.p`
   text-align: center;
 `
 
+const ResultsBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-6);
+`
+
+const PageSizeSelect = styled.select`
+  background-color: var(--color-surface-high);
+  color: var(--color-on-background);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  padding: 0.375rem 0.5rem;
+  cursor: pointer;
+
+  &:hover { background-color: var(--color-surface-bright); }
+
+  option {
+    background-color: var(--color-surface);
+    color: var(--color-on-background);
+  }
+`
+
 function buildPages(current, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
   if (current <= 4) return [1, 2, 3, 4, 5, '...', total]
@@ -118,6 +145,7 @@ export default function Gallery() {
   const [activeType, setActiveType] = useState(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0])
 
   const { items, loading, error } = useItems()
 
@@ -127,12 +155,12 @@ export default function Gallery() {
     return matchesType && matchesSearch
   })
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const totalPages = Math.ceil(filtered.length / pageSize)
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize)
   const pages = buildPages(page, totalPages)
 
-  // Reset to page 1 when filters change
-  useEffect(() => { setPage(1) }, [activeType, search])
+  // Reset to page 1 when filters or page size change
+  useEffect(() => { setPage(1) }, [activeType, search, pageSize])
 
   return (
     <Page>
@@ -151,10 +179,20 @@ export default function Gallery() {
       {!error && (
         <>
           {!loading && (
-            <ResultsMeta>
-              {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
-              {totalPages > 1 && ` — page ${page} of ${totalPages}`}
-            </ResultsMeta>
+            <ResultsBar>
+              <ResultsMeta>
+                {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
+                {totalPages > 1 && ` — page ${page} of ${totalPages}`}
+              </ResultsMeta>
+              <PageSizeSelect
+                value={pageSize}
+                onChange={e => setPageSize(Number(e.target.value))}
+              >
+                {PAGE_SIZE_OPTIONS.map(n => (
+                  <option key={n} value={n}>{n} per page</option>
+                ))}
+              </PageSizeSelect>
+            </ResultsBar>
           )}
 
           <Grid>
