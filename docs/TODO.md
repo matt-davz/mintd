@@ -32,7 +32,7 @@
 ### Gallery (`/`)
 - [x] `useItems` hook — queries `item_gallery` view
 - [x] `<FilterBar>` — item type pill filters (from `ITEM_TYPES` config) + search input
-- [x] `<ItemCard>` — image, for-sale badge, grade badge, title, featured signer with multi-signer "+N others" rule, cert ID. Bat images with wide aspect ratio (>2:1) auto-rotated 90° to fit portrait card.
+- [x] `<ItemCard>` — image, for-sale badge, grade badge, title, featured signer with multi-signer "+N others" rule, cert ID
 - [x] `<Gallery>` page — hero heading, filter bar, responsive 1-2-3-4 col grid, pagination, page size selector (16/32/64), scroll-to-top on page change
 
 ### Item Detail (`/item/:id`)
