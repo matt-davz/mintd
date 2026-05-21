@@ -103,6 +103,7 @@ Shared structured game metadata. Linked from item detail tables via `game_contex
 | `home_score` | `integer` | | |
 | `away_score` | `integer` | | |
 | `notes` | `text` | | |
+| `box_score` | `jsonb` | CHECK `box_score_shape` | Inning-by-inning line score + R/H/E totals. Shape: `{ innings: [{inning, away, home}], home: {r, h, e}, away: {r, h, e} }` |
 | `created_at` | `timestamptz` | NOT NULL, default `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL, default `now()` | Auto-updated via trigger |
 
@@ -230,7 +231,6 @@ Tables with `game_context_id uuid` FK → `game_context(id)` ON DELETE SET NULL:
 | `is_full_ticket` | `boolean NOT NULL default false` |
 | `section`, `row`, `seat`, `printer` | `text` |
 | `face_value` | `numeric(10,2)` |
-| `game_result` | `ticket_game_result_enum` |
 | `game_context_id` | `uuid` |
 
 ### `item_cards`
@@ -376,6 +376,8 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0011_item_gallery_view.sql` | Gallery view recreated as `item_gallery` |
 | `0012_rls_policies.sql` | RLS for `game_context` + all 11 detail tables |
 | `0013_fix_gallery_duplicate_signers.sql` | Fix duplicate rows for multi-signer items; lateral subquery for featured signer + `signatory_count` |
+| `0014_box_score.sql` | `box_score` JSONB column on `game_context` with CHECK constraint |
+| `0015_drop_ticket_game_result.sql` | Drop redundant `game_result` from `item_tickets` (lives in `game_context`) |
 
 ---
 

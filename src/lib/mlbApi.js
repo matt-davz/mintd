@@ -120,6 +120,27 @@ function deriveGameResult(teams) {
 
 // ─── Response Parser ─────────────────────────────────────────────────────────
 
+function parseLinescore(linescore) {
+  if (!linescore?.innings?.length) return null
+  return {
+    innings: linescore.innings.map(i => ({
+      inning: i.num,
+      away: i.away?.runs ?? 0,
+      home: i.home?.runs ?? 0,
+    })),
+    away: {
+      r: linescore.teams?.away?.runs ?? 0,
+      h: linescore.teams?.away?.hits ?? 0,
+      e: linescore.teams?.away?.errors ?? 0,
+    },
+    home: {
+      r: linescore.teams?.home?.runs ?? 0,
+      h: linescore.teams?.home?.hits ?? 0,
+      e: linescore.teams?.home?.errors ?? 0,
+    },
+  }
+}
+
 export function parseGame(apiGame) {
   const home = apiGame.teams.home
   const away = apiGame.teams.away
@@ -136,6 +157,7 @@ export function parseGame(apiGame) {
     home_score:         home.score != null ? String(home.score) : '',
     away_score:         away.score != null ? String(away.score) : '',
     notes:              apiGame.description || '',
+    box_score:          parseLinescore(apiGame.linescore),
   }
 }
 
@@ -147,7 +169,7 @@ function extractGames(data) {
 }
 
 export async function fetchGamesByDate(dateStr) {
-  const res = await fetch(`${MLB_BASE}/schedule?date=${dateStr}&sportId=1`)
+  const res = await fetch(`${MLB_BASE}/schedule?date=${dateStr}&sportId=1&hydrate=linescore`)
   if (!res.ok) throw new Error(`MLB API error: ${res.status}`)
   const data = await res.json()
   return extractGames(data).map(parseGame)
@@ -155,7 +177,7 @@ export async function fetchGamesByDate(dateStr) {
 
 export async function fetchGamesByMatchup(teamId1, teamId2, seasonYear) {
   const res = await fetch(
-    `${MLB_BASE}/schedule?startDate=${seasonYear}-01-01&endDate=${seasonYear}-12-31&teamId=${teamId1}&sportId=1`
+    `${MLB_BASE}/schedule?startDate=${seasonYear}-01-01&endDate=${seasonYear}-12-31&teamId=${teamId1}&sportId=1&hydrate=linescore`
   )
   if (!res.ok) throw new Error(`MLB API error: ${res.status}`)
   const data = await res.json()
@@ -170,7 +192,7 @@ export async function fetchGamesByMatchup(teamId1, teamId2, seasonYear) {
 
 export async function fetchWorldSeriesGames(year) {
   const res = await fetch(
-    `${MLB_BASE}/schedule/postseason?sportId=1&season=${year}&gameType=W`
+    `${MLB_BASE}/schedule/postseason?sportId=1&season=${year}&gameType=W&hydrate=linescore`
   )
   if (!res.ok) throw new Error(`MLB API error: ${res.status}`)
   const data = await res.json()

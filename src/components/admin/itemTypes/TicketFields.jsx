@@ -33,16 +33,6 @@ export function TicketFields({ form, setField }) {
           onChange={e => setField('face_value', e.target.value)} />
       </Field>
       <Field>
-        <FieldLabel>Game Result</FieldLabel>
-        <EditSelect value={form.game_result} onChange={e => setField('game_result', e.target.value)}>
-          <option value="">—</option>
-          <option value="win">Win</option>
-          <option value="loss">Loss</option>
-          <option value="tie">Tie</option>
-          <option value="unknown">Unknown</option>
-        </EditSelect>
-      </Field>
-      <Field>
         <FieldLabel>Printer</FieldLabel>
         <EditInput type="text" value={form.printer} placeholder="e.g. Globe Ticket Co."
           onChange={e => setField('printer', e.target.value)} />

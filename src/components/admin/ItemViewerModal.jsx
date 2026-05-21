@@ -12,6 +12,7 @@ import { CertForm } from './CertForm'
 import { SignatoryForm } from './SignatoryForm'
 import { ImageUploader } from './ImageUploader'
 import { GameContextFields } from './GameContextFields'
+import { BoxScoreDisplay } from '../BoxScoreDisplay'
 import { TYPE_FIELDS_MAP } from './itemTypes'
 import { ImageLightbox } from '../ImageLightbox'
 
@@ -1441,6 +1442,13 @@ export function ItemViewerModal({ itemId, onClose }) {
                       )
                     })}
                   </FieldGrid>
+                  {gameContext.box_score && gameContext.box_score.innings?.length > 0 && (
+                    <BoxScoreDisplay
+                      boxScore={gameContext.box_score}
+                      homeTeam={gameContext.home_team}
+                      awayTeam={gameContext.away_team}
+                    />
+                  )}
                 </Section>
               )}
 

@@ -3,6 +3,7 @@ import {
   EditInput, EditSelect, EditTextarea,
 } from './FormFields'
 import { GameLookupToolbar } from './GameLookupToolbar'
+import { BoxScoreDisplay } from '../BoxScoreDisplay'
 
 export function GameContextFields({ form, setField }) {
   function handleSelectGame(gameData) {
@@ -135,6 +136,13 @@ export function GameContextFields({ form, setField }) {
         />
       </FullField>
     </FieldGrid>
+      {form.box_score && form.box_score.innings?.length > 0 && (
+        <BoxScoreDisplay
+          boxScore={form.box_score}
+          homeTeam={form.home_team}
+          awayTeam={form.away_team}
+        />
+      )}
     </>
   )
 }

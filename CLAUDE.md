@@ -48,6 +48,10 @@ A private baseball memorabilia collection showcase website for a single client. 
 
 Single Vite + React app. Public and admin share one codebase, split by route.
 
+## Rules
+
+See `docs/RULES.md` for mandatory checklists (e.g. schema changes require updating migrations, docs, editor, and public detail page).
+
 ## Build Todo
 
 See `docs/TODO.md` for the full ordered task list.

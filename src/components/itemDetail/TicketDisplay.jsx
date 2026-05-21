@@ -1,4 +1,4 @@
-import { DetailGrid, DetailRow, DetailLabel, DetailValue, TagRow, Tag, formatEnum, formatMoney } from './styles'
+import { DetailGrid, DetailRow, DetailLabel, DetailValue, TagRow, Tag, formatMoney } from './styles'
 
 export function TicketDisplay({ detail }) {
   if (!detail) return null
@@ -27,13 +27,6 @@ export function TicketDisplay({ detail }) {
         <DetailRow>
           <DetailLabel>Face Value</DetailLabel>
           <DetailValue>{formatMoney(detail.face_value)}</DetailValue>
-        </DetailRow>
-      )}
-
-      {detail.game_result && (
-        <DetailRow>
-          <DetailLabel>Game Result</DetailLabel>
-          <DetailValue>{formatEnum(detail.game_result)}</DetailValue>
         </DetailRow>
       )}
 

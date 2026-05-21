@@ -25,7 +25,7 @@ export const DETAIL_TABLE = {
 }
 
 export const EMPTY_DETAIL = {
-  ticket:   { is_full_ticket: false, section: '', row: '', seat: '', face_value: '', game_result: '', printer: '' },
+  ticket:   { is_full_ticket: false, section: '', row: '', seat: '', face_value: '', printer: '' },
   card:     { card_set_name: '', card_number: '', manufacturer: '', year_issued: '', parallel_variation: '', is_rookie_card: false, serial_number: '', print_run: '' },
   baseball: { is_game_used: false, game_used_type: '', manufacturer: '', league_stamp: '', is_team_signed: false, inscription: '' },
   bat:      { manufacturer: '', model_number: '', length_inches: '', weight_oz: '', is_game_used: false, year_used: '', is_cracked: false, has_pine_tar: false, inscription: '' },
@@ -42,6 +42,7 @@ export const EMPTY_GAME_CONTEXT = {
   game_date: '', home_team: '', away_team: '', venue: '', city: '',
   season_year: '', game_type: '', series_game_number: '',
   game_result: '', home_score: '', away_score: '', notes: '',
+  box_score: null,
 }
 
 export const NUMERIC_FIELDS = new Set([
@@ -50,9 +51,9 @@ export const NUMERIC_FIELDS = new Set([
   'year_published',
 ])
 
-/** True if every value is '' or false */
+/** True if every value is '', false, or null */
 export function isFormEmpty(obj) {
-  return Object.values(obj).every(v => v === '' || v === false)
+  return Object.values(obj).every(v => v === '' || v === false || v === null)
 }
 
 /** Convert a detail/gc form object to a DB-ready payload */

@@ -1,10 +1,12 @@
 import { DetailGrid, DetailRow, DetailLabel, DetailValue, SectionHeading, Divider, formatEnum, formatDate } from './styles'
+import { BoxScoreDisplay } from '../BoxScoreDisplay'
 
 export function GameContextDisplay({ gameContext }) {
   if (!gameContext) return null
 
   const gc = gameContext
   const hasScore = gc.home_score != null && gc.away_score != null
+  const hasBoxScore = gc.box_score && gc.box_score.innings?.length > 0
 
   const matchup = [gc.away_team, gc.home_team].filter(Boolean).join(' @ ')
   const score = hasScore ? `${gc.away_score} – ${gc.home_score}` : null
@@ -30,7 +32,7 @@ export function GameContextDisplay({ gameContext }) {
             </DetailRow>
           )}
 
-          {score && (
+          {!hasBoxScore && score && (
             <DetailRow>
               <DetailLabel>Score</DetailLabel>
               <DetailValue>{score}</DetailValue>
@@ -81,6 +83,14 @@ export function GameContextDisplay({ gameContext }) {
             </DetailRow>
           )}
         </DetailGrid>
+
+        {hasBoxScore && (
+          <BoxScoreDisplay
+            boxScore={gc.box_score}
+            homeTeam={gc.home_team}
+            awayTeam={gc.away_team}
+          />
+        )}
       </section>
     </>
   )
