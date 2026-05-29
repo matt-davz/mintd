@@ -188,7 +188,7 @@ export function Footer() {
           <div>
             <Heading>Have Questions?<br />Inquire Now.</Heading>
             <SubText>
-              Contact us for any inquires, that be to acquire memorbillia or if you think you have a piece that would fit with this collection as we are looking to expand our collection.
+              We are always looking to add to our collection with the main goal of obtaining a ticket to every single Yankees World Series game and more broadly building one of the best Yankees collections in existence. If you have an item you think would be a good fit, please get in touch! We'll offer top dollar for quality items. We're also open to trades. Feel free to send over a message if you have any questions or just looking to talk about collecting, the Yankees, or baseball in general.
             </SubText>
             <ContactItem>
               <span className="material-symbols-outlined">mail</span>
