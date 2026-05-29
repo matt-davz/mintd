@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
+import { CONTACT_EMAIL } from '../../lib/constants'
 
 const FooterWrapper = styled.footer`
   margin-top: 6rem;
@@ -181,6 +182,17 @@ const BottomLinks = styled.div`
 `
 
 export function Footer() {
+  function handleSubmit(e) {
+    e.preventDefault()
+    const form = e.target
+    const name = form.elements['footer-name'].value
+    const email = form.elements['footer-email'].value
+    const message = form.elements['footer-message'].value
+    const subject = encodeURIComponent(`Inquiry from ${name}`)
+    const body = encodeURIComponent(`From: ${name} (${email})\n\n${message}`)
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`
+  }
+
   return (
     <FooterWrapper>
       <Inner>
@@ -192,7 +204,7 @@ export function Footer() {
             </SubText>
             <ContactItem>
               <span className="material-symbols-outlined">mail</span>
-              info@mintd.com
+              <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: 'inherit', textDecoration: 'none' }}>{CONTACT_EMAIL}</a>
             </ContactItem>
             <ContactItem>
               <span className="material-symbols-outlined">call</span>
@@ -201,7 +213,7 @@ export function Footer() {
           </div>
 
           <FormCard>
-            <form onSubmit={(e) => e.preventDefault()}>
+            <form onSubmit={handleSubmit}>
               <FormGroup>
                 <Label htmlFor="footer-name">Full Name</Label>
                 <Input id="footer-name" type="text" placeholder="Your name" />

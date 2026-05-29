@@ -1,4 +1,5 @@
 import styled from 'styled-components'
+import { CONTACT_EMAIL } from '../../lib/constants'
 
 const Page = styled.div`
   max-width: 1536px;
@@ -146,6 +147,18 @@ const SubmitButton = styled.button`
 `
 
 export default function Contact() {
+  function handleSubmit(e) {
+    e.preventDefault()
+    const form = e.target
+    const name = form.elements['name'].value
+    const email = form.elements['email'].value
+    const phone = form.elements['phone'].value
+    const message = form.elements['message'].value
+    const subject = encodeURIComponent(`Inquiry from ${name}`)
+    const body = encodeURIComponent(`From: ${name} (${email})${phone ? `\nPhone: ${phone}` : ''}\n\n${message}`)
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`
+  }
+
   return (
     <Page>
       <PageLabel>Get in touch</PageLabel>
@@ -160,7 +173,7 @@ export default function Contact() {
           </SubText>
           <ContactItem>
             <span className="material-symbols-outlined">mail</span>
-            info@mintd.com
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: 'inherit', textDecoration: 'none' }}>{CONTACT_EMAIL}</a>
           </ContactItem>
           <ContactItem>
             <span className="material-symbols-outlined">call</span>
@@ -169,7 +182,7 @@ export default function Contact() {
         </div>
 
         <FormCard>
-          <form onSubmit={(e) => e.preventDefault()}>
+          <form onSubmit={handleSubmit}>
             <FormGroup>
               <Label htmlFor="name">Full Name</Label>
               <Input id="name" type="text" placeholder="Your name" />
