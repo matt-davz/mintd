@@ -93,31 +93,6 @@ const ImagePlaceholder = styled.div`
 
 
 
-const OverlayGradeBadge = styled.div`
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 0.5rem 1rem;
-  background: rgba(143, 113, 0, 0.9);
-  backdrop-filter: blur(12px);
-  color: var(--color-secondary-fixed);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  font-weight: 700;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 224, 141, 0.2);
-
-  .material-symbols-outlined {
-    font-size: 1rem;
-    font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-    color: var(--color-secondary-fixed);
-  }
-`
 
 const CarouselWrap = styled.div`
   .carousel .slide img {
@@ -468,12 +443,6 @@ export default function ItemDetail() {
                     ))}
                   </Carousel>
 
-                  {gradeLabel && (
-                    <OverlayGradeBadge>
-                      <span className="material-symbols-outlined">verified</span>
-                      {gradeLabel}
-                    </OverlayGradeBadge>
-                  )}
                 </ImageFrame>
               </CarouselWrap>
             ) : allImages.length === 1 ? (
@@ -483,12 +452,6 @@ export default function ItemDetail() {
                 onClick={() => setLightbox({ open: true, index: 0 })}
               >
                 <img src={allImages[0].cloudinary_url} alt={item.title} style={{ width: '100%', display: 'block' }} />
-                {gradeLabel && (
-                  <OverlayGradeBadge>
-                    <span className="material-symbols-outlined">verified</span>
-                    {gradeLabel}
-                  </OverlayGradeBadge>
-                )}
               </ImageFrame>
             ) : (
               <ImageFrame>
@@ -539,6 +502,7 @@ export default function ItemDetail() {
               itemType={item.item_type}
               detail={detail}
               gameContext={gameContext}
+              item={item}
             />
 
             {pop && (

@@ -766,7 +766,7 @@ const EMPTY_FORM = {
   price: '', auto_total: '', acquisition_type: 'unknown',
   item_type: '', is_autographed: false, for_sale: false,
   is_visible: false, is_baseball: false, is_part_of_set: false,
-  purchase_date: '', notes: '',
+  is_duplicate: false, purchase_date: '', notes: '',
 }
 
 export function ItemViewerModal({ itemId, onClose }) {
@@ -803,6 +803,7 @@ export function ItemViewerModal({ itemId, onClose }) {
       is_visible:          item.is_visible ?? false,
       is_baseball:         item.is_baseball ?? false,
       is_part_of_set:      item.is_part_of_set ?? false,
+      is_duplicate:        item.is_duplicate ?? false,
       purchase_date:       item.purchase_date ?? '',
       notes:               item.notes ?? '',
     }
@@ -954,6 +955,7 @@ export function ItemViewerModal({ itemId, onClose }) {
         is_visible:       form.is_visible,
         is_baseball:      form.is_baseball,
         is_part_of_set:   form.is_part_of_set,
+        is_duplicate:     form.is_duplicate,
         purchase_date:    form.purchase_date || null,
         notes:            form.notes || null,
       }
@@ -1381,6 +1383,16 @@ export function ItemViewerModal({ itemId, onClose }) {
                 <Section>
                   <SectionLabel>Type Details — {form.item_type.charAt(0).toUpperCase() + form.item_type.slice(1)}</SectionLabel>
                   <TypeFields form={detailForm} setField={setDetailField} />
+                  {form.item_type === 'ticket' && (
+                    <Field style={{ marginTop: 'var(--space-4)' }}>
+                      <FieldLabel>Duplicate</FieldLabel>
+                      <CheckboxLabel>
+                        <input type="checkbox" checked={form.is_duplicate}
+                          onChange={e => setField('is_duplicate', e.target.checked)} />
+                        Yes
+                      </CheckboxLabel>
+                    </Field>
+                  )}
                 </Section>
               )}
               {!isEditing && detail && item.item_type && (
@@ -1410,6 +1422,12 @@ export function ItemViewerModal({ itemId, onClose }) {
                         </Field>
                       )
                     })}
+                    {item.item_type === 'ticket' && (
+                      <Field>
+                        <FieldLabel>Duplicate</FieldLabel>
+                        <Bool value={!!item.is_duplicate} />
+                      </Field>
+                    )}
                   </FieldGrid>
                 </Section>
               )}
@@ -1426,6 +1444,7 @@ export function ItemViewerModal({ itemId, onClose }) {
                   <SectionLabel>Game Context</SectionLabel>
                   <FieldGrid>
                     {Object.keys(EMPTY_GAME_CONTEXT).map(key => {
+                      if (key === 'box_score') return null
                       const val = gameContext[key]
                       if (val == null || val === '') return null
                       const label = key.replace(/_/g, ' ')
@@ -1443,11 +1462,14 @@ export function ItemViewerModal({ itemId, onClose }) {
                     })}
                   </FieldGrid>
                   {gameContext.box_score && gameContext.box_score.innings?.length > 0 && (
-                    <BoxScoreDisplay
-                      boxScore={gameContext.box_score}
-                      homeTeam={gameContext.home_team}
-                      awayTeam={gameContext.away_team}
-                    />
+                    <>
+                      <FieldLabel style={{ marginTop: 'var(--space-6)', marginBottom: 'var(--space-2)' }}>Box Score</FieldLabel>
+                      <BoxScoreDisplay
+                        boxScore={gameContext.box_score}
+                        homeTeam={gameContext.home_team}
+                        awayTeam={gameContext.away_team}
+                      />
+                    </>
                   )}
                 </Section>
               )}

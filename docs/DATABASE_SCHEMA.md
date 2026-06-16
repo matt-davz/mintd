@@ -23,7 +23,7 @@ Defined in `0004_enums.sql`.
 | `item_type_enum` | `ticket`, `card`, `baseball`, `bat`, `jersey`, `photo`, `magazine`, `program`, `book`, `base`, `glove` |
 | `game_type_enum` | `regular_season`, `alds`, `alcs`, `nlds`, `nlcs`, `world_series`, `all_star`, `spring_training`, `exhibition` |
 | `game_result_enum` | `home_win`, `home_loss`, `tie`, `unknown` |
-| `ticket_game_result_enum` | `win`, `loss`, `tie`, `unknown` |
+| `ticket_game_result_enum` | `win`, `loss`, `tie`, `unknown` — *unused, column dropped in 0015* |
 | `game_used_type_enum` | `game`, `batting_practice`, `home_run`, `ceremonial_first_pitch` |
 | `jersey_type_enum` | `home`, `away`, `alternate`, `spring_training`, `all_star`, `throwback` |
 | `photo_type_enum` | `type_1`, `type_2`, `type_3` |
@@ -73,6 +73,7 @@ Core table — everything hangs off this.
 | `is_part_of_set` | `boolean` | NOT NULL, default `false` | |
 | `set_id` | `uuid` | FK → `sets(id)` ON DELETE SET NULL | |
 | `notes` | `text` | | |
+| `is_duplicate` | `boolean` | NOT NULL, default `false` | |
 | `created_at` | `timestamptz` | NOT NULL, default `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL, default `now()` | Auto-updated via trigger |
 
@@ -378,6 +379,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0013_fix_gallery_duplicate_signers.sql` | Fix duplicate rows for multi-signer items; lateral subquery for featured signer + `signatory_count` |
 | `0014_box_score.sql` | `box_score` JSONB column on `game_context` with CHECK constraint |
 | `0015_drop_ticket_game_result.sql` | Drop redundant `game_result` from `item_tickets` (lives in `game_context`) |
+| `0016_add_is_duplicate_to_items.sql` | Add `is_duplicate boolean NOT NULL default false` to `items` |
 
 ---
 

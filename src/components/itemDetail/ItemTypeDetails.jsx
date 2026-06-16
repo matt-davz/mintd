@@ -1,4 +1,4 @@
-import { SectionHeading, Divider, formatEnum } from './styles'
+import { SectionHeading, Divider, DetailGrid, DetailRow, DetailLabel, DetailValue, formatEnum } from './styles'
 import { GameContextDisplay } from './GameContextDisplay'
 import { TicketDisplay } from './TicketDisplay'
 import { CardDisplay } from './CardDisplay'
@@ -26,7 +26,7 @@ const TYPE_COMPONENTS = {
   glove: GloveDisplay,
 }
 
-export function ItemTypeDetails({ itemType, detail, gameContext }) {
+export function ItemTypeDetails({ itemType, detail, gameContext, item }) {
   const TypeComponent = TYPE_COMPONENTS[itemType]
   if (!TypeComponent || !detail) return null
 
@@ -36,6 +36,14 @@ export function ItemTypeDetails({ itemType, detail, gameContext }) {
       <section>
         <SectionHeading>{formatEnum(itemType)} Details</SectionHeading>
         <TypeComponent detail={detail} />
+        {item?.is_duplicate && (
+          <DetailGrid style={{ marginTop: 'var(--space-4)' }}>
+            <DetailRow>
+              <DetailLabel>Duplicate</DetailLabel>
+              <DetailValue>Yes</DetailValue>
+            </DetailRow>
+          </DetailGrid>
+        )}
       </section>
       <GameContextDisplay gameContext={gameContext} />
     </>
