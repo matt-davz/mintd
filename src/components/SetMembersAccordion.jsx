@@ -102,7 +102,7 @@ const Track = styled.div`
 const cardBase = `
   display: flex;
   flex-direction: column;
-  flex: 0 0 120px;
+  flex: 0 0 160px;
   cursor: pointer;
   text-decoration: none;
   border-radius: var(--radius-md);
@@ -156,14 +156,14 @@ const CardImage = styled.div`
 
 const CardTitle = styled.p`
   font-family: var(--font-headline);
-  font-size: 0.5625rem;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--color-on-surface-variant);
   line-height: 1.4;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   padding: var(--space-2) var(--space-2);
@@ -171,7 +171,7 @@ const CardTitle = styled.p`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const SCROLL_STEP = 390 // ~3 cards
+const SCROLL_STEP = 516 // ~3 cards at 160px + gap
 
 export function SetMembersAccordion({ setId, currentItemId, onItemClick }) {
   const [open, setOpen] = useState(false)
