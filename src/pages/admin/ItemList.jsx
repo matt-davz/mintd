@@ -603,7 +603,11 @@ export default function ItemList() {
   return (
     <>
       {selectedItemId && (
-        <ItemViewerModal itemId={selectedItemId} onClose={() => setSelectedItemId(null)} />
+        <ItemViewerModal
+          itemId={selectedItemId}
+          onClose={() => setSelectedItemId(null)}
+          onOpenItem={setSelectedItemId}
+        />
       )}
 
       <PageHeading>

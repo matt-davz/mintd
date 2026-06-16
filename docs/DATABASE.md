@@ -4,9 +4,9 @@ Schema: `supabase/migrations/`. Full reference: `docs/DATABASE_SCHEMA.md`.
 
 ### Tables
 
-- `sets` — named groupings of items (e.g. "Mickey Mantle WS Home Runs")
+- `sets` — named groupings of items (e.g. "Mickey Mantle WS Home Runs"). See set membership rules below.
 - `items` — core collection items (everything hangs off this)
-- `game_context` — structured game metadata (date, teams, venue, game type, score); linked from detail tables
+- `game_context` — structured game metadata (date, teams, venue, game type, score, box score); linked from detail tables
 - `signatories` — one row per signer per item; `is_featured = true` drives card display
 - `certifications` — PSA, PSA/DNA, BGS, JSA, SGC, Steiner, CGC etc. — one row per cert per item
 - `population_snapshots` — append-only PSA pop report history, hangs off `certifications`
@@ -44,7 +44,27 @@ Tables with game context (tickets, baseballs, bats, jerseys, photos, programs, b
 - `acquisition_type` — `purchased` | `gifted` | `inherited` | `consignment` | `unknown`
 - `item_total` / `auto_total` — cost breakdown fields
 
-> Game context (game date, venue, teams, WS/clinch flags) lives in the `game_context` table, linked from detail tables via `game_context_id`. These fields were removed from `items` in migration `0009`.
+### Set membership rules
+
+Two distinct roles an item can have relative to a set:
+
+| Role | `is_part_of_set` | `set_id` | Example |
+|---|---|---|---|
+| Member item | `true` | set UUID | Individual 1956 Topps card |
+| Master set item | `false` | set UUID | "1956 Topps Baseball Complete Set (340)" — the original lot purchase |
+
+**The `SetMembersAccordion` checks only `set_id` (not `is_part_of_set`).** Both member items and master items show the carousel. This means:
+- Each individual card's detail page shows the other cards + the master lot item
+- The master lot item's detail page shows all individualized cards
+
+When a purchased lot is broken into individual items, set up the set like this:
+1. Create the set record in `sets`
+2. Set `set_id` + `is_part_of_set = true` on each individual item
+3. Set `set_id` + `is_part_of_set = false` on the master lot item
+
+> Game context (game date, venue, teams, WS/clinch flags, box score) lives in the `game_context` table, linked from detail tables via `game_context_id`. These fields were removed from `items` in migration `0009`.
+>
+> `box_score` is a JSONB column storing inning-by-inning linescore + R/H/E totals. Shape: `{ innings: [{inning, away, home}], home: {r, h, e}, away: {r, h, e} }`. Auto-populated from the MLB Stats API via `hydrate=linescore` when using the Game Lookup Toolbar in admin.
 
 ### Certifications fields
 

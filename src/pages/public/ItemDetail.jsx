@@ -8,6 +8,7 @@ import { useItems } from '../../hooks/useItems'
 import { SignatoryList } from '../../components/public/SignatoryList'
 import { ItemTypeDetails } from '../../components/itemDetail/ItemTypeDetails'
 import { ImageLightbox } from '../../components/ImageLightbox'
+import { SetMembersAccordion } from '../../components/SetMembersAccordion'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -110,6 +111,7 @@ const DetailCol = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-10);
+  min-width: 0;
 `
 
 const TitleSection = styled.section``
@@ -530,6 +532,10 @@ export default function ItemDetail() {
                   </PopGrid>
                 </PopSection>
               </>
+            )}
+
+            {item.set_id && (
+              <SetMembersAccordion setId={item.set_id} currentItemId={id} />
             )}
           </DetailCol>
         </Grid>

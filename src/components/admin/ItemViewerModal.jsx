@@ -15,6 +15,7 @@ import { GameContextFields } from './GameContextFields'
 import { BoxScoreDisplay } from '../BoxScoreDisplay'
 import { TYPE_FIELDS_MAP } from './itemTypes'
 import { ImageLightbox } from '../ImageLightbox'
+import { SetMembersAccordion } from '../SetMembersAccordion'
 
 // ─── Reconcile helpers ────────────────────────────────────────────────────────
 
@@ -290,6 +291,7 @@ const ConfirmCancelBtn = styled(CancelBtn)``
 
 const PanelBody = styled.div`
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
 `
 
@@ -769,7 +771,7 @@ const EMPTY_FORM = {
   is_duplicate: false, purchase_date: '', notes: '',
 }
 
-export function ItemViewerModal({ itemId, onClose }) {
+export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
   const isCreateMode = !itemId
   const { item, signatories, certifications, population, images, detail, gameContext, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
 
@@ -1672,6 +1674,18 @@ export function ItemViewerModal({ itemId, onClose }) {
                   )}
                 </Field>
               </Section>
+
+              {/* ── Set members ── */}
+              {!isEditing && item?.set_id && (
+                <Section>
+                  <SectionLabel>Set Members</SectionLabel>
+                  <SetMembersAccordion
+                    setId={item.set_id}
+                    currentItemId={itemId}
+                    onItemClick={onOpenItem}
+                  />
+                </Section>
+              )}
 
               {/* ── Images ── */}
               {(isEditing || images.length > 0) && (

@@ -128,6 +128,8 @@ Item type tags (legacy — `item_type` column is now the primary way to categori
 - **Single-image items** — item detail shows a plain image (no carousel) when only one image exists. Carousel only renders for 2+ images.
 - **Page size selector** — gallery has a dropdown to show 16, 32, or 64 items per page.
 - **Scroll-to-top** — gallery scrolls to top on page change; item detail scrolls to top on load.
+- **Box score** — if a game context has `box_score` data, a linescore table (inning-by-inning + R/H/E) renders on both the public item detail page and admin modal. Shared component: `src/components/BoxScoreDisplay.jsx`.
+- **Set members accordion** — if an item has a `set_id`, an accordion renders at the bottom of the detail column (public) and as a "Set Members" section in the admin modal. Opening it fetches and displays a horizontal-scroll carousel of all other items in the same set. Shared component: `src/components/SetMembersAccordion.jsx`, data hook: `src/hooks/useSetMembers.js`. Condition is `item.set_id` only — `is_part_of_set` is not checked, so master set items (which have `set_id` but `is_part_of_set = false`) also show the carousel. In admin, clicking a carousel card switches the modal to that item via `onOpenItem` prop.
 
 ## Multi-signer display rule
 
