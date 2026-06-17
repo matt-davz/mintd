@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { supabase } from '../../lib/supabase'
 import { useItems } from '../../hooks/useItems'
-import { useTags } from '../../hooks/useTags'
 import { ItemViewerModal } from '../../components/admin/ItemViewerModal'
+import { AdminFilterBar } from '../../components/admin/AdminFilterBar'
 
 // ─── Page heading ─────────────────────────────────────────────────────────────
 
@@ -117,48 +117,6 @@ const TableTitle = styled.h2`
   margin-right: auto;
 `
 
-const SearchInput = styled.input`
-  background-color: var(--color-surface-high);
-  border: 1px solid rgba(140, 144, 159, 0.15);
-  border-radius: var(--radius-md);
-  color: var(--color-on-surface);
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.05em;
-  padding: var(--space-2) var(--space-3);
-  width: 14rem;
-  transition: border-color var(--transition-base);
-
-  &::placeholder { color: var(--color-outline); }
-  &:focus {
-    outline: none;
-    border-color: rgba(173, 198, 255, 0.4);
-  }
-`
-
-const TagPills = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-`
-
-const TagPill = styled.button`
-  font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-full);
-  border: 1px solid ${({ $active }) => $active ? 'var(--color-primary)' : 'rgba(140, 144, 159, 0.2)'};
-  background-color: ${({ $active }) => $active ? 'rgba(173, 198, 255, 0.1)' : 'transparent'};
-  color: ${({ $active }) => $active ? 'var(--color-primary)' : 'var(--color-outline)'};
-  transition: border-color var(--transition-base), color var(--transition-base), background-color var(--transition-base);
-
-  &:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-  }
-`
 
 const Table = styled.table`
   width: 100%;
@@ -336,19 +294,47 @@ const StatusRow = styled.tr`
   }
 `
 
+function gradeToNumber(grade) {
+  if (!grade) return -1
+  const match = grade.match(/(\d+(?:\.\d+)?)$/)
+  return match ? parseFloat(match[1]) : -1
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ count: 0, totalCost: 0 })
   const [statsLoading, setStatsLoading] = useState(true)
-  const [activeTag, setActiveTag] = useState(null)
+  const [activeTypes, setActiveTypes] = useState([])
+  const [activeTeams, setActiveTeams] = useState([])
+  const [sortBy, setSortBy] = useState('')
   const [search, setSearch] = useState('')
   const [selectedItemId, setSelectedItemId] = useState(null)
 
   const { items, loading: itemsLoading } = useItems()
-  const { tags } = useTags()
 
-  const itemTypeTags = tags.filter(t => t.category === 'item_type')
+  const availableTypes = useMemo(() => {
+    const seen = new Set(items.map(item => item.item_type).filter(Boolean))
+    return [...seen].sort()
+  }, [items])
+
+  const availableTeams = useMemo(() => {
+    const seen = new Set(items.flatMap(item => item.team_slugs ?? []))
+    const sorted = [...seen].sort()
+    return ['yankees', ...sorted.filter(t => t !== 'yankees')]
+  }, [items])
+
+  function handleTypeToggle(type) {
+    setActiveTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    )
+  }
+
+  function handleTeamToggle(team) {
+    setActiveTeams(prev =>
+      prev.includes(team) ? prev.filter(t => t !== team) : [...prev, team]
+    )
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -366,11 +352,23 @@ export default function Dashboard() {
     return () => { cancelled = true }
   }, [])
 
-  const filtered = items.filter(item => {
-    const matchesTag = !activeTag || (item.tag_slugs ?? []).includes(activeTag)
+  const filtered = useMemo(() => items.filter(item => {
+    const matchesType = activeTypes.length === 0 || activeTypes.includes(item.item_type)
+    const matchesTeam = activeTeams.length === 0 || (item.team_slugs ?? []).some(s => activeTeams.includes(s))
     const matchesSearch = !search.trim() || item.title.toLowerCase().includes(search.trim().toLowerCase())
-    return matchesTag && matchesSearch
-  })
+    return matchesType && matchesTeam && matchesSearch
+  }), [items, activeTypes, activeTeams, search])
+
+  const displayed = useMemo(() => {
+    if (!sortBy) return filtered
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'year_desc') return (b.season_year ?? 0) - (a.season_year ?? 0)
+      if (sortBy === 'year_asc')  return (a.season_year ?? 0) - (b.season_year ?? 0)
+      if (sortBy === 'grade_desc') return gradeToNumber(b.cert_grade) - gradeToNumber(a.cert_grade)
+      if (sortBy === 'grade_asc')  return gradeToNumber(a.cert_grade) - gradeToNumber(b.cert_grade)
+      return 0
+    })
+  }, [filtered, sortBy])
 
   function formatCost(n) {
     return `$${n.toLocaleString()}`
@@ -425,23 +423,24 @@ export default function Dashboard() {
         </StatCard>
       </StatsGrid>
 
+      <AdminFilterBar
+        availableTypes={availableTypes}
+        activeTypes={activeTypes}
+        onTypeToggle={handleTypeToggle}
+        onTypeClear={() => setActiveTypes([])}
+        availableTeams={availableTeams}
+        activeTeams={activeTeams}
+        onTeamToggle={handleTeamToggle}
+        onTeamClear={() => setActiveTeams([])}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        search={search}
+        onSearchChange={setSearch}
+      />
+
       <TableSection>
         <TableHeader>
           <TableTitle>Active Inventory</TableTitle>
-          <SearchInput
-            type="text"
-            placeholder="Search items..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          <TagPills>
-            <TagPill $active={!activeTag} onClick={() => setActiveTag(null)}>All</TagPill>
-            {itemTypeTags.map(t => (
-              <TagPill key={t.id} $active={activeTag === t.slug} onClick={() => setActiveTag(t.slug)}>
-                {t.name}
-              </TagPill>
-            ))}
-          </TagPills>
         </TableHeader>
 
         <Table>
@@ -457,9 +456,9 @@ export default function Dashboard() {
           <tbody>
             {itemsLoading ? (
               <StatusRow><td colSpan={5}>Loading...</td></StatusRow>
-            ) : filtered.length === 0 ? (
+            ) : displayed.length === 0 ? (
               <StatusRow><td colSpan={5}>No items found.</td></StatusRow>
-            ) : filtered.map(item => (
+            ) : displayed.map(item => (
               <Tr key={item.id}>
                 <Td>
                   <AssetCell>
@@ -523,8 +522,8 @@ export default function Dashboard() {
         {!itemsLoading && (
           <TableFooter>
             <FooterMeta>
-              {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
-              {filtered.length !== items.length && ` (filtered from ${items.length})`}
+              {displayed.length} {displayed.length === 1 ? 'item' : 'items'}
+              {displayed.length !== items.length && ` (filtered from ${items.length})`}
             </FooterMeta>
           </TableFooter>
         )}

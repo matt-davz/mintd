@@ -74,6 +74,7 @@ Core table — everything hangs off this.
 | `set_id` | `uuid` | FK → `sets(id)` ON DELETE SET NULL | |
 | `notes` | `text` | | |
 | `is_duplicate` | `boolean` | NOT NULL, default `false` | |
+| `season_year` | `integer` | nullable | Year of the game/event or card issue year. Backfilled from `game_context.season_year` for game-context items; from `item_cards.year_issued` for cards. Auto-synced from game context on save via `ItemViewerModal`. |
 | `created_at` | `timestamptz` | NOT NULL, default `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL, default `now()` | Auto-updated via trigger |
 
@@ -170,7 +171,7 @@ PSA population report snapshots. Append-only — never overwrite.
 
 ### `tags` + `item_tags`
 
-Flexible many-to-many tag system. Drives public gallery filters.
+Flexible many-to-many tag system.
 
 **Seeded values:**
 
@@ -179,6 +180,36 @@ Flexible many-to-many tag system. Drives public gallery filters.
 | `item_type` | `ticket-stub`, `full-ticket`, `card`, `baseball`, `bat`, `jersey`, `photo`, `magazine`, `program`, `book`, `base`, `glove` |
 | `attribute` | `autographed`, `game-used`, `world-series`, `clinch-game`, `rookie-card`, `team-signed`, `proof-card` |
 | `era` | `pre-1920`, `1920s`, `1930s`, `1940s`, `1950s`, `1960s`, `modern` |
+
+---
+
+### `teams`
+
+MLB teams. One row per franchise/era variant. Used to tag items via `item_teams`.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | `uuid` | PK, default `gen_random_uuid()` | |
+| `name` | `text` | NOT NULL | e.g. `New York Yankees` |
+| `slug` | `text` | NOT NULL, UNIQUE | e.g. `yankees` |
+| `abbreviation` | `text` | UNIQUE | MLB abbreviation e.g. `NYY` — used to match `game_context.home_team` / `away_team` |
+
+**Seeded:** 31 franchises covering all teams found in the collection's game context data (current + historical variants). Yankees is pinned first in all filter UIs.
+
+---
+
+### `item_teams`
+
+Many-to-many junction between items and teams.
+
+| Column | Type | Constraints |
+|---|---|---|
+| `item_id` | `uuid` | NOT NULL, FK → `items(id)` ON DELETE CASCADE |
+| `team_id` | `uuid` | NOT NULL, FK → `teams(id)` ON DELETE CASCADE |
+
+**PK:** `(item_id, team_id)`
+
+**Auto-populated:** `ItemViewerModal.handleSave` calls `syncItemTeams` after writing `game_context` — matches `home_team` / `away_team` abbreviations against `teams.abbreviation`, then replaces all `item_teams` rows for that item. Backfilled from existing game context data via migration `0019`.
 
 ---
 
@@ -332,9 +363,9 @@ Sets `new.updated_at = now()` on update. Used by all tables with `updated_at`.
 Most recent population snapshot per cert. **Always query this instead of `population_snapshots` directly.**
 
 ### `item_gallery`
-Denormalised view for the public gallery. One row per item with primary image, featured signer, signatory count, tags array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
+Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, team slugs array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
-**Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `item_type`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count`, `tag_slugs` (array), `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`
+**Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`
 
 > Previously named `item_cards`. Renamed in migration `0011` — `item_cards` is now the trading card detail table.
 
@@ -353,6 +384,8 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `population_snapshots` | SELECT for visible items | SELECT all, INSERT |
 | `tags` | SELECT all | — |
 | `item_tags` | SELECT all | INSERT, DELETE |
+| `teams` | SELECT all | — |
+| `item_teams` | SELECT all | INSERT, DELETE |
 | `images` | SELECT all | SELECT all, INSERT, UPDATE, DELETE |
 | `sets` | SELECT all | — |
 | `inquiries` | INSERT only | — |
@@ -380,6 +413,10 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0014_box_score.sql` | `box_score` JSONB column on `game_context` with CHECK constraint |
 | `0015_drop_ticket_game_result.sql` | Drop redundant `game_result` from `item_tickets` (lives in `game_context`) |
 | `0016_add_is_duplicate_to_items.sql` | Add `is_duplicate boolean NOT NULL default false` to `items` |
+| `0017_teams.sql` | `teams` + `item_teams` tables, seed Yankees, RLS, recreate `item_gallery` with `team_slugs` |
+| `0018_teams_abbreviation.sql` | Add `abbreviation` column to `teams`, set `NYY` for Yankees, admin write policies for `item_teams` |
+| `0019_backfill_teams.sql` | Seed 31 MLB franchises, backfill `item_teams` from all game context data (281 rows) |
+| `0020_item_season_year.sql` | Add `season_year integer` to `items`, backfill from `game_context` + `item_cards.year_issued`, rebuild `item_gallery` view |
 
 ---
 

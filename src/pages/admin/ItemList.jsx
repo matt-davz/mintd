@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import styled from 'styled-components'
 import { supabase } from '../../lib/supabase'
 import { ItemViewerModal } from '../../components/admin/ItemViewerModal'
+import { AdminFilterBar } from '../../components/admin/AdminFilterBar'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -34,24 +35,6 @@ const Controls = styled.div`
   flex-wrap: wrap;
 `
 
-const SearchInput = styled.input`
-  background-color: var(--color-surface-low);
-  border: 1px solid rgba(140, 144, 159, 0.15);
-  border-radius: var(--radius-md);
-  color: var(--color-on-surface);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-  padding: var(--space-2) var(--space-4);
-  width: 18rem;
-  transition: border-color var(--transition-base);
-
-  &::placeholder { color: var(--color-outline); }
-  &:focus {
-    outline: none;
-    border-color: rgba(173, 198, 255, 0.4);
-  }
-`
 
 const ResultsMeta = styled.span`
   font-family: var(--font-mono);
@@ -407,11 +390,18 @@ function toHeaderLabel(key) {
   return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
+function gradeToNumber(grade) {
+  if (!grade) return -1
+  const match = grade.match(/(\d+(?:\.\d+)?)$/)
+  return match ? parseFloat(match[1]) : -1
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ItemList() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeTypes, setActiveTypes] = useState([])
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('created_at')
   const [sortDir, setSortDir] = useState('desc')
@@ -438,10 +428,11 @@ export default function ItemList() {
     let cancelled = false
 
     async function load() {
-      const [itemsRes, certsRes, imagesRes] = await Promise.all([
+      const [itemsRes, certsRes, imagesRes, teamsRes] = await Promise.all([
         supabase.from('items').select('*').order('created_at', { ascending: false }),
         supabase.from('certifications').select('*').order('created_at'),
         supabase.from('images').select('item_id, cloudinary_url, cloudinary_public_id').eq('is_primary', true),
+        supabase.from('item_teams').select('item_id, teams(slug)'),
       ])
 
       if (cancelled) return
@@ -454,6 +445,12 @@ export default function ItemList() {
       const imagesByItem = {}
       for (const img of imagesRes.data ?? []) {
         imagesByItem[img.item_id] = img
+      }
+
+      const teamsByItem = {}
+      for (const row of teamsRes.data ?? []) {
+        if (!teamsByItem[row.item_id]) teamsByItem[row.item_id] = []
+        if (row.teams?.slug) teamsByItem[row.item_id].push(row.teams.slug)
       }
 
       const psaCertIds = (certsRes.data ?? [])
@@ -493,6 +490,7 @@ export default function ItemList() {
         pop_higher:        popByItem[item.id]?.higher ?? null,
         pop_lower:         popByItem[item.id]?.lower ?? null,
         pop_synced_at:     popByItem[item.id]?.recorded_at ?? null,
+        team_slugs:        teamsByItem[item.id] ?? [],
       }))
 
       setRows(merged)
@@ -512,19 +510,58 @@ export default function ItemList() {
     }
   }
 
+  const [activeTeams, setActiveTeams] = useState([])
+  const [sortBy, setSortBy] = useState('')
+
+  const availableTypes = useMemo(() => {
+    const seen = new Set(rows.map(r => r.item_type).filter(Boolean))
+    return [...seen].sort()
+  }, [rows])
+
+  const availableTeams = useMemo(() => {
+    const seen = new Set(rows.flatMap(r => r.team_slugs ?? []))
+    const sorted = [...seen].sort()
+    return ['yankees', ...sorted.filter(t => t !== 'yankees')]
+  }, [rows])
+
+
+  function handleTypeToggle(type) {
+    setActiveTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    )
+  }
+
+  function handleTeamToggle(team) {
+    setActiveTeams(prev =>
+      prev.includes(team) ? prev.filter(t => t !== team) : [...prev, team]
+    )
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return rows.filter(r =>
-      !q ||
-      r.title.toLowerCase().includes(q) ||
-      (r.cert_id ?? '').toLowerCase().includes(q) ||
-      (r.notes ?? '').toLowerCase().includes(q)
-    )
-  }, [rows, search])
+    return rows.filter(r => {
+      const matchesType = activeTypes.length === 0 || activeTypes.includes(r.item_type)
+      const matchesTeam = activeTeams.length === 0 || (r.team_slugs ?? []).some(s => activeTeams.includes(s))
+      const matchesSearch = !q ||
+        r.title.toLowerCase().includes(q) ||
+        (r.cert_id ?? '').toLowerCase().includes(q) ||
+        (r.notes ?? '').toLowerCase().includes(q)
+      return matchesType && matchesTeam && matchesSearch
+    })
+  }, [rows, activeTypes, activeTeams, search])
 
   const DATE_KEYS = new Set(['created_at', 'updated_at', 'purchase_date'])
 
   const sorted = useMemo(() => {
+    if (sortBy) {
+      return [...filtered].sort((a, b) => {
+        if (sortBy === 'year_desc') return (b.season_year ?? 0) - (a.season_year ?? 0)
+        if (sortBy === 'year_asc')  return (a.season_year ?? 0) - (b.season_year ?? 0)
+        if (sortBy === 'grade_desc') return gradeToNumber(b.cert_grade) - gradeToNumber(a.cert_grade)
+        if (sortBy === 'grade_asc')  return gradeToNumber(a.cert_grade) - gradeToNumber(b.cert_grade)
+        return 0
+      })
+    }
     return [...filtered].sort((a, b) => {
       let av = a[sortKey] ?? ''
       let bv = b[sortKey] ?? ''
@@ -538,7 +575,7 @@ export default function ItemList() {
       if (av > bv) return sortDir === 'asc' ? 1 : -1
       return 0
     })
-  }, [filtered, sortKey, sortDir])
+  }, [filtered, sortBy, sortKey, sortDir])
 
   function sortIcon(key) {
     if (sortKey !== key) return '↕'
@@ -615,14 +652,23 @@ export default function ItemList() {
         <PageSub>All fields, raw data — click any column header to sort.</PageSub>
       </PageHeading>
 
+      <AdminFilterBar
+        availableTypes={availableTypes}
+        activeTypes={activeTypes}
+        onTypeToggle={handleTypeToggle}
+        onTypeClear={() => setActiveTypes([])}
+        availableTeams={availableTeams}
+        activeTeams={activeTeams}
+        onTeamToggle={handleTeamToggle}
+        onTeamClear={() => setActiveTeams([])}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        search={search}
+        onSearchChange={setSearch}
+      />
+
       <TableSection ref={tableSectionRef}>
         <Controls>
-          <SearchInput
-            type="text"
-            placeholder="Search title, cert ID, notes..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
           {!loading && (
             <>
               <ExportBtn onClick={handleRawExport} title="Export all columns as CSV">

@@ -23,11 +23,11 @@ A private baseball memorabilia collection showcase website for a single client. 
 
 ## Core features
 
-- Gallery viewing for outside users with item type filtering.
+- Gallery viewing for outside users with keyword search and advanced filtering (item type + team).
 - Inquiry via simple contact form sent to an email.
 - Admin dashboard accessible via Clerk auth for the website owner.
-    - **Overview (`/admin/dashboard`)** — stats cards (total items, total cost) + item grid.
-    - **Table View (`/admin/items`)** — no images, raw data table. Sortable columns, search/filter bar, CSV exports.
+    - **Overview (`/admin/dashboard`)** — stats cards (total items, total cost) + item grid with advanced filter.
+    - **Table View (`/admin/items`)** — no images, raw data table. Sortable columns, advanced filter bar, CSV exports.
     - **Item Modal** — unified `<ItemViewerModal>` for viewing, editing, and creating items. Opened from dashboard, table view (existing items), or "Add New Asset" button (create mode). Supports type-specific detail fields and game context.
 
 `mintd` is a high-end memorabilia collector app. Design system: see `docs/DESIGN.md`.
@@ -112,6 +112,112 @@ Design direction:
 - Typography: Space Grotesk (headlines) · Inter (body) · Berkeley Mono (cert IDs, grades, data)
 - Cards: dark surface, large image, muted gold grade badge (`secondary-container`), cert ID in mono
 - No 1px solid borders for layout — use background shifts. Ghost border (`outline-variant` at 15% opacity) only as fallback in dense data views.
+
+## Gallery filter (public + admin)
+
+Both the public gallery and admin overview/table view share the same filter+sort pattern. Two separate components with identical prop interfaces — `FilterBar.jsx` (public) and `AdminFilterBar.jsx` (admin) — styled differently but functionally the same.
+
+### Architecture
+
+All filtering and sorting is **client-side**. Items are fetched once (all of them), then filtered/sorted in memory via `useMemo`. No query reruns on filter change.
+
+Each page that uses a filter bar manages its own state and derives available options from the loaded items:
+
+```
+useItems() / raw query
+  → items[]
+    → availableTypes  (useMemo — distinct item_type values)
+    → availableTeams  (useMemo — flattened team_slugs, Yankees pinned first)
+    → filtered        (items.filter — type AND team AND keyword)
+    → displayed       (filtered sorted by sortBy, or unsorted if sortBy is '')
+    → paginated       (displayed.slice for current page)
+```
+
+### Current filter conditions
+
+All conditions are AND — an item must pass every active condition to appear.
+
+| Condition | State | Logic |
+|---|---|---|
+| Keyword search | `search: string` | `item.title.toLowerCase().includes(search)` |
+| Item type | `activeTypes: string[]` | `activeTypes.length === 0 \|\| activeTypes.includes(item.item_type)` — multi-select OR |
+| Team | `activeTeams: string[]` | `activeTeams.length === 0 \|\| item.team_slugs.some(s => activeTeams.includes(s))` — multi-select OR |
+
+### Current sort options (`sortBy` state)
+
+Sort is single-select (dropdown). One sort active at a time. Empty string = default order.
+
+| Value | Behaviour |
+|---|---|
+| `''` | Default — order returned by DB |
+| `'year_desc'` | `item.season_year` descending (newest first) |
+| `'year_asc'` | `item.season_year` ascending (oldest first) |
+| `'grade_desc'` | `gradeToNumber(cert_grade)` descending (highest grade first) |
+| `'grade_asc'` | `gradeToNumber(cert_grade)` ascending (lowest grade first) |
+
+`gradeToNumber` extracts the trailing number from PSA-style grade strings (`"NM-MT 8"` → 8, `"GEM MT 10"` → 10, `"Authentic"` → -1 sorts to the bottom).
+
+### Active filter pills
+
+Active conditions render as removable pills **inside the search bar**. Each pill has a label and an `onRemove` callback. The `activePills` array in each filter component aggregates them:
+
+```js
+const activePills = [
+  ...activeTypes.map(t => ({ key: `type:${t}`, label, onRemove })),
+  ...activeTeams.map(t => ({ key: `team:${t}`, label, onRemove })),
+  ...(sortBy ? [{ key: 'sort', label: SORT_LABELS[sortBy], onRemove }] : []),
+]
+```
+
+### Accordion sections
+
+The "Advanced Search" accordion contains sections in order: **Item Type** → **Teams** → **Sort**. Teams section only renders when `availableTeams.length > 0`. Sort section always renders.
+
+### Props interface (both FilterBar and AdminFilterBar)
+
+```
+availableTypes  string[]     distinct item_type values from loaded items
+activeTypes     string[]     currently selected types
+onTypeToggle    (type) => void
+onTypeClear     () => void
+
+availableTeams  string[]     distinct team slugs from item.team_slugs, Yankees first
+activeTeams     string[]     currently selected teams
+onTeamToggle    (team) => void
+onTeamClear     () => void
+
+sortBy          string       '' | 'year_desc' | 'year_asc' | 'grade_desc' | 'grade_asc'
+onSortChange    (val) => void
+
+search          string
+onSearchChange  (val) => void
+```
+
+### How to add a new filter condition
+
+1. **Verify the field is in `item_gallery`** — if not, write a migration to add it to the view (see migrations 0017–0020 as examples).
+2. **Add state** in `Gallery.jsx`, `Dashboard.jsx`, and `ItemList.jsx`:
+   ```js
+   const [activeX, setActiveX] = useState(/* null / [] / '' depending on type */)
+   ```
+3. **Derive available options** via `useMemo` from the loaded items array if it's a multi-select (type/team pattern), or skip if it's a static set.
+4. **Add to the filter predicate** in the `filtered` useMemo/filter call:
+   ```js
+   const matchesX = !activeX || item.someField === activeX
+   return ... && matchesX
+   ```
+5. **Add to `activePills`** in both `FilterBar.jsx` and `AdminFilterBar.jsx` so the active state shows as a removable pill in the search bar.
+6. **Add a section** to the accordion body in both filter components.
+7. **Pass the new props** to both filter components from all three pages.
+8. **For sorts**: add a new `<option>` to the Sort dropdown and a new branch in the `displayed` sort useMemo in each page.
+
+## Teams system
+
+MLB teams are stored in the `teams` table (`id`, `name`, `slug`, `abbreviation`). Items are linked via the `item_teams` junction table (many-to-many — one item can be associated with multiple teams).
+
+**Auto-population:** when an item with game context is saved in `ItemViewerModal`, `syncItemTeams` runs automatically — it matches `game_context.home_team` and `game_context.away_team` abbreviations against `teams.abbreviation`, deletes existing `item_teams` for that item, and inserts new rows for any matches. This means saving a Yankees vs. Red Sox ticket auto-tags that item with both teams.
+
+The `item_gallery` view aggregates team slugs as `team_slugs text[]`, analogous to `tag_slugs`.
 
 ## Tags — pre-seeded categories
 

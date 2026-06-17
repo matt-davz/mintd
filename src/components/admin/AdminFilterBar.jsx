@@ -4,7 +4,8 @@ import styled from 'styled-components'
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
 `
 
 const SearchBar = styled.div`
@@ -12,37 +13,38 @@ const SearchBar = styled.div`
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
-  background: transparent;
-  border: 1px solid #2a2a2a;
-  border-radius: var(--radius-full);
-  padding: 0.5rem 1.25rem 0.5rem 2.75rem;
+  background-color: var(--color-surface-high);
+  border: 1px solid rgba(140, 144, 159, 0.15);
+  border-radius: var(--radius-md);
+  padding: 0.375rem var(--space-3) 0.375rem 2.25rem;
   position: relative;
   transition: border-color var(--transition-base);
-  min-height: 2.625rem;
+  min-height: 2.25rem;
 
   &:focus-within { border-color: rgba(173, 198, 255, 0.4); }
 `
 
 const SearchIcon = styled.span`
   position: absolute;
-  left: 1rem;
+  left: 0.625rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #6b7280;
-  font-size: 1.125rem;
+  color: var(--color-outline);
+  font-size: 1rem;
   pointer-events: none;
 `
 
 const ActivePill = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.2rem 0.375rem 0.2rem 0.625rem;
-  border-radius: var(--radius-full);
-  background-color: var(--color-primary-container);
-  color: var(--color-on-primary-container);
-  font-family: var(--font-headline);
-  font-size: 0.625rem;
+  gap: 0.2rem;
+  padding: 0.15rem 0.3rem 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background-color: rgba(173, 198, 255, 0.1);
+  border: 1px solid rgba(173, 198, 255, 0.25);
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   font-weight: 700;
@@ -54,13 +56,13 @@ const RemoveBtn = styled.button`
   display: inline-flex;
   align-items: center;
   padding: 0;
-  color: var(--color-on-primary-container);
-  opacity: 0.6;
+  color: var(--color-primary);
+  opacity: 0.5;
   transition: opacity var(--transition-base);
 
   &:hover { opacity: 1; }
 
-  .material-symbols-outlined { font-size: 0.875rem; }
+  .material-symbols-outlined { font-size: 0.75rem; }
 `
 
 const SearchInput = styled.input`
@@ -68,28 +70,28 @@ const SearchInput = styled.input`
   min-width: 8rem;
   background: transparent;
   border: none;
-  font-family: var(--font-headline);
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  color: var(--color-on-background);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  color: var(--color-on-surface);
   outline: none;
 
-  &::placeholder { color: #6b7280; }
+  &::placeholder { color: var(--color-outline); }
 `
 
 const AccordionToggle = styled.button`
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-family: var(--font-headline);
-  font-size: 0.75rem;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: ${({ $open }) => $open ? 'var(--color-primary)' : '#9ca3af'};
+  color: ${({ $open }) => $open ? 'var(--color-primary)' : 'rgba(229, 226, 225, 0.35)'};
   transition: color var(--transition-base);
   align-self: flex-start;
-  padding-left: 1rem;
+  padding-left: var(--space-1);
 
   .material-symbols-outlined {
     font-size: 0.875rem;
@@ -97,80 +99,73 @@ const AccordionToggle = styled.button`
     transform: ${({ $open }) => $open ? 'rotate(180deg)' : 'rotate(0deg)'};
   }
 
-  &:hover { color: ${({ $open }) => $open ? 'var(--color-primary)' : '#9ca3af'}; }
+  &:hover { color: ${({ $open }) => $open ? 'var(--color-primary)' : 'rgba(229, 226, 225, 0.6)'}; }
 `
 
 const AccordionBody = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-4) 0 var(--space-2) 1rem;
-  border-top: 1px solid #1a1a1a;
-`
-
-const YearSelect = styled.select`
-  background: transparent;
-  border: 1px solid #2a2a2a;
-  border-radius: var(--radius-full);
-  padding: 0.4rem 1.25rem;
-  font-family: var(--font-headline);
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  color: var(--color-on-background);
-  cursor: pointer;
-  transition: border-color var(--transition-base);
-  align-self: flex-start;
-
-  &:focus { outline: none; border-color: rgba(173, 198, 255, 0.4); }
-
-  option {
-    background: #111;
-    color: var(--color-on-background);
-  }
-`
-
-const FilterSection = styled.div`
-  display: flex;
-  flex-direction: column;
   gap: var(--space-3);
+  padding: var(--space-3) var(--space-1) var(--space-1);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 `
 
 const SectionLabel = styled.span`
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
+  font-size: 0.5rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: #4b5563;
+  color: rgba(229, 226, 225, 0.25);
+`
+
+const YearSelect = styled.select`
+  background-color: var(--color-surface-low);
+  border: 1px solid rgba(140, 144, 159, 0.2);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  color: var(--color-on-surface);
+  cursor: pointer;
+  align-self: flex-start;
+  transition: border-color var(--transition-base);
+
+  &:focus { outline: none; border-color: rgba(173, 198, 255, 0.4); }
+
+  option {
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+  }
 `
 
 const Pills = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--space-2);
 `
 
 const Pill = styled.button`
-  padding: 0.4rem 1.25rem;
-  border-radius: var(--radius-full);
-  font-family: var(--font-headline);
-  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  transition: color var(--transition-base), background-color var(--transition-base);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  transition: border-color var(--transition-base), color var(--transition-base), background-color var(--transition-base);
 
   ${({ $active }) => $active ? `
-    background-color: var(--color-primary-container);
-    color: var(--color-on-primary-container);
-    font-weight: 700;
-    border: 1px solid transparent;
+    border: 1px solid var(--color-primary);
+    background-color: rgba(173, 198, 255, 0.1);
+    color: var(--color-primary);
   ` : `
+    border: 1px solid rgba(140, 144, 159, 0.2);
     background-color: transparent;
-    color: #9ca3af;
-    border: 1px solid #2a2a2a;
+    color: var(--color-outline);
 
     &:hover {
-      color: var(--color-on-background);
-      background-color: rgba(255, 255, 255, 0.05);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
     }
   `}
 `
@@ -186,7 +181,7 @@ const SORT_LABELS = {
   grade_asc:  'Grade: Low → High',
 }
 
-export function FilterBar({ availableTypes, activeTypes, onTypeToggle, onTypeClear, availableTeams, activeTeams, onTeamToggle, onTeamClear, sortBy, onSortChange, search, onSearchChange }) {
+export function AdminFilterBar({ availableTypes, activeTypes, onTypeToggle, onTypeClear, availableTeams, activeTeams, onTeamToggle, onTeamClear, sortBy, onSortChange, search, onSearchChange }) {
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const activePills = [
@@ -209,7 +204,7 @@ export function FilterBar({ availableTypes, activeTypes, onTypeToggle, onTypeCle
         ))}
         <SearchInput
           type="text"
-          placeholder={activePills.length ? 'Add keyword...' : 'Search the archive...'}
+          placeholder={activePills.length ? 'Add keyword...' : 'Search items...'}
           value={search}
           onChange={e => onSearchChange(e.target.value)}
         />
@@ -222,9 +217,9 @@ export function FilterBar({ availableTypes, activeTypes, onTypeToggle, onTypeCle
 
       {advancedOpen && (
         <AccordionBody>
-          <FilterSection>
+          <div>
             <SectionLabel>Item Type</SectionLabel>
-            <Pills>
+            <Pills style={{ marginTop: 'var(--space-2)' }}>
               <Pill $active={activeTypes.length === 0} onClick={onTypeClear}>
                 All
               </Pill>
@@ -238,12 +233,12 @@ export function FilterBar({ availableTypes, activeTypes, onTypeToggle, onTypeCle
                 </Pill>
               ))}
             </Pills>
-          </FilterSection>
+          </div>
 
           {availableTeams.length > 0 && (
-            <FilterSection>
+            <div>
               <SectionLabel>Teams</SectionLabel>
-              <Pills>
+              <Pills style={{ marginTop: 'var(--space-2)' }}>
                 <Pill $active={activeTeams.length === 0} onClick={onTeamClear}>
                   All
                 </Pill>
@@ -257,12 +252,13 @@ export function FilterBar({ availableTypes, activeTypes, onTypeToggle, onTypeCle
                   </Pill>
                 ))}
               </Pills>
-            </FilterSection>
+            </div>
           )}
 
-          <FilterSection>
+          <div>
             <SectionLabel>Sort</SectionLabel>
             <YearSelect
+              style={{ marginTop: 'var(--space-2)' }}
               value={sortBy}
               onChange={e => onSortChange(e.target.value)}
             >
@@ -272,7 +268,7 @@ export function FilterBar({ availableTypes, activeTypes, onTypeToggle, onTypeCle
               <option value="grade_desc">Grade — Highest First</option>
               <option value="grade_asc">Grade — Lowest First</option>
             </YearSelect>
-          </FilterSection>
+          </div>
         </AccordionBody>
       )}
     </Wrapper>

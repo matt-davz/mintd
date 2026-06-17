@@ -768,7 +768,7 @@ const EMPTY_FORM = {
   price: '', auto_total: '', acquisition_type: 'unknown',
   item_type: '', is_autographed: false, for_sale: false,
   is_visible: false, is_baseball: false, is_part_of_set: false,
-  is_duplicate: false, purchase_date: '', notes: '',
+  is_duplicate: false, purchase_date: '', season_year: '', notes: '',
 }
 
 export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
@@ -807,6 +807,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
       is_part_of_set:      item.is_part_of_set ?? false,
       is_duplicate:        item.is_duplicate ?? false,
       purchase_date:       item.purchase_date ?? '',
+      season_year:         item.season_year ?? '',
       notes:               item.notes ?? '',
     }
     const dc = certifications.map(c => ({ ...c, _key: c.id }))
@@ -918,6 +919,19 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
     setSaveError(null)
   }
 
+  async function syncItemTeams(itemId, homeTeam, awayTeam) {
+    const abbrevs = [homeTeam, awayTeam].filter(Boolean)
+    await supabase.from('item_teams').delete().eq('item_id', itemId)
+    if (!abbrevs.length) return
+    const { data: matched } = await supabase
+      .from('teams').select('id').in('abbreviation', abbrevs)
+    if (matched?.length) {
+      await supabase.from('item_teams').insert(
+        matched.map(t => ({ item_id: itemId, team_id: t.id }))
+      )
+    }
+  }
+
   async function handleSave() {
     if (!form.title.trim()) {
       setSaveError('Title is required.')
@@ -959,6 +973,11 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
         is_part_of_set:   form.is_part_of_set,
         is_duplicate:     form.is_duplicate,
         purchase_date:    form.purchase_date || null,
+        season_year:      (() => {
+          const fromGc = HAS_GAME_CONTEXT.has(form.item_type) && gcForm?.season_year
+          const val = fromGc ? gcForm.season_year : form.season_year
+          return val === '' || val == null ? null : Number(val)
+        })(),
         notes:            form.notes || null,
       }
 
@@ -981,6 +1000,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
             .from('game_context').insert(gcPayload).select('id').single()
           if (gcErr) throw new Error(gcErr.message)
           gameContextId = gc.id
+          await syncItemTeams(savedItemId, gcForm.home_team, gcForm.away_team)
         }
 
         // Insert type detail row
@@ -1036,6 +1056,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
             if (gcErr) throw new Error(gcErr.message)
             resolvedGcId = gc.id
           }
+          await syncItemTeams(savedItemId, gcForm.home_team, gcForm.away_team)
         }
 
         // Upsert type detail row
@@ -1549,6 +1570,19 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
               <Section>
                 <SectionLabel>Dates & Flags</SectionLabel>
                 <FieldGrid>
+                  <Field>
+                    <FieldLabel>Season Year</FieldLabel>
+                    {isEditing ? (
+                      <EditInput
+                        type="number"
+                        value={form.season_year}
+                        placeholder="e.g. 1956"
+                        onChange={e => setField('season_year', e.target.value)}
+                      />
+                    ) : (
+                      <Val value={item.season_year ?? null} />
+                    )}
+                  </Field>
                   <Field>
                     <FieldLabel>Purchase Date</FieldLabel>
                     {isEditing ? (

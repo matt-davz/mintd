@@ -15,7 +15,7 @@ src/
 │   ├── SetMembersAccordion.jsx  # Accordion + horizontal carousel for items in same set (public + admin)
 │   ├── public/
 │   │   ├── ItemCard.jsx
-│   │   ├── FilterBar.jsx       # Item type pill filters + search
+│   │   ├── FilterBar.jsx       # Advanced search: keyword + multi-select type/team pills in accordion
 │   │   └── SignatoryList.jsx
 │   ├── itemDetail/             # Public item detail display components
 │   │   ├── styles.js           # Shared styled components + formatters
@@ -35,6 +35,7 @@ src/
 │   └── admin/
 │       ├── AdminGuard.jsx      # Clerk auth wrapper for /admin/* routes
 │       ├── AdminLayout.jsx     # Sidebar nav + top bar + create modal
+│       ├── AdminFilterBar.jsx  # Admin advanced search: keyword + multi-select type/team pills in accordion
 │       ├── ItemViewerModal.jsx # Modal: view/edit existing items + create new items
 │       ├── ImageUploader.jsx   # Cloudinary upload widget
 │       ├── CertForm.jsx
@@ -66,7 +67,8 @@ src/
 │   ├── useItems.js             # Queries item_gallery view
 │   ├── useItem.js              # Single item with certs, sigs, images, type detail, game context
 │   ├── useSetMembers.js        # Fetches sibling items by set_id from item_gallery + set name from sets table
-│   └── useTags.js
+│   ├── useTags.js
+│   └── useTeams.js             # Fetches all teams from the teams table
 ├── styles/
 │   └── GlobalStyles.js         # Design tokens + global CSS
 └── main.jsx                    # React Router + Clerk provider setup

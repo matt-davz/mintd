@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import styled from 'styled-components'
 import { useItems } from '../../hooks/useItems'
 import { ItemCard } from '../../components/public/ItemCard'
@@ -134,6 +134,12 @@ const PageSizeSelect = styled.select`
   }
 `
 
+function gradeToNumber(grade) {
+  if (!grade) return -1
+  const match = grade.match(/(\d+(?:\.\d+)?)$/)
+  return match ? parseFloat(match[1]) : -1
+}
+
 function buildPages(current, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
   if (current <= 4) return [1, 2, 3, 4, 5, '...', total]
@@ -142,25 +148,63 @@ function buildPages(current, total) {
 }
 
 export default function Gallery() {
-  const [activeType, setActiveType] = useState(null)
+  const [activeTypes, setActiveTypes] = useState([])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0])
 
   const { items, loading, error } = useItems()
 
+  const [activeTeams, setActiveTeams] = useState([])
+  const [sortBy, setSortBy] = useState('')
+
+  const availableTypes = useMemo(() => {
+    const seen = new Set(items.map(item => item.item_type).filter(Boolean))
+    return [...seen].sort()
+  }, [items])
+
+  const availableTeams = useMemo(() => {
+    const seen = new Set(items.flatMap(item => item.team_slugs ?? []))
+    const sorted = [...seen].sort()
+    return ['yankees', ...sorted.filter(t => t !== 'yankees')]
+  }, [items])
+
+  function handleTypeToggle(type) {
+    setActiveTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    )
+  }
+
+  function handleTeamToggle(team) {
+    setActiveTeams(prev =>
+      prev.includes(team) ? prev.filter(t => t !== team) : [...prev, team]
+    )
+  }
+
   const filtered = items.filter(item => {
-    const matchesType = !activeType || item.item_type === activeType
+    const matchesType = activeTypes.length === 0 || activeTypes.includes(item.item_type)
+    const matchesTeam = activeTeams.length === 0 || (item.team_slugs ?? []).some(s => activeTeams.includes(s))
     const matchesSearch = !search.trim() || item.title.toLowerCase().includes(search.trim().toLowerCase())
-    return matchesType && matchesSearch
+    return matchesType && matchesTeam && matchesSearch
   })
 
-  const totalPages = Math.ceil(filtered.length / pageSize)
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const displayed = useMemo(() => {
+    if (!sortBy) return filtered
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'year_desc') return (b.season_year ?? 0) - (a.season_year ?? 0)
+      if (sortBy === 'year_asc')  return (a.season_year ?? 0) - (b.season_year ?? 0)
+      if (sortBy === 'grade_desc') return gradeToNumber(b.cert_grade) - gradeToNumber(a.cert_grade)
+      if (sortBy === 'grade_asc')  return gradeToNumber(a.cert_grade) - gradeToNumber(b.cert_grade)
+      return 0
+    })
+  }, [filtered, sortBy])
+
+  const totalPages = Math.ceil(displayed.length / pageSize)
+  const paginated = displayed.slice((page - 1) * pageSize, page * pageSize)
   const pages = buildPages(page, totalPages)
 
   // Reset to page 1 when filters or page size change
-  useEffect(() => { setPage(1) }, [activeType, search, pageSize])
+  useEffect(() => { setPage(1) }, [activeTypes, activeTeams, sortBy, search, pageSize])
 
   // Scroll to top when page changes
   useEffect(() => { window.scrollTo(0, 0) }, [page])
@@ -170,8 +214,16 @@ export default function Gallery() {
       <Hero>
         <Heading>The Archive</Heading>
         <FilterBar
-          activeType={activeType}
-          onTypeChange={setActiveType}
+          availableTypes={availableTypes}
+          activeTypes={activeTypes}
+          onTypeToggle={handleTypeToggle}
+          onTypeClear={() => setActiveTypes([])}
+          availableTeams={availableTeams}
+          activeTeams={activeTeams}
+          onTeamToggle={handleTeamToggle}
+          onTeamClear={() => setActiveTeams([])}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
           search={search}
           onSearchChange={setSearch}
         />
@@ -184,7 +236,7 @@ export default function Gallery() {
           {!loading && (
             <ResultsBar>
               <ResultsMeta>
-                {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
+                {displayed.length} {displayed.length === 1 ? 'item' : 'items'}
                 {totalPages > 1 && ` — page ${page} of ${totalPages}`}
               </ResultsMeta>
               <PageSizeSelect

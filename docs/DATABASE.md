@@ -11,6 +11,7 @@ Schema: `supabase/migrations/`. Full reference: `docs/DATABASE_SCHEMA.md`.
 - `certifications` — PSA, PSA/DNA, BGS, JSA, SGC, Steiner, CGC etc. — one row per cert per item
 - `population_snapshots` — append-only PSA pop report history, hangs off `certifications`
 - `tags` + `item_tags` — many-to-many tag system
+- `teams` + `item_teams` — MLB team associations; many-to-many. Auto-populated from `game_context.home_team` / `away_team` on item save. Drives the Teams filter in the gallery and admin advanced search.
 - `images` — Cloudinary references; unique constraint enforces one `is_primary = true` per item
 - `inquiries` — visitor contact form submissions; stored in DB and emailed via Edge Function
 
@@ -96,7 +97,7 @@ To add a new service, add an entry to `CERT_LINK_BUILDERS` in `src/components/ad
 
 ### Views (always use these in queries, not raw tables)
 
-- `item_gallery` — denormalised gallery view; one row per item with primary image, featured signer, tag slugs, set name, primary cert. Filtered to `is_visible = true AND is_baseball = true`. Previously named `item_cards` — renamed in migration `0011` (`item_cards` is now the trading card detail table).
+- `item_gallery` — denormalised gallery view; one row per item with primary image, featured signer, `tag_slugs text[]`, `team_slugs text[]`, `season_year`, set name, primary cert. Filtered to `is_visible = true AND is_baseball = true`. Previously named `item_cards` — renamed in migration `0011` (`item_cards` is now the trading card detail table). This is the data source for all client-side filtering and sorting in the gallery.
 - `latest_population` — most recent population snapshot per cert
 
 ### RLS
