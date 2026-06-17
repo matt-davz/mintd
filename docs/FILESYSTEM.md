@@ -4,6 +4,7 @@ src/
 │   ├── public/
 │   │   ├── Gallery.jsx         # Main collection grid
 │   │   ├── ItemDetail.jsx      # Single item page
+│   │   ├── Timeline.jsx        # Yankees Museum (/museum) — horizontal decade timeline (vertical on mobile)
 │   │   └── Contact.jsx         # Contact form
 │   └── admin/
 │       ├── Dashboard.jsx
@@ -13,6 +14,10 @@ src/
 │   ├── ImageLightbox.jsx        # Shared fullscreen lightbox with rotate controls
 │   ├── BoxScoreDisplay.jsx      # Shared baseball linescore table (public + admin)
 │   ├── SetMembersAccordion.jsx  # Accordion + horizontal carousel for items in same set (public + admin)
+│   ├── layout/
+│   │   ├── Header.jsx           # Fixed public nav — desktop links + mobile burger drawer (right-aligned)
+│   │   ├── Footer.jsx
+│   │   └── Layout.jsx           # Public layout shell: Header + Outlet + Footer
 │   ├── public/
 │   │   ├── ItemCard.jsx
 │   │   ├── FilterBar.jsx       # Advanced search: keyword + multi-select type/team pills in accordion

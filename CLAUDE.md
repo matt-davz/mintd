@@ -24,6 +24,7 @@ A private baseball memorabilia collection showcase website for a single client. 
 ## Core features
 
 - Gallery viewing for outside users with keyword search and advanced filtering (item type + team).
+- **Yankees Museum (`/museum`)** — public chronological timeline of all Yankees-tagged items. Horizontal scroll on desktop (alternating above/below axis, decade background images cross-fade on scroll, draggable scrubber). Vertical scroll list on mobile.
 - Inquiry via simple contact form sent to an email.
 - Admin dashboard accessible via Clerk auth for the website owner.
     - **Overview (`/admin/dashboard`)** — stats cards (total items, total cost) + item grid with advanced filter.
@@ -66,6 +67,7 @@ See `docs/FILESYSTEM.md`.
 // Public routes — no auth
 /                    → Gallery
 /item/:id            → ItemDetail
+/museum              → Timeline (Yankees Museum — chronological horizontal timeline)
 /contact             → Contact
 
 // Admin routes — Clerk auth required on ALL /admin/* routes
