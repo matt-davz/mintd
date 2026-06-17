@@ -208,7 +208,7 @@ export function Footer() {
             </ContactItem>
             <ContactItem>
               <span className="material-symbols-outlined">call</span>
-              +1 (888) 555-0192
+              +1 (205) 291-6292
             </ContactItem>
           </div>
 

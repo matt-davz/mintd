@@ -7,6 +7,7 @@ import GlobalStyles from './styles/GlobalStyles'
 import Gallery from './pages/public/Gallery'
 import ItemDetail from './pages/public/ItemDetail'
 import Contact from './pages/public/Contact'
+import Timeline from './pages/public/Timeline'
 
 import Dashboard from './pages/admin/Dashboard'
 import ItemList from './pages/admin/ItemList'
@@ -26,6 +27,7 @@ createRoot(document.getElementById('root')).render(
           <Route element={<Layout />}>
             <Route path="/" element={<Gallery />} />
             <Route path="/item/:id" element={<ItemDetail />} />
+            <Route path="/museum" element={<Timeline />} />
             <Route path="/contact" element={<Contact />} />
           </Route>
 

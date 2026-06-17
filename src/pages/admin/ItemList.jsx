@@ -336,8 +336,6 @@ const COLUMNS = [
   { key: 'is_visible',        label: 'Visible',      sortable: true  },
   { key: 'is_baseball',       label: 'Baseball',     sortable: true  },
   // Media
-  { key: 'primary_image_url', label: 'Image URL',    sortable: false },
-  { key: 'cloudinary_id',     label: 'Cloudinary ID',sortable: false },
   { key: 'reference_link',    label: 'Ref Link',     sortable: false },
   // Text
   { key: 'description',       label: 'Description',  sortable: false },
@@ -787,12 +785,6 @@ export default function ItemList() {
                   <Td><BoolBadge $on={item.is_visible}>{item.is_visible ? 'Yes' : 'No'}</BoolBadge></Td>
                   <Td><BoolBadge $on={item.is_baseball}>{item.is_baseball ? 'Yes' : 'No'}</BoolBadge></Td>
                   {/* Media */}
-                  <Td $dim={!item.primary_image_url}>
-                    {item.primary_image_url
-                      ? <a href={item.primary_image_url} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', fontSize: '0.6875rem' }}>Link ↗</a>
-                      : '—'}
-                  </Td>
-                  <Td $dim={!item.cloudinary_id} style={{ maxWidth: '14rem' }}>{item.cloudinary_id ?? '—'}</Td>
                   <Td $dim={!item.reference_link}>
                     {item.reference_link
                       ? <a href={item.reference_link} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', fontSize: '0.6875rem' }}>Link ↗</a>
