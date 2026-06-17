@@ -9,7 +9,8 @@ src/
 │   └── admin/
 │       ├── Dashboard.jsx
 │       ├── ItemList.jsx
-│       └── PsaSync.jsx         # Manual PSA refresh trigger
+│       ├── PsaSync.jsx         # Manual PSA refresh trigger
+│       └── GalleryOrder.jsx    # Drag-and-drop gallery curation — pin + reorder items
 ├── components/
 │   ├── ImageLightbox.jsx        # Shared fullscreen lightbox with rotate controls
 │   ├── BoxScoreDisplay.jsx      # Shared baseball linescore table (public + admin)
@@ -69,7 +70,7 @@ src/
 │   ├── itemTypeConfig.js       # Item type metadata, empty forms, serialization
 │   └── mlbApi.js               # MLB Stats API client — team data, fetch, game parsing
 ├── hooks/
-│   ├── useItems.js             # Queries item_gallery view
+│   ├── useItems.js             # Queries item_gallery view + item_order; merges into pinned-first sort
 │   ├── useItem.js              # Single item with certs, sigs, images, type detail, game context
 │   ├── useSetMembers.js        # Fetches sibling items by set_id from item_gallery + set name from sets table
 │   ├── useTags.js

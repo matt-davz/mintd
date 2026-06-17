@@ -789,7 +789,18 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
   const [lightbox, setLightbox] = useState({ open: false, index: 0 })
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [galleryPosition, setGalleryPosition] = useState(null)
   const originalRef = useRef(null)
+
+  useEffect(() => {
+    if (!itemId) return
+    supabase
+      .from('item_order')
+      .select('display_order')
+      .eq('item_id', itemId)
+      .maybeSingle()
+      .then(({ data }) => setGalleryPosition(data?.display_order ?? null))
+  }, [itemId])
 
   function enterEditMode() {
     const f = {
@@ -1672,6 +1683,12 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                     <Field>
                       <FieldLabel>Updated</FieldLabel>
                       <Val value={formatDate(item.updated_at)} />
+                    </Field>
+                  )}
+                  {!isCreateMode && (
+                    <Field>
+                      <FieldLabel>Gallery Position</FieldLabel>
+                      <Val value={galleryPosition != null ? `#${galleryPosition}` : 'Not pinned'} />
                     </Field>
                   )}
                   {(isEditing || item?.reference_link) && (

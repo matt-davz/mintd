@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import styled from 'styled-components'
 
 const HeaderWrapper = styled.header`
@@ -113,7 +113,7 @@ const DrawerHeader = styled.div`
   margin-bottom: 2rem;
 `
 
-const DrawerLogo = styled.span`
+const DrawerLogo = styled(Link)`
   font-family: var(--font-headline);
   font-weight: 900;
   font-size: 1rem;
@@ -166,14 +166,22 @@ const DrawerLink = styled(NavLink)`
 
 export function Header() {
   const [open, setOpen] = useState(false)
+  const location = useLocation()
 
   const close = () => setOpen(false)
+
+  const handleLogoClick = (e) => {
+    if (location.pathname === '/') {
+      e.preventDefault()
+      window.location.reload()
+    }
+  }
 
   return (
     <>
       <HeaderWrapper>
         <Inner>
-          <Logo to="/">Mintd</Logo>
+          <Logo to="/" onClick={handleLogoClick}>Mintd</Logo>
           <Nav>
             <NavItem to="/" end>Gallery</NavItem>
             <NavItem to="/museum">Museum</NavItem>
@@ -189,7 +197,7 @@ export function Header() {
 
       <Drawer $open={open}>
         <DrawerHeader>
-          <DrawerLogo>Mintd</DrawerLogo>
+          <DrawerLogo to="/" onClick={(e) => { close(); handleLogoClick(e) }}>Mintd</DrawerLogo>
           <CloseBtn onClick={close} aria-label="Close menu">
             <span className="material-symbols-outlined">close</span>
           </CloseBtn>

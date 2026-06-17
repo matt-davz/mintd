@@ -213,6 +213,19 @@ Many-to-many junction between items and teams.
 
 ---
 
+### `item_order`
+
+Gallery display order for curated items. One row per pinned item. Items absent from this table appear after all pinned items in default `created_at DESC` order.
+
+| Column | Type | Constraints |
+|---|---|---|
+| `item_id` | `uuid` | PK, FK → `items(id)` ON DELETE CASCADE |
+| `display_order` | `integer` | NOT NULL |
+
+**Managed via:** `/admin/gallery-order` drag-and-drop page. Save replaces all rows in bulk. Cascade delete ensures no orphan rows when items are deleted.
+
+---
+
 ### `images`
 
 Cloudinary image references. No binary data in DB.
@@ -417,6 +430,8 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0018_teams_abbreviation.sql` | Add `abbreviation` column to `teams`, set `NYY` for Yankees, admin write policies for `item_teams` |
 | `0019_backfill_teams.sql` | Seed 31 MLB franchises, backfill `item_teams` from all game context data (281 rows) |
 | `0020_item_season_year.sql` | Add `season_year integer` to `items`, backfill from `game_context` + `item_cards.year_issued`, rebuild `item_gallery` view |
+| `0021_fix_gallery_duplicate_signers_again.sql` | Restore `LATERAL LIMIT 1` for signatories after `0017`/`0020` reverted the fix |
+| `0022_item_order.sql` | Add `item_order` table for gallery curation ordering + RLS |
 
 ---
 

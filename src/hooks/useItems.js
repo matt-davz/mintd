@@ -13,14 +13,36 @@ export function useItems() {
       setLoading(true)
       setError(null)
 
-      const { data, error } = await supabase
-        .from('item_gallery')
-        .select()
-        .order('created_at', { ascending: false })
+      const [galleryRes, orderRes] = await Promise.all([
+        supabase.from('item_gallery').select(),
+        supabase.from('item_order').select(),
+      ])
 
       if (cancelled) return
-      if (error) setError(error.message)
-      else setItems(data ?? [])
+
+      if (galleryRes.error) {
+        setError(galleryRes.error.message)
+        setLoading(false)
+        return
+      }
+      if (orderRes.error) {
+        setError(orderRes.error.message)
+        setLoading(false)
+        return
+      }
+
+      const orderMap = new Map((orderRes.data ?? []).map(r => [r.item_id, r.display_order]))
+
+      const sorted = [...(galleryRes.data ?? [])].sort((a, b) => {
+        const aO = orderMap.get(a.id)
+        const bO = orderMap.get(b.id)
+        if (aO != null && bO != null) return aO - bO
+        if (aO != null) return -1
+        if (bO != null) return 1
+        return new Date(b.created_at) - new Date(a.created_at)
+      })
+
+      setItems(sorted)
       setLoading(false)
     }
 

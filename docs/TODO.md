@@ -79,6 +79,12 @@
 - [ ] **Tag UI** — add tag selection pills/checkboxes in the modal editor
 - [ ] **Tag display in Table View** — show tags column in `<ItemList>`
 
+### Gallery Order (`/admin/gallery-order`)
+- [x] `<GalleryOrder>` page — drag-and-drop curation of public gallery order
+- [x] `item_order` table — stores pinned item positions (`item_id` PK, `display_order` integer), cascades on delete
+- [x] `useItems` updated — fetches `item_order` in parallel, merges pinned items to front of gallery in `display_order ASC` sequence
+- [x] `<ItemViewerModal>` Meta section shows read-only "Gallery Position" field (`#N` or "Not pinned")
+
 ### PSA Sync (`/admin/psa-sync`)
 - [x] `<PsaSync>` page — manual refresh trigger, progress bar, rate-limit handling
 - [x] `supabase/functions/psa-sync` — deployed Edge Function

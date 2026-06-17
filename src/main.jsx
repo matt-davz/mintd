@@ -12,6 +12,7 @@ import Timeline from './pages/public/Timeline'
 import Dashboard from './pages/admin/Dashboard'
 import ItemList from './pages/admin/ItemList'
 import PsaSync from './pages/admin/PsaSync'
+import GalleryOrder from './pages/admin/GalleryOrder'
 import { AdminGuard } from './components/admin/AdminGuard'
 import { AdminLayout } from './components/admin/AdminLayout'
 import { Layout } from './components/layout/Layout'
@@ -41,6 +42,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="items" element={<ItemList />} />
               <Route path="psa-sync" element={<PsaSync />} />
+              <Route path="gallery-order" element={<GalleryOrder />} />
             </Route>
           </Route>
         </Routes>
