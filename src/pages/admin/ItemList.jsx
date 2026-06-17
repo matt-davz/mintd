@@ -257,8 +257,8 @@ const TitleCell = styled.button`
 
 const GradeBadge = styled.span`
   display: inline-block;
-  background-color: var(--color-secondary-container);
-  color: var(--color-secondary-fixed);
+  background-color: ${p => p.$bg ?? 'var(--color-secondary-container)'};
+  color: ${p => p.$fg ?? 'var(--color-secondary-fixed)'};
   font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
@@ -394,6 +394,14 @@ function gradeToNumber(grade) {
   if (!grade) return -1
   const match = grade.match(/(\d+(?:\.\d+)?)$/)
   return match ? parseFloat(match[1]) : -1
+}
+
+function gradeColors(grade) {
+  const n = gradeToNumber(grade)
+  if (n >= 1 && n <= 4) return { $bg: 'rgba(220, 60, 60, 0.25)',  $fg: '#ff8a8a' }
+  if (n >= 5 && n <= 7) return { $bg: 'rgba(200, 140, 30, 0.25)', $fg: '#f5c060' }
+  if (n > 7)            return { $bg: 'rgba(40, 160, 80, 0.25)',  $fg: '#6ee09a' }
+  return {}
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -743,7 +751,7 @@ export default function ItemList() {
                   <Td $dim={!item.cert_service}>{item.cert_service ?? '—'}</Td>
                   <Td>
                     {item.cert_grade
-                      ? <GradeBadge>{item.cert_grade}</GradeBadge>
+                      ? <GradeBadge {...gradeColors(item.cert_grade)}>{item.cert_grade}</GradeBadge>
                       : <span style={{ color: 'var(--color-outline)' }}>—</span>}
                   </Td>
                   <Td $dim={!item.auto_grade}>{item.auto_grade ?? '—'}</Td>
