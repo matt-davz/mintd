@@ -768,12 +768,12 @@ const EMPTY_FORM = {
   price: '', auto_total: '', acquisition_type: 'unknown',
   item_type: '', is_autographed: false, for_sale: false,
   is_visible: false, is_baseball: false, is_part_of_set: false,
-  is_duplicate: false, purchase_date: '', season_year: '', notes: '',
+  is_duplicate: false, is_legendary: false, purchase_date: '', season_year: '', notes: '',
 }
 
 export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
   const isCreateMode = !itemId
-  const { item, signatories, certifications, population, images, detail, gameContext, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
+  const { item, signatories, certifications, population, images, detail, gameContext, legendaryContext, legendaryImages, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
 
   const [isEditing, setIsEditing] = useState(isCreateMode)
   const [syncing, setSyncing] = useState(false)
@@ -786,6 +786,8 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
   const [draftCerts, setDraftCerts] = useState([])
   const [draftSigs, setDraftSigs] = useState([])
   const [draftImages, setDraftImages] = useState([])
+  const [legendaryContextForm, setLegendaryContextForm] = useState({ event_title: '', event_description: '' })
+  const [draftLegendaryImages, setDraftLegendaryImages] = useState([])
   const [lightbox, setLightbox] = useState({ open: false, index: 0 })
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -817,6 +819,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
       is_baseball:         item.is_baseball ?? false,
       is_part_of_set:      item.is_part_of_set ?? false,
       is_duplicate:        item.is_duplicate ?? false,
+      is_legendary:        item.is_legendary ?? false,
       purchase_date:       item.purchase_date ?? '',
       season_year:         item.season_year ?? '',
       notes:               item.notes ?? '',
@@ -824,10 +827,14 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
     const dc = certifications.map(c => ({ ...c, _key: c.id }))
     const ds = signatories.map(s => ({ ...s, _key: s.id }))
     const di = images.map(i => ({ ...i, _key: i.id }))
+    const initLc = { event_title: legendaryContext?.event_title ?? '', event_description: legendaryContext?.event_description ?? '' }
+    const dli = (legendaryImages ?? []).map(i => ({ ...i, _key: i.id }))
     setForm(f)
     setDraftCerts(dc)
     setDraftSigs(ds)
     setDraftImages(di)
+    setLegendaryContextForm(initLc)
+    setDraftLegendaryImages(dli)
 
     // Populate type detail form from existing data
     let initDetail = null
@@ -865,6 +872,8 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
       di: JSON.parse(JSON.stringify(di)),
       df: initDetail ? JSON.parse(JSON.stringify(initDetail)) : null,
       gc: initGc ? JSON.parse(JSON.stringify(initGc)) : null,
+      lc: JSON.parse(JSON.stringify(initLc)),
+      dli: JSON.parse(JSON.stringify(dli)),
     }
     setIsEditing(true)
   }
@@ -922,11 +931,15 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
       || JSON.stringify(draftCerts) !== JSON.stringify(orig?.dc)
       || JSON.stringify(draftSigs) !== JSON.stringify(orig?.ds)
       || JSON.stringify(draftImages) !== JSON.stringify(orig?.di)
+      || JSON.stringify(legendaryContextForm) !== JSON.stringify(orig?.lc)
+      || JSON.stringify(draftLegendaryImages) !== JSON.stringify(orig?.dli)
     if (dirty && !window.confirm('Discard unsaved changes?')) return
     setIsEditing(false)
     setForm(null)
     setDetailForm(null)
     setGcForm(null)
+    setLegendaryContextForm({ event_title: '', event_description: '' })
+    setDraftLegendaryImages([])
     setSaveError(null)
   }
 
@@ -958,6 +971,8 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
         || JSON.stringify(draftImages) !== JSON.stringify(orig?.di)
         || JSON.stringify(detailForm) !== JSON.stringify(orig?.df)
         || JSON.stringify(gcForm) !== JSON.stringify(orig?.gc)
+        || JSON.stringify(legendaryContextForm) !== JSON.stringify(orig?.lc)
+        || JSON.stringify(draftLegendaryImages) !== JSON.stringify(orig?.dli)
       if (!isDirty) {
         setIsEditing(false)
         setForm(null)
@@ -983,6 +998,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
         is_baseball:      form.is_baseball,
         is_part_of_set:   form.is_part_of_set,
         is_duplicate:     form.is_duplicate,
+        is_legendary:     form.is_legendary,
         purchase_date:    form.purchase_date || null,
         season_year:      (() => {
           const fromGc = HAS_GAME_CONTEXT.has(form.item_type) && gcForm?.season_year
@@ -1128,6 +1144,53 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
         if (imgErr) throw new Error(imgErr.message)
       }
 
+      // ── Save legendary context + images ────────────────────────────────────
+      if (form.is_legendary) {
+        const { data: lcRow, error: lcErr } = await supabase
+          .from('legendary_context')
+          .upsert(
+            {
+              item_id:           savedItemId,
+              event_title:       legendaryContextForm.event_title || null,
+              event_description: legendaryContextForm.event_description || null,
+            },
+            { onConflict: 'item_id' }
+          )
+          .select()
+          .single()
+        if (lcErr) throw new Error(lcErr.message)
+
+        // Delete removed legendary images
+        const origLiIds = new Set((legendaryImages ?? []).map(i => i.id))
+        const keptIds = new Set(draftLegendaryImages.filter(i => i.id).map(i => i.id))
+        const toDelete = [...origLiIds].filter(id => !keptIds.has(id))
+        if (toDelete.length) {
+          const { error: delErr } = await supabase.from('legendary_images').delete().in('id', toDelete)
+          if (delErr) throw new Error(delErr.message)
+        }
+
+        // Upload and insert new legendary images
+        const newLi = draftLegendaryImages.filter(i => !i.id && i.file)
+        if (newLi.length) {
+          const maxOrder = (legendaryImages ?? []).reduce((max, i) => Math.max(max, i.display_order ?? 0), -1)
+          const liRows = []
+          for (let idx = 0; idx < newLi.length; idx++) {
+            const img = newLi[idx]
+            const displayOrder = maxOrder + 1 + idx
+            const publicId = `legendary/${savedItemId.slice(0, 8)}/image_${displayOrder}`
+            const result = await uploadToCloudinary(img.file, publicId)
+            liRows.push({
+              legendary_context_id: lcRow.id,
+              cloudinary_public_id:  result.public_id,
+              cloudinary_url:        result.secure_url,
+              display_order:         displayOrder,
+            })
+          }
+          const { error: liErr } = await supabase.from('legendary_images').insert(liRows)
+          if (liErr) throw new Error(liErr.message)
+        }
+      }
+
       if (isCreateMode) {
         onClose()
       } else {
@@ -1136,6 +1199,8 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
         setForm(null)
         setDetailForm(null)
         setGcForm(null)
+        setLegendaryContextForm({ event_title: '', event_description: '' })
+        setDraftLegendaryImages([])
       }
     } catch (err) {
       setSaveError(err.message)
@@ -1673,6 +1738,21 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                       <Bool value={item.is_part_of_set} />
                     )}
                   </Field>
+                  <Field>
+                    <FieldLabel>Legendary</FieldLabel>
+                    {isEditing ? (
+                      <CheckboxLabel>
+                        <input
+                          type="checkbox"
+                          checked={form.is_legendary}
+                          onChange={e => setField('is_legendary', e.target.checked)}
+                        />
+                        Yes
+                      </CheckboxLabel>
+                    ) : (
+                      <Bool value={item.is_legendary} />
+                    )}
+                  </Field>
                   {!isCreateMode && (
                     <Field>
                       <FieldLabel>Added</FieldLabel>
@@ -1735,6 +1815,61 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                     currentItemId={itemId}
                     onItemClick={onOpenItem}
                   />
+                </Section>
+              )}
+
+              {/* ── Legendary context ── */}
+              {(form?.is_legendary || item?.is_legendary) && (
+                <Section>
+                  <SectionLabel>Legendary Context</SectionLabel>
+                  {isEditing || isCreateMode ? (
+                    <>
+                      <FieldGrid>
+                        <Field style={{ gridColumn: '1 / -1' }}>
+                          <FieldLabel>Event Title</FieldLabel>
+                          <EditInput
+                            value={legendaryContextForm.event_title}
+                            onChange={e => setLegendaryContextForm(f => ({ ...f, event_title: e.target.value }))}
+                            placeholder="e.g. 1956 World Series Perfect Game"
+                          />
+                        </Field>
+                        <Field style={{ gridColumn: '1 / -1' }}>
+                          <FieldLabel>Event Description</FieldLabel>
+                          <EditTextarea
+                            value={legendaryContextForm.event_description}
+                            onChange={e => setLegendaryContextForm(f => ({ ...f, event_description: e.target.value }))}
+                            rows={5}
+                          />
+                        </Field>
+                      </FieldGrid>
+                      <FieldLabel style={{ marginTop: 'var(--space-4)', marginBottom: 'var(--space-2)' }}>Context Images</FieldLabel>
+                      <ImageUploader draftImages={draftLegendaryImages} setDraftImages={setDraftLegendaryImages} />
+                    </>
+                  ) : legendaryContext ? (
+                    <>
+                      {legendaryContext.event_title && (
+                        <FieldValue style={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', marginBottom: 'var(--space-2)' }}>
+                          {legendaryContext.event_title}
+                        </FieldValue>
+                      )}
+                      {legendaryContext.event_description && (
+                        <FieldValue style={{ fontFamily: 'var(--font-body)', fontSize: '0.8125rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                          {legendaryContext.event_description}
+                        </FieldValue>
+                      )}
+                      {legendaryImages.length > 0 && (
+                        <ImageStrip style={{ marginTop: 'var(--space-4)' }}>
+                          {legendaryImages.map(img => (
+                            <ImageThumb key={img.id}>
+                              <img src={img.cloudinary_url} alt={img.caption ?? ''} />
+                            </ImageThumb>
+                          ))}
+                        </ImageStrip>
+                      )}
+                    </>
+                  ) : (
+                    <Muted>No legendary context added yet. Edit to add event description and images.</Muted>
+                  )}
                 </Section>
               )}
 

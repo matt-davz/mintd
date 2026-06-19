@@ -13,6 +13,8 @@ Schema: `supabase/migrations/`. Full reference: `docs/DATABASE_SCHEMA.md`.
 - `tags` + `item_tags` — many-to-many tag system
 - `teams` + `item_teams` — MLB team associations; many-to-many. Auto-populated from `game_context.home_team` / `away_team` on item save. Drives the Teams filter in the gallery and admin advanced search.
 - `images` — Cloudinary references; unique constraint enforces one `is_primary = true` per item
+- `legendary_context` — 1:1 with `items` (only for `is_legendary = true` items); holds `event_title` and `event_description` for the Timeline legendary display
+- `legendary_images` — contextual/historical images for a legendary item; hangs off `legendary_context`. Separate from product shots in `images`. Named `legendary/{itemId_first8}/image_{n}` in Cloudinary.
 - `inquiries` — visitor contact form submissions; stored in DB and emailed via Edge Function
 
 ### Item detail tables (one row per item, linked by `item_id`)
@@ -42,6 +44,7 @@ Tables with game context (tickets, baseballs, bats, jerseys, photos, programs, b
 - `is_visible` — draft flag; false hides from public
 - `is_baseball` — false hides from public (non-baseball items stored but not shown)
 - `for_sale` — drives "For Sale" badge
+- `is_legendary` — flags item for special display treatment on the Yankees Museum Timeline; triggers the Legendary Context section in the admin editor
 - `acquisition_type` — `purchased` | `gifted` | `inherited` | `consignment` | `unknown`
 - `item_total` / `auto_total` — cost breakdown fields
 
@@ -97,7 +100,7 @@ To add a new service, add an entry to `CERT_LINK_BUILDERS` in `src/components/ad
 
 ### Views (always use these in queries, not raw tables)
 
-- `item_gallery` — denormalised gallery view; one row per item with primary image, featured signer, `tag_slugs text[]`, `team_slugs text[]`, `season_year`, set name, primary cert. Filtered to `is_visible = true AND is_baseball = true`. Previously named `item_cards` — renamed in migration `0011` (`item_cards` is now the trading card detail table). This is the data source for all client-side filtering and sorting in the gallery.
+- `item_gallery` — denormalised gallery view; one row per item with primary image, featured signer, `tag_slugs text[]`, `team_slugs text[]`, `season_year`, set name, primary cert, `is_legendary`, `game_date date`, and `series_game_number integer`. Filtered to `is_visible = true AND is_baseball = true`. Previously named `item_cards` — renamed in migration `0011` (`item_cards` is now the trading card detail table). This is the data source for all client-side filtering and sorting in the gallery. `game_date` and `series_game_number` are `NULL` for items without game context (e.g. cards).
 - `latest_population` — most recent population snapshot per cert
 
 ### RLS

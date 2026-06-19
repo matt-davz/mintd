@@ -24,7 +24,7 @@ A private baseball memorabilia collection showcase website for a single client. 
 ## Core features
 
 - Gallery viewing for outside users with keyword search and advanced filtering (item type + team).
-- **Yankees Museum (`/museum`)** — public chronological timeline of all Yankees-tagged items. Horizontal scroll on desktop (alternating above/below axis, decade background images cross-fade on scroll, draggable scrubber). Vertical scroll list on mobile.
+- **Yankees Museum (`/museum`)** — public chronological timeline of all Yankees-tagged items. Horizontal scroll on desktop (alternating above/below axis, decade background images cross-fade on scroll, draggable scrubber). Vertical scroll list on mobile. Items with `is_legendary = true` are centered on the axis, fill most of the track height, and display with a pulsing blue glow + dual ember particle layers (`EmberEffect`). Neighboring stops drift outward when a legendary item is centered. Sorted by `game_date` (exact date when available) falling back to `season_year`; `series_game_number` breaks ties within the same date.
 - Inquiry via simple contact form sent to an email.
 - Admin dashboard accessible via Clerk auth for the website owner.
     - **Overview (`/admin/dashboard`)** — stats cards (total items, total cost) + item grid with advanced filter.
@@ -238,6 +238,7 @@ Item type tags (legacy — `item_type` column is now the primary way to categori
 - **Scroll-to-top** — gallery scrolls to top on page change; item detail scrolls to top on load.
 - **Box score** — if a game context has `box_score` data, a linescore table (inning-by-inning + R/H/E) renders on both the public item detail page and admin modal. Shared component: `src/components/BoxScoreDisplay.jsx`.
 - **Set members accordion** — if an item has a `set_id`, an accordion renders at the bottom of the detail column (public) and as a "Set Members" section in the admin modal. Opening it fetches and displays a horizontal-scroll carousel of all other items in the same set. Shared component: `src/components/SetMembersAccordion.jsx`, data hook: `src/hooks/useSetMembers.js`. Condition is `item.set_id` only — `is_part_of_set` is not checked, so master set items (which have `set_id` but `is_part_of_set = false`) also show the carousel. In admin, clicking a carousel card switches the modal to that item via `onOpenItem` prop.
+- **Legendary items** — items with `is_legendary = true` receive special display on the Yankees Museum Timeline. The card is centered on the axis (not above/below), fills ~90% of the track height, shows `legendary_context.event_title` above the image (when set), and renders with a pulsing blue glow border + two `EmberEffect` layers (one behind the card with wide spread, one in front with tighter spread). Neighboring timeline stops drift 30px outward when the legendary item is centered, then return smoothly. Legendary context (event title, event description, contextual images) is stored in `legendary_context` and `legendary_images` tables. `item_gallery` exposes `legendary_event_title` directly so no extra fetch is needed on the timeline. In the admin modal, toggling `is_legendary` reveals a "Legendary Context" section for editing. Full context data (including images) is fetched via `useItem`.
 
 ## Multi-signer display rule
 
@@ -246,6 +247,19 @@ On gallery cards: show the `is_featured = true` signatory name prominently. If t
 ## PSA population display
 
 Always read from the `latest_population` view, not `population_snapshots` directly. Display Higher / Same / Lower as a minimal data table with monospace numbers. Only show population data if a PSA or PSA/DNA cert exists for the item.
+
+## Images (Cloudinary)
+
+All item images are stored as full Cloudinary secure URLs in `images.cloudinary_url`. The `item_gallery` view surfaces the primary image as `primary_image_url`.
+
+**EXIF orientation**: Phone photos often have landscape raw pixels with an EXIF orientation tag (e.g. `Rotate 90 CW`) that tells browsers to display them as portrait. Cloudinary may strip this tag when converting formats on CDN delivery, causing images to render sideways. Fix: always pass Cloudinary `src` values through `withAutoOrient()` from `src/lib/cloudinary.js`. This inserts `a_exif/` into the URL so Cloudinary bakes the rotation into the served image (no-op if no EXIF rotation is present).
+
+```js
+import { withAutoOrient } from '../lib/cloudinary'
+<img src={withAutoOrient(item.primary_image_url)} />
+```
+
+Apply `withAutoOrient` everywhere a raw `cloudinary_url` or `primary_image_url` is used as an `<img src>`.
 
 ## Environment variables
 

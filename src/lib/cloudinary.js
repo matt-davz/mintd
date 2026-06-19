@@ -10,6 +10,11 @@ export function cloudinaryUrl(publicId, transforms = 'f_auto,q_auto') {
   return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${transforms}/${publicId}`
 }
 
+export function withAutoOrient(url) {
+  if (!url || url.includes('a_exif')) return url
+  return url.replace('/image/upload/', '/image/upload/a_exif/')
+}
+
 export const uploadConfig = {
   cloudName: CLOUD_NAME,
   uploadPreset: UPLOAD_PRESET,
