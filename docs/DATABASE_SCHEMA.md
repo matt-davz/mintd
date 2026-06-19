@@ -74,6 +74,7 @@ Core table — everything hangs off this.
 | `set_id` | `uuid` | FK → `sets(id)` ON DELETE SET NULL | |
 | `notes` | `text` | | |
 | `is_duplicate` | `boolean` | NOT NULL, default `false` | |
+| `is_legendary` | `boolean` | NOT NULL, default `false` | Marks item for special "legendary" display treatment on the Timeline |
 | `season_year` | `integer` | nullable | Year of the game/event or card issue year. Backfilled from `game_context.season_year` for game-context items; from `item_cards.year_issued` for cards. Auto-synced from game context on save via `ItemViewerModal`. |
 | `created_at` | `timestamptz` | NOT NULL, default `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL, default `now()` | Auto-updated via trigger |
@@ -244,6 +245,37 @@ Cloudinary image references. No binary data in DB.
 
 ---
 
+### `legendary_context`
+
+Event narrative and context for items marked `is_legendary`. One row per legendary item (1:1 with `items`).
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | `uuid` | PK, default `gen_random_uuid()` | |
+| `item_id` | `uuid` | NOT NULL, UNIQUE, FK → `items(id)` ON DELETE CASCADE | |
+| `event_title` | `text` | nullable | Short headline shown on Timeline legendary card |
+| `event_description` | `text` | nullable | Full historical narrative |
+| `created_at` | `timestamptz` | NOT NULL, default `now()` | |
+| `updated_at` | `timestamptz` | NOT NULL, default `now()` | Auto-updated via trigger |
+
+---
+
+### `legendary_images`
+
+Historical/contextual images for a legendary item. Separate from product shots in `images`.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | `uuid` | PK, default `gen_random_uuid()` | |
+| `legendary_context_id` | `uuid` | NOT NULL, FK → `legendary_context(id)` ON DELETE CASCADE | |
+| `cloudinary_public_id` | `text` | NOT NULL, UNIQUE | Pattern: `legendary/{first8charsOfItemId}/image_{n}` |
+| `cloudinary_url` | `text` | NOT NULL | |
+| `caption` | `text` | nullable | |
+| `display_order` | `integer` | NOT NULL, default `0` | |
+| `created_at` | `timestamptz` | NOT NULL, default `now()` | |
+
+---
+
 ### `inquiries`
 
 Visitor contact form submissions.
@@ -378,7 +410,9 @@ Most recent population snapshot per cert. **Always query this instead of `popula
 ### `item_gallery`
 Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, team slugs array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
-**Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`
+**Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`
+
+`game_date` and `series_game_number` come from `game_context` via a lateral join across all 8 detail tables. Both are `NULL` for items without game context (cards, non-game items). Used by the Timeline to sort by exact game date rather than `season_year` alone.
 
 > Previously named `item_cards`. Renamed in migration `0011` — `item_cards` is now the trading card detail table.
 
@@ -432,6 +466,10 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0020_item_season_year.sql` | Add `season_year integer` to `items`, backfill from `game_context` + `item_cards.year_issued`, rebuild `item_gallery` view |
 | `0021_fix_gallery_duplicate_signers_again.sql` | Restore `LATERAL LIMIT 1` for signatories after `0017`/`0020` reverted the fix |
 | `0022_item_order.sql` | Add `item_order` table for gallery curation ordering + RLS |
+| `0023_legendary.sql` | Add `is_legendary boolean NOT NULL default false` to `items`; expose in `item_gallery` view |
+| `0024_legendary_context.sql` | Add `legendary_context` (1:1 with items) and `legendary_images` tables with RLS |
+| `0025_item_gallery_game_date.sql` | Add `game_date date` and `series_game_number integer` to `item_gallery` via lateral join on `game_context` through all 8 detail tables |
+| `0026_item_gallery_legendary_event_title.sql` | Add `legendary_event_title text` to `item_gallery` via left join on `legendary_context` |
 
 ---
 
@@ -440,3 +478,4 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | Function | Purpose | Trigger |
 |---|---|---|
 | `psa-sync` | Fetches PSA population data for all PSA/PSA-DNA certs, inserts `population_snapshots` rows | `pg_cron` weekly (Mondays 9am UTC) + manual from admin panel |
+

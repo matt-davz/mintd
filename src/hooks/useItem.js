@@ -10,6 +10,8 @@ export function useItem(id) {
   const [images, setImages] = useState([])
   const [detail, setDetail] = useState(null)
   const [gameContext, setGameContext] = useState(null)
+  const [legendaryContext, setLegendaryContext] = useState(null)
+  const [legendaryImages, setLegendaryImages] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -23,11 +25,12 @@ export function useItem(id) {
       setLoading(true)
       setError(null)
 
-      const [itemRes, sigRes, certRes, imgRes] = await Promise.all([
+      const [itemRes, sigRes, certRes, imgRes, lcRes] = await Promise.all([
         supabase.from('items').select().eq('id', id).single(),
         supabase.from('signatories').select().eq('item_id', id).order('display_order'),
         supabase.from('certifications').select().eq('item_id', id),
         supabase.from('images').select().eq('item_id', id).order('display_order'),
+        supabase.from('legendary_context').select('*, legendary_images(*)').eq('item_id', id).maybeSingle(),
       ])
 
       if (cancelled) return
@@ -42,6 +45,12 @@ export function useItem(id) {
       setSignatories(sigRes.data ?? [])
       setCertifications(certRes.data ?? [])
       setImages(imgRes.data ?? [])
+
+      const lc = lcRes.data ?? null
+      const li = lc?.legendary_images ?? []
+      const lcWithoutImages = lc ? (({ legendary_images: _, ...rest }) => rest)(lc) : null
+      setLegendaryContext(lcWithoutImages)
+      setLegendaryImages(li.slice().sort((a, b) => a.display_order - b.display_order))
 
       // Fetch type-specific detail + game context
       const itemType = itemRes.data.item_type
@@ -94,5 +103,5 @@ export function useItem(id) {
 
   const refetch = useCallback(() => refetchRef.current(), [])
 
-  return { item, signatories, certifications, population, images, detail, gameContext, loading, error, refetch }
+  return { item, signatories, certifications, population, images, detail, gameContext, legendaryContext, legendaryImages, loading, error, refetch }
 }

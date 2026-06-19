@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { Carousel } from 'react-responsive-carousel'
 import 'react-responsive-carousel/lib/styles/carousel.min.css'
+import { withAutoOrient } from '../../lib/cloudinary'
 import { useItem } from '../../hooks/useItem'
 import { useItems } from '../../hooks/useItems'
 import { SignatoryList } from '../../components/public/SignatoryList'
@@ -440,7 +441,7 @@ export default function ItemDetail() {
                   >
                     {allImages.map((img) => (
                       <div key={img.id}>
-                        <img src={img.cloudinary_url} alt={item.title} />
+                        <img src={withAutoOrient(img.cloudinary_url)} alt={item.title} />
                       </div>
                     ))}
                   </Carousel>
@@ -453,7 +454,7 @@ export default function ItemDetail() {
                 style={{ position: 'relative', cursor: 'pointer' }}
                 onClick={() => setLightbox({ open: true, index: 0 })}
               >
-                <img src={allImages[0].cloudinary_url} alt={item.title} style={{ width: '100%', display: 'block' }} />
+                <img src={withAutoOrient(allImages[0].cloudinary_url)} alt={item.title} style={{ width: '100%', display: 'block' }} />
               </ImageFrame>
             ) : (
               <ImageFrame>

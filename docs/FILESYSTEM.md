@@ -4,7 +4,7 @@ src/
 │   ├── public/
 │   │   ├── Gallery.jsx         # Main collection grid
 │   │   ├── ItemDetail.jsx      # Single item page
-│   │   ├── Timeline.jsx        # Yankees Museum (/museum) — horizontal decade timeline (vertical on mobile)
+│   │   ├── Timeline.jsx        # Yankees Museum (/museum) — horizontal decade timeline (vertical on mobile); legendary items render centered full-height with ember effects + push-away neighbors
 │   │   └── Contact.jsx         # Contact form
 │   └── admin/
 │       ├── Dashboard.jsx
@@ -22,7 +22,8 @@ src/
 │   ├── public/
 │   │   ├── ItemCard.jsx
 │   │   ├── FilterBar.jsx       # Advanced search: keyword + multi-select type/team pills in accordion
-│   │   └── SignatoryList.jsx
+│   │   ├── SignatoryList.jsx
+│   │   └── EmberEffect.jsx     # Particle ember effect for legendary timeline cards — props: height, intensity, zIndex, spread
 │   ├── itemDetail/             # Public item detail display components
 │   │   ├── styles.js           # Shared styled components + formatters
 │   │   ├── ItemTypeDetails.jsx # Dispatcher — picks correct type display
@@ -71,7 +72,7 @@ src/
 │   └── mlbApi.js               # MLB Stats API client — team data, fetch, game parsing
 ├── hooks/
 │   ├── useItems.js             # Queries item_gallery view + item_order; merges into pinned-first sort
-│   ├── useItem.js              # Single item with certs, sigs, images, type detail, game context
+│   ├── useItem.js              # Single item with certs, sigs, images, type detail, game context, legendary context + images
 │   ├── useSetMembers.js        # Fetches sibling items by set_id from item_gallery + set name from sets table
 │   ├── useTags.js
 │   └── useTeams.js             # Fetches all teams from the teams table

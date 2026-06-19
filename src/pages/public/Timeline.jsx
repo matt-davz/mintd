@@ -1,11 +1,15 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import styled from 'styled-components'
+import styled, { keyframes } from 'styled-components'
 import { useItems } from '../../hooks/useItems'
+import { withAutoOrient } from '../../lib/cloudinary'
+import { EmberEffect } from '../../components/public/EmberEffect'
 
 const STOP_WIDTH = 320
 const CARD_WIDTH = 200
 const CONNECTOR_HEIGHT = 44
+const LEGENDARY_STOP_WIDTH = 500
+const LEGENDARY_CARD_WIDTH = 270
 
 const DECADE_IMAGES = {
   1920: 'https://res.cloudinary.com/duxcwfkr0/image/upload/v1781661160/lgtfl0axk9wnejkestut.jpg',
@@ -24,43 +28,46 @@ const DECADE_IMAGES = {
 
 const Page = styled.div`
   height: 100vh;
-  padding-top: 5rem;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+
+  @media (min-width: 768px) {
+
+  }
 
   @media (max-width: 767px) {
     height: auto;
     min-height: 100vh;
     overflow: visible;
-    padding-top: 0.625rem;
+
   }
 `
 
 const PageHeader = styled.div`
-  padding: 0 1.25rem 1.5rem;
+  padding: 0 1.25rem 1rem;
   max-width: 1536px;
   margin: 0 auto;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
 
   @media (min-width: 768px) {
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
-    padding: 3.5rem 4rem 2.5rem;
-  }
-`
 
-const Eyebrow = styled.p`
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--color-primary);
-  margin-bottom: 0.5rem;
+    top: 4rem;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1.25rem 4rem 2rem;
+    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.75) 0%, transparent 100%);
+    pointer-events: none;
+  }
 `
 
 const Heading = styled.h1`
@@ -197,6 +204,19 @@ const CenterLine = styled.div`
   pointer-events: none;
 `
 
+// ── Legendary keyframe ────────────────────────────────────────────────────────
+
+const pulseGlow = keyframes`
+  0%, 100% {
+    filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.4));
+    border-color: rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    filter: drop-shadow(0 0 30px rgba(59, 130, 246, 0.78));
+    border-color: rgba(59, 130, 246, 0.78);
+  }
+`
+
 // ── Per stop ──────────────────────────────────────────────────────────────────
 
 const Stop = styled.div`
@@ -206,6 +226,84 @@ const Stop = styled.div`
   height: 100%;
   scroll-snap-align: center;
   z-index: 1;
+  transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+`
+
+// ── Legendary stop ────────────────────────────────────────────────────────────
+
+const LegendaryStop = styled.div`
+  position: relative;
+  width: ${LEGENDARY_STOP_WIDTH}px;
+  flex-shrink: 0;
+  height: 100%;
+  scroll-snap-align: center;
+  z-index: 2;
+  transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+`
+
+const LegendaryStopDot = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.2), 0 0 20px rgba(59, 130, 246, 0.65);
+  z-index: 0;
+`
+
+const LegendaryCardWrap = styled.div`
+  position: absolute;
+  top: calc(5% + 0.75rem);
+  bottom: calc(5% + 0.75rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: ${LEGENDARY_CARD_WIDTH}px;
+  overflow: visible;
+`
+
+const LegendaryCardLink = styled(Link)`
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: rgba(18, 18, 18, 0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  animation: ${pulseGlow} 4s ease-in-out infinite;
+  transition: transform 0.35s;
+
+  &:hover {
+    transform: translateY(-3px);
+  }
+`
+
+
+const LegendaryYearLabel = styled.span`
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgba(59, 130, 246, 0.85);
+`
+
+const LegendaryEventTitle = styled.div`
+  padding: 0.75rem 1rem 0.625rem;
+  font-family: var(--font-headline);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--color-on-background);
+  line-height: 1.3;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 `
 
 const StopDot = styled.div`
@@ -267,7 +365,6 @@ const CardAbove = styled.div`
   left: 50%;
   transform: translateX(-50%);
   width: ${CARD_WIDTH}px;
-  /* fill upward: half-track minus connector and a small margin */
   height: calc(50% - ${CONNECTOR_HEIGHT}px - 2.5rem);
 `
 
@@ -397,7 +494,7 @@ const CardType = styled.span`
 const ScrubberSection = styled.div`
   max-width: 48rem;
   margin: 0 auto;
-  padding: 1.5rem 2rem 4rem;
+  padding: 0.75rem 2rem 1rem;
   width: 100%;
   display: flex;
   align-items: center;
@@ -600,7 +697,7 @@ function TimelineCard({ item }) {
       >
         <CardImg>
           {item.primary_image_url ? (
-            <img src={item.primary_image_url} alt={item.title} loading="lazy" />
+            <img src={withAutoOrient(item.primary_image_url)} alt={item.title} loading="lazy" />
           ) : (
             <NoImg>
               <span className="material-symbols-outlined">image_not_supported</span>
@@ -615,6 +712,16 @@ function TimelineCard({ item }) {
       </CardLink>
     </>
   )
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function dateLabel(item) {
+  if (!item.game_date) return String(item.season_year)
+  const [year, month, day] = item.game_date.split('-').map(Number)
+  return `${MONTHS[month - 1]} ${day}, ${year}`
 }
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
@@ -640,20 +747,29 @@ export default function Timeline() {
   const isMobile = useMobile()
   const scrollRef = useRef(null)
   const scrubberRef = useRef(null)
+  const stopRefs = useRef([])
   const [progress, setProgress] = useState(0)
   const [activeDecade, setActiveDecade] = useState(null)
+  const [centeredIdx, setCenteredIdx] = useState(0)
   const timelineItemsRef = useRef([])
 
-  const timelineItems = useMemo(() =>
-    items
+  const timelineItems = useMemo(() => {
+    const sortKey = (item) =>
+      item.game_date ?? `${item.season_year}-06-15`
+
+    return items
       .filter(i =>
         i.season_year != null &&
         Array.isArray(i.team_slugs) &&
         i.team_slugs.includes('yankees')
       )
-      .sort((a, b) => a.season_year - b.season_year),
-    [items]
-  )
+      .sort((a, b) => {
+        const diff = sortKey(a).localeCompare(sortKey(b))
+        if (diff !== 0) return diff
+        // Same date: break ties by series game number (e.g. WS game 1 before game 8)
+        return (a.series_game_number ?? 0) - (b.series_game_number ?? 0)
+      })
+  }, [items])
 
   // Keep a ref so the scroll handler always sees the latest items without re-binding
   useEffect(() => {
@@ -671,13 +787,30 @@ export default function Timeline() {
     const total = el.scrollWidth - el.clientWidth
     setProgress(total > 0 ? (el.scrollLeft / total) * 100 : 0)
 
-    // Find which item is closest to the viewport centre
     const its = timelineItemsRef.current
     if (its.length === 0) return
-    const paddingLeft = el.clientWidth * 0.25
-    const relativeCenter = el.scrollLeft + el.clientWidth / 2 - paddingLeft
-    const idx = Math.max(0, Math.min(its.length - 1, Math.round(relativeCenter / STOP_WIDTH)))
-    setActiveDecade(Math.floor(its[idx].season_year / 10) * 10)
+
+    // Find which stop is visually closest to the viewport centre using live rects,
+    // so variable-width legendary stops are handled correctly.
+    const containerRect = el.getBoundingClientRect()
+    const viewCenter = containerRect.left + containerRect.width / 2
+
+    let closestIdx = 0
+    let closestDist = Infinity
+    stopRefs.current.forEach((ref, i) => {
+      if (!ref) return
+      const rect = ref.getBoundingClientRect()
+      const dist = Math.abs(rect.left + rect.width / 2 - viewCenter)
+      if (dist < closestDist) {
+        closestDist = dist
+        closestIdx = i
+      }
+    })
+
+    if (its[closestIdx]) {
+      setActiveDecade(Math.floor(its[closestIdx].season_year / 10) * 10)
+      setCenteredIdx(closestIdx)
+    }
   }, [])
 
   // Attach scroll listener only after the ScrollTrack has mounted
@@ -692,7 +825,6 @@ export default function Timeline() {
   const scroll = useCallback((dir) => {
     scrollRef.current?.scrollBy({ left: dir * STOP_WIDTH, behavior: 'smooth' })
   }, [])
-
 
   const scrubTo = useCallback((clientX) => {
     const track = scrubberRef.current
@@ -743,11 +875,11 @@ export default function Timeline() {
             return (
               <MobileStop key={item.id}>
                 <MobileDot />
-                <MobileYear>{item.season_year}</MobileYear>
+                <MobileYear>{dateLabel(item)}</MobileYear>
                 <MobileCard to={`/item/${item.id}`}>
                   <MobileCardImg>
                     {item.primary_image_url && (
-                      <img src={item.primary_image_url} alt={item.title} loading="lazy" />
+                      <img src={withAutoOrient(item.primary_image_url)} alt={item.title} loading="lazy" />
                     )}
                   </MobileCardImg>
                   <MobileCardBody>
@@ -791,12 +923,63 @@ export default function Timeline() {
                 <CenterLine />
                 {timelineItems.map((item, i) => {
                   const isTop = i % 2 === 0
+                  const centeredIsLegendary = timelineItems[centeredIdx]?.is_legendary
+
+                  // Neighbors of a centred legendary item drift outward.
+                  let pushX = 0
+                  if (centeredIsLegendary) {
+                    if (i === centeredIdx - 1) pushX = -30
+                    if (i === centeredIdx + 1) pushX = 30
+                  }
+                  const pushStyle = { transform: `translateX(${pushX}px)` }
+
+                  if (item.is_legendary) {
+                    return (
+                      <LegendaryStop
+                        key={item.id}
+                        ref={el => { stopRefs.current[i] = el }}
+                        style={pushStyle}
+                      >
+                        <LegendaryStopDot />
+                        <LegendaryCardWrap>
+                          {/* Background embers — behind the card, arch wide to the sides */}
+                          <EmberEffect height={220} intensity={10} zIndex={0} spread={70} />
+                          <LegendaryCardLink to={`/item/${item.id}`}>
+                            {item.legendary_event_title && (
+                              <LegendaryEventTitle>{item.legendary_event_title}</LegendaryEventTitle>
+                            )}
+                            <CardImg>
+                              {item.primary_image_url ? (
+                                <img src={withAutoOrient(item.primary_image_url)} alt={item.title} loading="lazy" />
+                              ) : (
+                                <NoImg>
+                                  <span className="material-symbols-outlined">image_not_supported</span>
+                                </NoImg>
+                              )}
+                            </CardImg>
+                            <CardBody>
+                              <CardTitle>{item.title}</CardTitle>
+                              <LegendaryYearLabel>{dateLabel(item)}</LegendaryYearLabel>
+                              {item.item_type && <CardType style={{ marginLeft: '0.4rem' }}>{item.item_type}</CardType>}
+                            </CardBody>
+                          </LegendaryCardLink>
+                          {/* Foreground embers — in front of the card */}
+                          <EmberEffect height={110} intensity={6} zIndex={2} spread={0} />
+                        </LegendaryCardWrap>
+                      </LegendaryStop>
+                    )
+                  }
+
                   return (
-                    <Stop key={item.id}>
+                    <Stop
+                      key={item.id}
+                      ref={el => { stopRefs.current[i] = el }}
+                      style={pushStyle}
+                    >
                       <StopDot />
                       {isTop ? (
                         <>
-                          <YearBelow>{item.season_year}</YearBelow>
+                          <YearBelow>{dateLabel(item)}</YearBelow>
                           <ConnectorUp />
                           <CardAbove>
                             <TimelineCard item={item} />
@@ -804,7 +987,7 @@ export default function Timeline() {
                         </>
                       ) : (
                         <>
-                          <YearAbove>{item.season_year}</YearAbove>
+                          <YearAbove>{dateLabel(item)}</YearAbove>
                           <ConnectorDown />
                           <CardBelow>
                             <TimelineCard item={item} />

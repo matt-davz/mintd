@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
+import { withAutoOrient } from '../../lib/cloudinary'
 
 const Card = styled(Link)`
   display: flex;
@@ -153,7 +154,7 @@ export function ItemCard({ item }) {
     <Card to={`/item/${id}`}>
       <ImageWrapper>
         {primary_image_url ? (
-          <Image src={primary_image_url} alt={title} loading="lazy" />
+          <Image src={withAutoOrient(primary_image_url)} alt={title} loading="lazy" />
         ) : (
           <ImagePlaceholder>
             <span className="material-symbols-outlined">image_not_supported</span>
