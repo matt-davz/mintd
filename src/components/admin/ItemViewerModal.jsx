@@ -736,7 +736,7 @@ const LoaViewList = styled.div`
   gap: var(--space-2);
 `
 
-const LoaViewRow = styled.a`
+const LoaViewRow = styled.div`
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -744,10 +744,28 @@ const LoaViewRow = styled.a`
   border-radius: var(--radius-md);
   background: var(--color-surface-high);
   border: 1px solid rgba(140, 144, 159, 0.12);
-  text-decoration: none;
-  transition: border-color var(--transition-base);
+`
 
-  &:hover { border-color: rgba(173, 198, 255, 0.3); }
+const LoaViewActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+`
+
+const LoaActionBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-outline);
+  text-decoration: none;
+  transition: color var(--transition-base);
+
+  .material-symbols-outlined { font-size: 1rem; }
+  &:hover { color: var(--color-primary); }
 `
 
 const LoaViewIcon = styled.div`
@@ -777,6 +795,19 @@ const LoaViewLabel = styled.span`
   font-family: var(--font-body);
   font-size: 0.8125rem;
   color: var(--color-on-surface);
+`
+
+const LoaRenameInput = styled.input`
+  background: var(--color-surface);
+  border: 1px solid rgba(173, 198, 255, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 0.125rem var(--space-2);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--color-on-surface);
+  width: 100%;
+
+  &:focus { outline: none; }
 `
 
 const LoaViewType = styled.span`
@@ -847,6 +878,8 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
   const [draftSigs, setDraftSigs] = useState([])
   const [draftImages, setDraftImages] = useState([])
   const [draftLOAs, setDraftLOAs] = useState([])
+  const [editingLoaId, setEditingLoaId] = useState(null)
+  const [loaLabelDraft, setLoaLabelDraft] = useState('')
   const [legendaryContextForm, setLegendaryContextForm] = useState({ event_title: '', event_description: '' })
   const [draftLegendaryImages, setDraftLegendaryImages] = useState([])
   const [lightbox, setLightbox] = useState({ open: false, index: 0 })
@@ -1207,12 +1240,19 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
         if (imgErr) throw new Error(imgErr.message)
       }
 
-      // ── Save LOAs ──────────────────────────────────────────────────────────
-      // Delete removed LOAs
+      // ── Save LOAs (Supabase Storage — not Cloudinary) ──────────────────────
+      // Delete removed LOAs: remove from storage then DB
       const origLoaIds = new Set((loas ?? []).map(l => l.id))
       const keptLoaIds = new Set(draftLOAs.filter(l => l.id).map(l => l.id))
       const loasToDelete = [...origLoaIds].filter(id => !keptLoaIds.has(id))
       if (loasToDelete.length) {
+        const storagePaths = (loas ?? [])
+          .filter(l => loasToDelete.includes(l.id))
+          .map(l => l.cloudinary_public_id) // stored as storage path
+          .filter(Boolean)
+        if (storagePaths.length) {
+          await supabase.storage.from('loas').remove(storagePaths)
+        }
         const { error: delLoaErr } = await supabase.from('item_loas').delete().in('id', loasToDelete)
         if (delLoaErr) throw new Error(delLoaErr.message)
       }
@@ -1224,7 +1264,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
           if (updLoaErr) throw new Error(updLoaErr.message)
         }
       }
-      // Upload and insert new LOAs
+      // Upload new LOAs to Supabase Storage
       const newLOAs = draftLOAs.filter(l => !l.id && l.file)
       if (newLOAs.length) {
         const maxLoaOrder = (loas ?? []).reduce((max, l) => Math.max(max, l.display_order ?? 0), -1)
@@ -1232,12 +1272,17 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
         for (let idx = 0; idx < newLOAs.length; idx++) {
           const loa = newLOAs[idx]
           const displayOrder = maxLoaOrder + 1 + idx
-          const publicId = `mintd/loas/${savedItemId.slice(0, 8)}/loa_${displayOrder}`
-          const result = await uploadToCloudinary(loa.file, publicId)
+          const safeName = loa.file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+          const storagePath = `${savedItemId.slice(0, 8)}/${Date.now()}_${safeName}`
+          const { error: uploadErr } = await supabase.storage
+            .from('loas')
+            .upload(storagePath, loa.file, { contentType: loa.file.type, upsert: false })
+          if (uploadErr) throw new Error(uploadErr.message)
+          const { data: { publicUrl } } = supabase.storage.from('loas').getPublicUrl(storagePath)
           loaRows.push({
             item_id:              savedItemId,
-            cloudinary_public_id: result.public_id,
-            cloudinary_url:       result.secure_url,
+            cloudinary_public_id: storagePath,  // storage path (column repurposed)
+            cloudinary_url:       publicUrl,      // supabase public URL
             label:                loa.label || null,
             resource_type:        loa.resource_type,
             display_order:        displayOrder,
@@ -1374,6 +1419,24 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
     } finally {
       setSyncing(false)
     }
+  }
+
+  function startLoaRename(loa) {
+    setEditingLoaId(loa.id)
+    setLoaLabelDraft(loa.label ?? '')
+  }
+
+  async function commitLoaRename(loa) {
+    const newLabel = loaLabelDraft.trim() || null
+    const { error: err } = await supabase.from('item_loas').update({ label: newLabel }).eq('id', loa.id)
+    if (err) { setSaveError(err.message); return }
+    setEditingLoaId(null)
+    refetch()
+  }
+
+  function cancelLoaRename() {
+    setEditingLoaId(null)
+    setLoaLabelDraft('')
   }
 
   return (
@@ -2017,21 +2080,61 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                     <LoaUploader draftLOAs={draftLOAs} setDraftLOAs={setDraftLOAs} />
                   ) : (
                     <LoaViewList>
-                      {loas.map(loa => (
-                        <LoaViewRow key={loa.id} href={loa.cloudinary_url} target="_blank" rel="noreferrer">
-                          <LoaViewIcon>
-                            {loa.resource_type === 'image'
-                              ? <img src={loa.cloudinary_url} alt="" />
-                              : <span className="material-symbols-outlined">description</span>
-                            }
-                          </LoaViewIcon>
-                          <LoaViewInfo>
-                            <LoaViewLabel>{loa.label || 'LOA'}</LoaViewLabel>
-                            <LoaViewType>{loa.resource_type === 'pdf' ? 'PDF' : 'Image'}</LoaViewType>
-                          </LoaViewInfo>
-                          <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: 'var(--color-outline)' }}>open_in_new</span>
-                        </LoaViewRow>
-                      ))}
+                      {loas.map(loa => {
+                        const viewUrl = loa.cloudinary_url
+                        const downloadUrl = `${loa.cloudinary_url}?download=`
+                        const isRenaming = editingLoaId === loa.id
+                        return (
+                          <LoaViewRow key={loa.id}>
+                            <LoaViewIcon>
+                              {loa.resource_type === 'image'
+                                ? <img src={loa.cloudinary_url} alt="" />
+                                : <span className="material-symbols-outlined">description</span>
+                              }
+                            </LoaViewIcon>
+                            <LoaViewInfo>
+                              {isRenaming ? (
+                                <LoaRenameInput
+                                  autoFocus
+                                  value={loaLabelDraft}
+                                  onChange={e => setLoaLabelDraft(e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') commitLoaRename(loa)
+                                    if (e.key === 'Escape') cancelLoaRename()
+                                  }}
+                                />
+                              ) : (
+                                <LoaViewLabel>{loa.label || 'LOA'}</LoaViewLabel>
+                              )}
+                              <LoaViewType>{loa.resource_type === 'pdf' ? 'PDF' : 'Image'}</LoaViewType>
+                            </LoaViewInfo>
+                            <LoaViewActions>
+                              {isRenaming ? (
+                                <>
+                                  <LoaActionBtn type="button" onClick={() => commitLoaRename(loa)} title="Save">
+                                    <span className="material-symbols-outlined">check</span>
+                                  </LoaActionBtn>
+                                  <LoaActionBtn type="button" onClick={cancelLoaRename} title="Cancel">
+                                    <span className="material-symbols-outlined">close</span>
+                                  </LoaActionBtn>
+                                </>
+                              ) : (
+                                <>
+                                  <LoaActionBtn type="button" onClick={() => startLoaRename(loa)} title="Rename">
+                                    <span className="material-symbols-outlined">edit</span>
+                                  </LoaActionBtn>
+                                  <LoaActionBtn as="a" href={viewUrl} target="_blank" rel="noreferrer" title="View">
+                                    <span className="material-symbols-outlined">open_in_new</span>
+                                  </LoaActionBtn>
+                                  <LoaActionBtn as="a" href={downloadUrl} download title="Download">
+                                    <span className="material-symbols-outlined">download</span>
+                                  </LoaActionBtn>
+                                </>
+                              )}
+                            </LoaViewActions>
+                          </LoaViewRow>
+                        )
+                      })}
                     </LoaViewList>
                   )}
                 </Section>
