@@ -11,6 +11,7 @@ import {
 import { CertForm } from './CertForm'
 import { SignatoryForm } from './SignatoryForm'
 import { ImageUploader } from './ImageUploader'
+import { LoaUploader } from './LoaUploader'
 import { GameContextFields } from './GameContextFields'
 import { BoxScoreDisplay } from '../BoxScoreDisplay'
 import { TYPE_FIELDS_MAP } from './itemTypes'
@@ -727,6 +728,65 @@ const ThumbExpandBtn = styled.button`
   }
 `
 
+// ─── LOA view mode ────────────────────────────────────────────────────────────
+
+const LoaViewList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+`
+
+const LoaViewRow = styled.a`
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-high);
+  border: 1px solid rgba(140, 144, 159, 0.12);
+  text-decoration: none;
+  transition: border-color var(--transition-base);
+
+  &:hover { border-color: rgba(173, 198, 255, 0.3); }
+`
+
+const LoaViewIcon = styled.div`
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-outline);
+
+  img { width: 100%; height: 100%; object-fit: cover; }
+  .material-symbols-outlined { font-size: 1.25rem; }
+`
+
+const LoaViewInfo = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`
+
+const LoaViewLabel = styled.span`
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  color: var(--color-on-surface);
+`
+
+const LoaViewType = styled.span`
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-outline);
+`
+
 // ─── Loading / error ──────────────────────────────────────────────────────────
 
 const StatusMsg = styled.p`
@@ -773,7 +833,7 @@ const EMPTY_FORM = {
 
 export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
   const isCreateMode = !itemId
-  const { item, signatories, certifications, population, images, detail, gameContext, legendaryContext, legendaryImages, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
+  const { item, signatories, certifications, population, images, loas, detail, gameContext, legendaryContext, legendaryImages, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
 
   const [isEditing, setIsEditing] = useState(isCreateMode)
   const [syncing, setSyncing] = useState(false)
@@ -786,6 +846,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
   const [draftCerts, setDraftCerts] = useState([])
   const [draftSigs, setDraftSigs] = useState([])
   const [draftImages, setDraftImages] = useState([])
+  const [draftLOAs, setDraftLOAs] = useState([])
   const [legendaryContextForm, setLegendaryContextForm] = useState({ event_title: '', event_description: '' })
   const [draftLegendaryImages, setDraftLegendaryImages] = useState([])
   const [lightbox, setLightbox] = useState({ open: false, index: 0 })
@@ -829,10 +890,12 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
     const di = images.map(i => ({ ...i, _key: i.id }))
     const initLc = { event_title: legendaryContext?.event_title ?? '', event_description: legendaryContext?.event_description ?? '' }
     const dli = (legendaryImages ?? []).map(i => ({ ...i, _key: i.id }))
+    const dl = (loas ?? []).map(l => ({ ...l, _key: l.id }))
     setForm(f)
     setDraftCerts(dc)
     setDraftSigs(ds)
     setDraftImages(di)
+    setDraftLOAs(dl)
     setLegendaryContextForm(initLc)
     setDraftLegendaryImages(dli)
 
@@ -1144,6 +1207,46 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
         if (imgErr) throw new Error(imgErr.message)
       }
 
+      // ── Save LOAs ──────────────────────────────────────────────────────────
+      // Delete removed LOAs
+      const origLoaIds = new Set((loas ?? []).map(l => l.id))
+      const keptLoaIds = new Set(draftLOAs.filter(l => l.id).map(l => l.id))
+      const loasToDelete = [...origLoaIds].filter(id => !keptLoaIds.has(id))
+      if (loasToDelete.length) {
+        const { error: delLoaErr } = await supabase.from('item_loas').delete().in('id', loasToDelete)
+        if (delLoaErr) throw new Error(delLoaErr.message)
+      }
+      // Update label for existing LOAs where it changed
+      for (const loa of draftLOAs.filter(l => l.id)) {
+        const orig = (loas ?? []).find(l => l.id === loa.id)
+        if (orig && orig.label !== loa.label) {
+          const { error: updLoaErr } = await supabase.from('item_loas').update({ label: loa.label ?? null }).eq('id', loa.id)
+          if (updLoaErr) throw new Error(updLoaErr.message)
+        }
+      }
+      // Upload and insert new LOAs
+      const newLOAs = draftLOAs.filter(l => !l.id && l.file)
+      if (newLOAs.length) {
+        const maxLoaOrder = (loas ?? []).reduce((max, l) => Math.max(max, l.display_order ?? 0), -1)
+        const loaRows = []
+        for (let idx = 0; idx < newLOAs.length; idx++) {
+          const loa = newLOAs[idx]
+          const displayOrder = maxLoaOrder + 1 + idx
+          const publicId = `mintd/loas/${savedItemId.slice(0, 8)}/loa_${displayOrder}`
+          const result = await uploadToCloudinary(loa.file, publicId)
+          loaRows.push({
+            item_id:              savedItemId,
+            cloudinary_public_id: result.public_id,
+            cloudinary_url:       result.secure_url,
+            label:                loa.label || null,
+            resource_type:        loa.resource_type,
+            display_order:        displayOrder,
+          })
+        }
+        const { error: loaErr } = await supabase.from('item_loas').insert(loaRows)
+        if (loaErr) throw new Error(loaErr.message)
+      }
+
       // ── Save legendary context + images ────────────────────────────────────
       if (form.is_legendary) {
         const { data: lcRow, error: lcErr } = await supabase
@@ -1201,6 +1304,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
         setGcForm(null)
         setLegendaryContextForm({ event_title: '', event_description: '' })
         setDraftLegendaryImages([])
+        setDraftLOAs([])
       }
     } catch (err) {
       setSaveError(err.message)
@@ -1901,6 +2005,34 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                         ))}
                       </FieldGrid>
                     </>
+                  )}
+                </Section>
+              )}
+
+              {/* ── LOAs ── */}
+              {(isEditing || loas.length > 0) && (
+                <Section>
+                  <SectionLabel>Letters of Authenticity {loas.length > 0 ? `(${loas.length})` : ''}</SectionLabel>
+                  {isEditing ? (
+                    <LoaUploader draftLOAs={draftLOAs} setDraftLOAs={setDraftLOAs} />
+                  ) : (
+                    <LoaViewList>
+                      {loas.map(loa => (
+                        <LoaViewRow key={loa.id} href={loa.cloudinary_url} target="_blank" rel="noreferrer">
+                          <LoaViewIcon>
+                            {loa.resource_type === 'image'
+                              ? <img src={loa.cloudinary_url} alt="" />
+                              : <span className="material-symbols-outlined">description</span>
+                            }
+                          </LoaViewIcon>
+                          <LoaViewInfo>
+                            <LoaViewLabel>{loa.label || 'LOA'}</LoaViewLabel>
+                            <LoaViewType>{loa.resource_type === 'pdf' ? 'PDF' : 'Image'}</LoaViewType>
+                          </LoaViewInfo>
+                          <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: 'var(--color-outline)' }}>open_in_new</span>
+                        </LoaViewRow>
+                      ))}
+                    </LoaViewList>
                   )}
                 </Section>
               )}

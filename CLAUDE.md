@@ -29,7 +29,7 @@ A private baseball memorabilia collection showcase website for a single client. 
 - Admin dashboard accessible via Clerk auth for the website owner.
     - **Overview (`/admin/dashboard`)** — stats cards (total items, total cost) + item grid with advanced filter.
     - **Table View (`/admin/items`)** — no images, raw data table. Sortable columns, advanced filter bar, CSV exports.
-    - **Item Modal** — unified `<ItemViewerModal>` for viewing, editing, and creating items. Opened from dashboard, table view (existing items), or "Add New Asset" button (create mode). Supports type-specific detail fields and game context.
+    - **Item Modal** — unified `<ItemViewerModal>` for viewing, editing, and creating items. Opened from dashboard, table view (existing items), or "Add New Asset" button (create mode). Supports type-specific detail fields, game context, and LOA management (upload images/PDFs per item via `LoaUploader`).
 
 `mintd` is a high-end memorabilia collector app. Design system: see `docs/DESIGN.md`.
 

@@ -15,6 +15,7 @@ Schema: `supabase/migrations/`. Full reference: `docs/DATABASE_SCHEMA.md`.
 - `images` — Cloudinary references; unique constraint enforces one `is_primary = true` per item
 - `legendary_context` — 1:1 with `items` (only for `is_legendary = true` items); holds `event_title` and `event_description` for the Timeline legendary display
 - `legendary_images` — contextual/historical images for a legendary item; hangs off `legendary_context`. Separate from product shots in `images`. Named `legendary/{itemId_first8}/image_{n}` in Cloudinary.
+- `item_loas` — Letters of Authenticity per item; multiple per item, supports images and PDFs. Cloudinary path: `mintd/loas/{itemId_first8}/{filename}`
 - `inquiries` — visitor contact form submissions; stored in DB and emailed via Edge Function
 
 ### Item detail tables (one row per item, linked by `item_id`)
@@ -100,7 +101,7 @@ To add a new service, add an entry to `CERT_LINK_BUILDERS` in `src/components/ad
 
 ### Views (always use these in queries, not raw tables)
 
-- `item_gallery` — denormalised gallery view; one row per item with primary image, featured signer, `tag_slugs text[]`, `team_slugs text[]`, `season_year`, set name, primary cert, `is_legendary`, `game_date date`, and `series_game_number integer`. Filtered to `is_visible = true AND is_baseball = true`. Previously named `item_cards` — renamed in migration `0011` (`item_cards` is now the trading card detail table). This is the data source for all client-side filtering and sorting in the gallery. `game_date` and `series_game_number` are `NULL` for items without game context (e.g. cards).
+- `item_gallery` — denormalised gallery view; one row per item with primary image, featured signer, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `season_year`, set name, primary cert, `is_legendary`, `game_date date`, `series_game_number integer`, and `legendary_event_title text`. Filtered to `is_visible = true AND is_baseball = true`. Featured signer uses `LATERAL LIMIT 1` to prevent duplicate rows when multiple `is_featured` signatories exist — `signatory_count` carries the total for "+ N others" display. Previously named `item_cards` — renamed in migration `0011` (`item_cards` is now the trading card detail table). This is the data source for all client-side filtering and sorting in the gallery. `game_date` and `series_game_number` are `NULL` for items without game context (e.g. cards).
 - `latest_population` — most recent population snapshot per cert
 
 ### RLS
@@ -110,6 +111,33 @@ To add a new service, add an entry to `CERT_LINK_BUILDERS` in `src/components/ad
 - Public: can INSERT `inquiries` but cannot read them
 - Admin: full access via anon key (Clerk guards `/admin/*` routes — security boundary is at the route layer)
 - Never expose service role key in the browser; use it in Edge Functions only
+
+### Cloudinary — folder structure
+
+Two root folders exist in the account:
+
+```
+mintd/                         ← all item-related assets
+  import/                      ← product shot images (auto-created by naming convention)
+  loas/                        ← Letters of Authenticity (PDFs and scans)
+    {first 8 chars of item UUID}/
+      {filename}               ← e.g. jsa_loa.pdf, psa_dna_loa.jpg
+  legendary/                   ← contextual/historical images for legendary items
+    {first 8 chars of item UUID}/
+      image_{n}
+decade_pics/                   ← decade background images for the Yankees Museum timeline
+```
+
+#### Folder rules
+
+| Folder | Resource types | Naming |
+|---|---|---|
+| `mintd/import/` | images only | `import/{itemId_first8}/image_{n}` |
+| `mintd/loas/` | images + PDFs | `mintd/loas/{itemId_first8}/{descriptive_name}` |
+| `mintd/legendary/` | images only | `legendary/{itemId_first8}/image_{n}` |
+| `decade_pics/` | images only | flat — no subfolders |
+
+---
 
 ### Images — Cloudinary
 
@@ -140,6 +168,31 @@ import/af557e5a/image_1
 4. After all uploads succeed, rows inserted into `images` table
 5. If no image marked primary, first image is automatically promoted
 6. If upload fails, error surfaces visibly — item already exists and images can be added later
+
+---
+
+### LOAs — Letters of Authenticity
+
+LOAs live in `mintd/loas/` in Cloudinary. Each item gets its own subfolder keyed by the first 8 characters of its UUID.
+
+#### Naming convention
+
+```
+mintd/loas/{itemId_first8}/{descriptive_name}.{ext}
+```
+
+Examples:
+```
+mintd/loas/af557e5a/jsa_loa.pdf
+mintd/loas/af557e5a/psa_dna_loa.jpg
+mintd/loas/af557e5a/steiner_loa.pdf
+```
+
+#### Notes
+
+- `resource_type: 'image'` for both image scans and PDFs (allows Cloudinary transformations and page access on PDFs via `pg_1`, `pg_2`, etc.)
+- No `is_primary` concept — all LOAs for an item are peers, ordered by `display_order`
+- LOA records stored in a dedicated `item_loas` table (to be migrated), not the `images` table
 
 ### Edge Functions (`supabase/functions/`)
 

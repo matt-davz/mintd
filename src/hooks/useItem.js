@@ -8,6 +8,7 @@ export function useItem(id) {
   const [certifications, setCertifications] = useState([])
   const [population, setPopulation] = useState([])
   const [images, setImages] = useState([])
+  const [loas, setLoas] = useState([])
   const [detail, setDetail] = useState(null)
   const [gameContext, setGameContext] = useState(null)
   const [legendaryContext, setLegendaryContext] = useState(null)
@@ -25,11 +26,12 @@ export function useItem(id) {
       setLoading(true)
       setError(null)
 
-      const [itemRes, sigRes, certRes, imgRes, lcRes] = await Promise.all([
+      const [itemRes, sigRes, certRes, imgRes, loaRes, lcRes] = await Promise.all([
         supabase.from('items').select().eq('id', id).single(),
         supabase.from('signatories').select().eq('item_id', id).order('display_order'),
         supabase.from('certifications').select().eq('item_id', id),
         supabase.from('images').select().eq('item_id', id).order('display_order'),
+        supabase.from('item_loas').select().eq('item_id', id).order('display_order'),
         supabase.from('legendary_context').select('*, legendary_images(*)').eq('item_id', id).maybeSingle(),
       ])
 
@@ -45,6 +47,7 @@ export function useItem(id) {
       setSignatories(sigRes.data ?? [])
       setCertifications(certRes.data ?? [])
       setImages(imgRes.data ?? [])
+      setLoas(loaRes.data ?? [])
 
       const lc = lcRes.data ?? null
       const li = lc?.legendary_images ?? []
@@ -103,5 +106,5 @@ export function useItem(id) {
 
   const refetch = useCallback(() => refetchRef.current(), [])
 
-  return { item, signatories, certifications, population, images, detail, gameContext, legendaryContext, legendaryImages, loading, error, refetch }
+  return { item, signatories, certifications, population, images, loas, detail, gameContext, legendaryContext, legendaryImages, loading, error, refetch }
 }

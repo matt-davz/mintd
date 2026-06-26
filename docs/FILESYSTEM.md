@@ -44,7 +44,8 @@ src/
 │       ├── AdminLayout.jsx     # Sidebar nav + top bar + create modal
 │       ├── AdminFilterBar.jsx  # Admin advanced search: keyword + multi-select type/team pills in accordion
 │       ├── ItemViewerModal.jsx # Modal: view/edit existing items + create new items
-│       ├── ImageUploader.jsx   # Cloudinary upload widget
+│       ├── ImageUploader.jsx   # Cloudinary image upload widget (product shots)
+│       ├── LoaUploader.jsx     # LOA upload widget — images + PDFs, multiple per item
 │       ├── CertForm.jsx
 │       ├── SignatoryForm.jsx
 │       ├── FormFields.jsx      # Shared styled form components

@@ -276,6 +276,23 @@ Historical/contextual images for a legendary item. Separate from product shots i
 
 ---
 
+### `item_loas`
+
+Letters of Authenticity per item. Multiple LOAs allowed per item (e.g. JSA + PSA/DNA). Images and PDFs are both stored with `resource_type = 'image'` in Cloudinary so transformations work on both.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | `uuid` | PK, default `gen_random_uuid()` | |
+| `item_id` | `uuid` | NOT NULL, FK → `items(id)` ON DELETE CASCADE | |
+| `cloudinary_url` | `text` | NOT NULL | |
+| `cloudinary_public_id` | `text` | NOT NULL | Pattern: `mintd/loas/{first8charsOfItemId}/{filename}` |
+| `label` | `text` | nullable | Free text — e.g. `'JSA'`, `'PSA/DNA'`, `'Steiner'` |
+| `resource_type` | `text` | NOT NULL, default `'image'`, CHECK in (`image`, `pdf`) | Drives how the frontend renders the asset |
+| `display_order` | `integer` | NOT NULL, default `0` | |
+| `created_at` | `timestamptz` | NOT NULL, default `now()` | |
+
+---
+
 ### `inquiries`
 
 Visitor contact form submissions.
@@ -410,7 +427,7 @@ Most recent population snapshot per cert. **Always query this instead of `popula
 ### `item_gallery`
 Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, team slugs array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
-**Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`
+**Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
 
 `game_date` and `series_game_number` come from `game_context` via a lateral join across all 8 detail tables. Both are `NULL` for items without game context (cards, non-game items). Used by the Timeline to sort by exact game date rather than `season_year` alone.
 
@@ -470,6 +487,8 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0024_legendary_context.sql` | Add `legendary_context` (1:1 with items) and `legendary_images` tables with RLS |
 | `0025_item_gallery_game_date.sql` | Add `game_date date` and `series_game_number integer` to `item_gallery` via lateral join on `game_context` through all 8 detail tables |
 | `0026_item_gallery_legendary_event_title.sql` | Add `legendary_event_title text` to `item_gallery` via left join on `legendary_context` |
+| `0027_fix_gallery_duplicate_signers.sql` | Restore `LATERAL LIMIT 1` for signatories and `signatory_count` after `0025`/`0026` reverted the fix; preserves `game_date`, `series_game_number`, `is_legendary`, `legendary_event_title` |
+| `0028_item_loas.sql` | Add `item_loas` table for Letters of Authenticity; supports images + PDFs, multiple per item, RLS mirrors `images` table |
 
 ---
 
