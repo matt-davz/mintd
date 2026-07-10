@@ -225,7 +225,7 @@ const Pill = styled.button`
 `
 
 function formatSlug(slug) {
-  return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  return slug.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 function formatGradeLabel(grade) {
