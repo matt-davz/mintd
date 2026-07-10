@@ -145,9 +145,15 @@ const SectionLabel = styled.span`
 
 const PillsRow = styled.div`
   display: flex;
-  align-items: center;
+  align-items: ${({ $expanded }) => $expanded ? 'flex-start' : 'center'};
   gap: var(--space-2);
-  height: 2rem;
+  transition: height var(--transition-base);
+
+  ${({ $expanded }) => $expanded ? `
+    height: auto;
+  ` : `
+    height: 2rem;
+  `}
 `
 
 const Pills = styled.div`
@@ -281,7 +287,7 @@ export function FilterBar({
         <AccordionBody>
           <FilterSection>
             <SectionLabel>Item Type</SectionLabel>
-            <PillsRow>
+            <PillsRow $expanded={!!expandedSections.type}>
               <Pills $expanded={!!expandedSections.type}>
                 <Pill $active={activeTypes.length === 0} onClick={onTypeClear}>
                   All
@@ -309,7 +315,7 @@ export function FilterBar({
           {availableTeams.length > 0 && (
             <FilterSection>
               <SectionLabel>Teams</SectionLabel>
-              <PillsRow>
+              <PillsRow $expanded={!!expandedSections.team}>
                 <Pills $expanded={!!expandedSections.team}>
                   <Pill $active={activeTeams.length === 0} onClick={onTeamClear}>
                     All
@@ -338,7 +344,7 @@ export function FilterBar({
           {availableCertServices.length > 0 && (
             <FilterSection>
               <SectionLabel>Grade Type</SectionLabel>
-              <PillsRow>
+              <PillsRow $expanded={!!expandedSections.certService}>
                 <Pills $expanded={!!expandedSections.certService}>
                   <Pill $active={activeCertServices.length === 0} onClick={onCertServiceClear}>
                     All
@@ -367,7 +373,7 @@ export function FilterBar({
           {availableGrades.length > 0 && (
             <FilterSection>
               <SectionLabel>Grade</SectionLabel>
-              <PillsRow>
+              <PillsRow $expanded={!!expandedSections.grade}>
                 <Pills $expanded={!!expandedSections.grade}>
                   <Pill $active={activeGrades.length === 0} onClick={onGradeClear}>
                     All

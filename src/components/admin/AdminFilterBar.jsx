@@ -141,9 +141,15 @@ const YearSelect = styled.select`
 
 const PillsRow = styled.div`
   display: flex;
-  align-items: center;
+  align-items: ${({ $expanded }) => $expanded ? 'flex-start' : 'center'};
   gap: var(--space-1);
-  height: 1.75rem;
+  transition: height var(--transition-base);
+
+  ${({ $expanded }) => $expanded ? `
+    height: auto;
+  ` : `
+    height: 1.75rem;
+  `}
 `
 
 const Pills = styled.div`
@@ -276,7 +282,7 @@ export function AdminFilterBar({
         <AccordionBody>
           <div>
             <SectionLabel>Item Type</SectionLabel>
-            <PillsRow style={{ marginTop: 'var(--space-2)' }}>
+            <PillsRow $expanded={!!expandedSections.type} style={{ marginTop: 'var(--space-2)' }}>
               <Pills $expanded={!!expandedSections.type}>
                 <Pill $active={activeTypes.length === 0} onClick={onTypeClear}>
                   All
@@ -304,7 +310,7 @@ export function AdminFilterBar({
           {availableTeams.length > 0 && (
             <div>
               <SectionLabel>Teams</SectionLabel>
-              <PillsRow style={{ marginTop: 'var(--space-2)' }}>
+              <PillsRow $expanded={!!expandedSections.team} style={{ marginTop: 'var(--space-2)' }}>
                 <Pills $expanded={!!expandedSections.team}>
                   <Pill $active={activeTeams.length === 0} onClick={onTeamClear}>
                     All
@@ -333,7 +339,7 @@ export function AdminFilterBar({
           {availableCertServices.length > 0 && (
             <div>
               <SectionLabel>Grade Type</SectionLabel>
-              <PillsRow style={{ marginTop: 'var(--space-2)' }}>
+              <PillsRow $expanded={!!expandedSections.certService} style={{ marginTop: 'var(--space-2)' }}>
                 <Pills $expanded={!!expandedSections.certService}>
                   <Pill $active={activeCertServices.length === 0} onClick={onCertServiceClear}>
                     All
@@ -362,7 +368,7 @@ export function AdminFilterBar({
           {availableGrades.length > 0 && (
             <div>
               <SectionLabel>Grade</SectionLabel>
-              <PillsRow style={{ marginTop: 'var(--space-2)' }}>
+              <PillsRow $expanded={!!expandedSections.grade} style={{ marginTop: 'var(--space-2)' }}>
                 <Pills $expanded={!!expandedSections.grade}>
                   <Pill $active={activeGrades.length === 0} onClick={onGradeClear}>
                     All
