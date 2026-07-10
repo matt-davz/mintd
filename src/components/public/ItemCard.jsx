@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { withAutoOrient } from '../../lib/cloudinary'
@@ -21,19 +22,20 @@ const ImageWrapper = styled.div`
   position: relative;
   aspect-ratio: 4 / 5;
   overflow: hidden;
-  background-color: var(--color-surface-lowest);
+  background-color: ${({ $batLandscape }) => $batLandscape ? '#fff' : 'var(--color-surface-lowest)'};
 `
 
 const Image = styled.img`
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: ${({ $batLandscape }) => $batLandscape ? 'contain' : 'cover'};
   opacity: 0.85;
-  transition: transform 700ms cubic-bezier(0.2, 0, 0.2, 1);
+  transition: ${({ $batLandscape }) => $batLandscape ? 'none' : 'transform 700ms cubic-bezier(0.2, 0, 0.2, 1)'};
+  transform: ${({ $batLandscape }) => $batLandscape ? 'rotate(90deg)' : 'none'};
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
 
   ${Card}:hover & {
-    transform: scale(1.05);
+    transform: ${({ $batLandscape }) => $batLandscape ? 'rotate(90deg)' : 'scale(1.05)'};
   }
 `
 
@@ -136,7 +138,17 @@ export function ItemCard({ item }) {
     cert_grader,
     cert_number,
     for_sale,
+    item_type,
   } = item
+
+  const [isLandscapeBat, setIsLandscapeBat] = useState(false)
+  const isBat = item_type === 'bat'
+
+  const handleImageLoad = (e) => {
+    if (isBat) {
+      setIsLandscapeBat(e.target.naturalWidth > e.target.naturalHeight)
+    }
+  }
 
   const gradeLabel = cert_grade
     ? `${cert_grader ?? ''} ${cert_grade}`.trim()
@@ -152,9 +164,15 @@ export function ItemCard({ item }) {
 
   return (
     <Card to={`/item/${id}`}>
-      <ImageWrapper>
+      <ImageWrapper $batLandscape={isLandscapeBat}>
         {primary_image_url ? (
-          <Image src={withAutoOrient(primary_image_url)} alt={title} loading="lazy" />
+          <Image
+            src={withAutoOrient(primary_image_url)}
+            alt={title}
+            loading="lazy"
+            onLoad={handleImageLoad}
+            $batLandscape={isLandscapeBat}
+          />
         ) : (
           <ImagePlaceholder>
             <span className="material-symbols-outlined">image_not_supported</span>
