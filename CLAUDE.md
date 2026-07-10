@@ -123,6 +123,10 @@ Both the public gallery and admin overview/table view share the same filter+sort
 
 All filtering and sorting is **client-side**. Items are fetched once (all of them), then filtered/sorted in memory via `useMemo`. No query reruns on filter change.
 
+**URL persistence (public gallery only):** `Gallery.jsx` uses React Router `useSearchParams` as the single source of truth for all filter/sort/page/size state — there are no `useState` calls for these. URL param mapping: `q` (keyword search), `types` (comma-separated), `teams` (comma-separated), `sort`, `page`, `size`. Only non-default values appear in the URL (clean URLs when everything is default). Filter/sort/size changes use `replace: true` (no back-stack pollution); page changes push to history so back/forward works. Navigating to an item detail page and pressing Back restores the exact gallery state.
+
+The admin filter pages (`Dashboard.jsx`, `ItemList.jsx`) still use plain `useState` — URL persistence is public-gallery-only.
+
 Each page that uses a filter bar manages its own state and derives available options from the loaded items:
 
 ```
