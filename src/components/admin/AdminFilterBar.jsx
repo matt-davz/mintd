@@ -219,6 +219,26 @@ const Pill = styled.button`
   `}
 `
 
+const DupesPill = styled(Pill)`
+  ${({ $active }) => $active ? `
+    border: 1px solid var(--color-tertiary);
+    background-color: rgba(203, 190, 255, 0.12);
+    color: var(--color-tertiary);
+  ` : `
+    border-color: rgba(203, 190, 255, 0.25);
+
+    &:hover {
+      border-color: var(--color-tertiary);
+      color: var(--color-tertiary);
+    }
+  `}
+
+  .material-symbols-outlined {
+    font-size: 0.75rem;
+    margin-right: 0.25rem;
+  }
+`
+
 function formatSlug(slug) {
   return slug.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
@@ -239,6 +259,7 @@ export function AdminFilterBar({
   availableTeams, activeTeams, onTeamToggle, onTeamClear,
   availableCertServices, activeCertServices, onCertServiceToggle, onCertServiceClear,
   availableGrades, activeGrades, onGradeToggle, onGradeClear,
+  showDupesOnly, onDupesToggle,
   sortBy, onSortChange, search, onSearchChange,
 }) {
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -250,6 +271,7 @@ export function AdminFilterBar({
     ...activeTeams.map(t => ({ key: `team:${t}`, label: formatSlug(t), onRemove: () => onTeamToggle(t) })),
     ...activeCertServices.map(cs => ({ key: `certService:${cs}`, label: cs, onRemove: () => onCertServiceToggle(cs) })),
     ...activeGrades.map(g => ({ key: `grade:${g}`, label: formatGradeLabel(g), onRemove: () => onGradeToggle(g) })),
+    ...(showDupesOnly ? [{ key: 'dupes', label: 'Dupes', onRemove: onDupesToggle }] : []),
     ...(sortBy ? [{ key: 'sort', label: SORT_LABELS[sortBy], onRemove: () => onSortChange('') }] : []),
   ]
 
@@ -304,6 +326,18 @@ export function AdminFilterBar({
               >
                 <span className="material-symbols-outlined">expand_more</span>
               </ExpandCaret>
+            </PillsRow>
+          </div>
+
+          <div>
+            <SectionLabel>Special Filters</SectionLabel>
+            <PillsRow style={{ marginTop: 'var(--space-2)' }}>
+              <Pills>
+                <DupesPill $active={showDupesOnly} onClick={onDupesToggle}>
+                  <span className="material-symbols-outlined">content_copy</span>
+                  Dupes
+                </DupesPill>
+              </Pills>
             </PillsRow>
           </div>
 

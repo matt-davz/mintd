@@ -402,6 +402,7 @@ export default function Dashboard() {
   const [activeTeams, setActiveTeams] = useState([])
   const [activeCertServices, setActiveCertServices] = useState([])
   const [activeGrades, setActiveGrades] = useState([])
+  const [showDupesOnly, setShowDupesOnly] = useState(false)
   const [sortBy, setSortBy] = useState('')
   const [search, setSearch] = useState('')
   const [selectedItemId, setSelectedItemId] = useState(null)
@@ -507,9 +508,10 @@ export default function Dashboard() {
     const matchesTeam = activeTeams.length === 0 || (item.team_slugs ?? []).some(s => activeTeams.includes(s))
     const matchesCertService = activeCertServices.length === 0 || (item.cert_service && activeCertServices.includes(item.cert_service))
     const matchesGrade = activeGrades.length === 0 || activeGrades.includes(gradeBucket(item.cert_grade))
+    const matchesDupes = !showDupesOnly || item.is_duplicate === true
     const matchesSearch = !search.trim() || item.title.toLowerCase().includes(search.trim().toLowerCase())
-    return matchesType && matchesTeam && matchesCertService && matchesGrade && matchesSearch
-  }), [items, activeTypes, activeTeams, activeCertServices, activeGrades, search])
+    return matchesType && matchesTeam && matchesCertService && matchesGrade && matchesDupes && matchesSearch
+  }), [items, activeTypes, activeTeams, activeCertServices, activeGrades, showDupesOnly, search])
 
   const displayed = useMemo(() => {
     if (!sortBy) return filtered
@@ -621,6 +623,8 @@ export default function Dashboard() {
         activeGrades={activeGrades}
         onGradeToggle={handleGradeToggle}
         onGradeClear={() => setActiveGrades([])}
+        showDupesOnly={showDupesOnly}
+        onDupesToggle={() => setShowDupesOnly(v => !v)}
         sortBy={sortBy}
         onSortChange={setSortBy}
         search={search}

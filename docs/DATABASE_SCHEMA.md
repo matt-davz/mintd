@@ -462,7 +462,7 @@ Most recent population snapshot per cert. **Always query this instead of `popula
 ### `item_gallery`
 Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, team slugs array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
-**Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
+**Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
 
 `game_date` and `series_game_number` come from `game_context` via a lateral join across all 9 game-context detail tables (`item_tickets`, `item_baseballs`, `item_bats`, `item_jerseys`, `item_photos`, `item_programs`, `item_bases`, `item_gloves`, `item_stadium_giveaways`). Both are `NULL` for items without game context (cards, miscellaneous, non-game items). Used by the Timeline to sort by exact game date rather than `season_year` alone.
 
@@ -529,6 +529,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0030_item_duplicates.sql` | Add `item_duplicates` join table for linking duplicate items together (one-direction), RLS |
 | `0031_item_duplicates_update_policy.sql` | Add UPDATE RLS policy for `item_duplicates` (editing notes) |
 | `0032_miscellaneous_stadium_giveaway_types.sql` | Add `miscellaneous` and `stadium_giveaway` values to `item_type_enum`; add `item_miscellaneous` (no game context) and `item_stadium_giveaways` (has `game_context_id`) detail tables with RLS; rebuild `item_gallery` to include `item_stadium_giveaways` in the game_context lateral join |
+| `0033_gallery_is_duplicate.sql` | Rebuild `item_gallery` to add `is_duplicate`, powering the "Dupes" filter toggle on the public and admin filter bars |
 
 ---
 

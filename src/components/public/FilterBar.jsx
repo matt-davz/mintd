@@ -224,6 +224,21 @@ const Pill = styled.button`
   `}
 `
 
+const DupesPill = styled(Pill)`
+  ${({ $active }) => $active ? `
+    background-color: var(--color-tertiary-container);
+    color: var(--color-on-background);
+    border: 1px solid transparent;
+  ` : `
+    border-color: rgba(203, 190, 255, 0.3);
+  `}
+
+  .material-symbols-outlined {
+    font-size: 0.875rem;
+    margin-right: 0.375rem;
+  }
+`
+
 function formatSlug(slug) {
   return slug.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
@@ -244,6 +259,7 @@ export function FilterBar({
   availableTeams, activeTeams, onTeamToggle, onTeamClear,
   availableCertServices, activeCertServices, onCertServiceToggle, onCertServiceClear,
   availableGrades, activeGrades, onGradeToggle, onGradeClear,
+  showDupesOnly, onDupesToggle,
   sortBy, onSortChange, search, onSearchChange,
 }) {
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -255,6 +271,7 @@ export function FilterBar({
     ...activeTeams.map(t => ({ key: `team:${t}`, label: formatSlug(t), onRemove: () => onTeamToggle(t) })),
     ...activeCertServices.map(cs => ({ key: `certService:${cs}`, label: cs, onRemove: () => onCertServiceToggle(cs) })),
     ...activeGrades.map(g => ({ key: `grade:${g}`, label: formatGradeLabel(g), onRemove: () => onGradeToggle(g) })),
+    ...(showDupesOnly ? [{ key: 'dupes', label: 'Dupes', onRemove: onDupesToggle }] : []),
     ...(sortBy ? [{ key: 'sort', label: SORT_LABELS[sortBy], onRemove: () => onSortChange('') }] : []),
   ]
 
@@ -309,6 +326,18 @@ export function FilterBar({
               >
                 <span className="material-symbols-outlined">expand_more</span>
               </ExpandCaret>
+            </PillsRow>
+          </FilterSection>
+
+          <FilterSection>
+            <SectionLabel>Special Filters</SectionLabel>
+            <PillsRow>
+              <Pills>
+                <DupesPill $active={showDupesOnly} onClick={onDupesToggle}>
+                  <span className="material-symbols-outlined">content_copy</span>
+                  Dupes
+                </DupesPill>
+              </Pills>
             </PillsRow>
           </FilterSection>
 

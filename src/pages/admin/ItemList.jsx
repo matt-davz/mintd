@@ -506,6 +506,7 @@ export default function ItemList() {
   const [activeTeams, setActiveTeams] = useState([])
   const [activeCertServices, setActiveCertServices] = useState([])
   const [activeGrades, setActiveGrades] = useState([])
+  const [showDupesOnly, setShowDupesOnly] = useState(false)
   const [sortBy, setSortBy] = useState('')
 
   const availableTypes = useMemo(() => {
@@ -561,13 +562,14 @@ export default function ItemList() {
       const matchesTeam = activeTeams.length === 0 || (r.team_slugs ?? []).some(s => activeTeams.includes(s))
       const matchesCertService = activeCertServices.length === 0 || (r.cert_service && activeCertServices.includes(r.cert_service))
       const matchesGrade = activeGrades.length === 0 || activeGrades.includes(gradeBucket(r.cert_grade))
+      const matchesDupes = !showDupesOnly || r.is_duplicate === true
       const matchesSearch = !q ||
         r.title.toLowerCase().includes(q) ||
         (r.cert_id ?? '').toLowerCase().includes(q) ||
         (r.notes ?? '').toLowerCase().includes(q)
-      return matchesType && matchesTeam && matchesCertService && matchesGrade && matchesSearch
+      return matchesType && matchesTeam && matchesCertService && matchesGrade && matchesDupes && matchesSearch
     })
-  }, [rows, activeTypes, activeTeams, activeCertServices, activeGrades, search])
+  }, [rows, activeTypes, activeTeams, activeCertServices, activeGrades, showDupesOnly, search])
 
   const DATE_KEYS = new Set(['created_at', 'updated_at', 'purchase_date'])
 
@@ -688,6 +690,8 @@ export default function ItemList() {
         activeGrades={activeGrades}
         onGradeToggle={handleGradeToggle}
         onGradeClear={() => setActiveGrades([])}
+        showDupesOnly={showDupesOnly}
+        onDupesToggle={() => setShowDupesOnly(v => !v)}
         sortBy={sortBy}
         onSortChange={setSortBy}
         search={search}
