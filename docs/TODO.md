@@ -34,6 +34,7 @@
 - [x] `<FilterBar>` — item type pill filters (from `ITEM_TYPES` config) + search input
 - [x] `<ItemCard>` — image, for-sale badge, grade badge, title, featured signer with multi-signer "+N others" rule, cert ID
 - [x] `<Gallery>` page — hero heading, filter bar, responsive 1-2-3-4 col grid, pagination, page size selector (16/32/64), scroll-to-top on page change
+- [x] Gallery filter/search/sort/page/size state persisted in URL search params (`q`, `types`, `teams`, `sort`, `page`, `size`) — Back after item detail restores exact gallery state
 
 ### Item Detail (`/item/:id`)
 - [x] `useItem` hook — fetches single item with signatories, certs, images, type detail, game context
