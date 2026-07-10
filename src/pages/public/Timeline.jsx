@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import styled, { keyframes } from 'styled-components'
 import { useItems } from '../../hooks/useItems'
 import { withAutoOrient } from '../../lib/cloudinary'
-import { EmberEffect } from '../../components/public/EmberEffect'
 import { gradeColors } from '../../utils/gradeColors'
 
 const STOP_WIDTH = 320
@@ -943,8 +942,6 @@ export default function Timeline() {
                       >
                         <LegendaryStopDot />
                         <LegendaryCardWrap>
-                          {/* Background embers — behind the card, arch wide to the sides */}
-                          <EmberEffect height={220} intensity={10} zIndex={0} spread={70} />
                           <LegendaryCardLink to={`/item/${item.id}`}>
                             {item.legendary_event_title && (
                               <LegendaryEventTitle>{item.legendary_event_title}</LegendaryEventTitle>
@@ -964,8 +961,6 @@ export default function Timeline() {
                               {item.item_type && <CardType style={{ marginLeft: '0.4rem' }}>{item.item_type}</CardType>}
                             </CardBody>
                           </LegendaryCardLink>
-                          {/* Foreground embers — in front of the card */}
-                          <EmberEffect height={110} intensity={6} zIndex={2} spread={0} />
                         </LegendaryCardWrap>
                       </LegendaryStop>
                     )
