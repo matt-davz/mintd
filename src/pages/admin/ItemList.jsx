@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { ItemViewerModal } from '../../components/admin/ItemViewerModal'
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar'
 import { gradeColors, gradeToNumber, gradeBucket } from '../../utils/gradeColors'
+import { withAutoOrient } from '../../lib/cloudinary'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -174,7 +175,9 @@ const CertLink = styled.a`
 // ─── Sticky columns ───────────────────────────────────────────────────────────
 
 const NUM_COL_WIDTH = '3rem'
-const TITLE_COL_LEFT = NUM_COL_WIDTH
+const THUMB_COL_WIDTH = '3.5rem'
+const THUMB_COL_LEFT = NUM_COL_WIDTH
+const TITLE_COL_LEFT = `calc(${NUM_COL_WIDTH} + ${THUMB_COL_WIDTH})`
 
 const StickyNumTh = styled(Th)`
   position: sticky;
@@ -185,7 +188,17 @@ const StickyNumTh = styled(Th)`
   min-width: ${NUM_COL_WIDTH};
   text-align: center;
   background-color: ${STICKY_HEADER_BG};
-  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.06);
+`
+
+const StickyThumbTh = styled(Th)`
+  position: sticky;
+  left: ${THUMB_COL_LEFT};
+  top: 0;
+  z-index: 4;
+  width: ${THUMB_COL_WIDTH};
+  min-width: ${THUMB_COL_WIDTH};
+  text-align: center;
+  background-color: ${STICKY_HEADER_BG};
 `
 
 const StickyTitleTh = styled(Th)`
@@ -209,8 +222,18 @@ const StickyNumTd = styled(Td)`
   text-align: center;
   background-color: ${STICKY_BODY_BG};
   color: var(--color-outline);
-  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.06);
   font-size: 0.625rem;
+`
+
+const StickyThumbTd = styled(Td)`
+  position: sticky;
+  left: ${THUMB_COL_LEFT};
+  z-index: 2;
+  width: ${THUMB_COL_WIDTH};
+  min-width: ${THUMB_COL_WIDTH};
+  padding: var(--space-2);
+  text-align: center;
+  background-color: ${STICKY_BODY_BG};
 `
 
 const StickyTitleTd = styled(Td)`
@@ -227,6 +250,22 @@ const StickyTitleTd = styled(Td)`
   box-shadow: 2px 0 0 rgba(140, 144, 159, 0.2);
 `
 
+const ThumbBox = styled.div`
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background-color: rgba(140, 144, 159, 0.08);
+  margin: 0 auto;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+`
+
 // ─── Row (defined after sticky cells so hover can target them) ────────────────
 
 const Tr = styled.tr`
@@ -235,7 +274,7 @@ const Tr = styled.tr`
 
   &:last-child { border-bottom: none; }
   &:hover { background-color: rgba(255, 255, 255, 0.025); }
-  &:hover ${StickyNumTd}, &:hover ${StickyTitleTd} {
+  &:hover ${StickyNumTd}, &:hover ${StickyThumbTd}, &:hover ${StickyTitleTd} {
     background-color: #222222;
   }
 `
@@ -313,6 +352,7 @@ const StatusRow = styled.tr`
 
 const COLUMNS = [
   { key: '_num',              label: '#',            sortable: false },
+  { key: '_thumb',            label: '',             sortable: false },
   { key: 'title',             label: 'Title',        sortable: true  },
   { key: 'item_type',         label: 'Type',         sortable: true  },
   // Cert
@@ -359,6 +399,14 @@ function formatCurrency(n) {
 function formatDate(str) {
   if (!str) return '—'
   return new Date(str).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function toThumbUrl(url) {
+  if (!url) return null
+  const oriented = withAutoOrient(url)
+  return oriented.includes('/upload/')
+    ? oriented.replace('/upload/', '/upload/c_fill,w_80,h_80,f_auto,q_auto/')
+    : oriented
 }
 
 // ─── CSV helpers ──────────────────────────────────────────────────────────────
@@ -731,6 +779,9 @@ export default function ItemList() {
                   if (col.key === '_num') return (
                     <StickyNumTh key="_num">#</StickyNumTh>
                   )
+                  if (col.key === '_thumb') return (
+                    <StickyThumbTh key="_thumb" />
+                  )
                   if (col.key === 'title') return (
                     <StickyTitleTh
                       key="title"
@@ -766,6 +817,13 @@ export default function ItemList() {
               ) : sorted.map((item, idx) => (
                 <Tr key={item.id}>
                   <StickyNumTd>{idx + 1}</StickyNumTd>
+                  <StickyThumbTd>
+                    <ThumbBox>
+                      {item.primary_image_url && (
+                        <img src={toThumbUrl(item.primary_image_url)} alt="" />
+                      )}
+                    </ThumbBox>
+                  </StickyThumbTd>
                   <StickyTitleTd>
                     <TitleCell onClick={() => setSelectedItemId(item.id)}>{item.title}</TitleCell>
                   </StickyTitleTd>
