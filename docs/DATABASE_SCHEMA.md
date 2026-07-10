@@ -214,6 +214,25 @@ Many-to-many junction between items and teams.
 
 ---
 
+### `item_duplicates`
+
+Join table linking duplicate items together. Stored one-direction only (`item_id` → `duplicate_of_id`, not both directions) — queries must check both columns to find an item's duplicates.
+
+| Column | Type | Constraints |
+|---|---|---|
+| `item_id` | `uuid` | NOT NULL, FK → `items(id)` ON DELETE CASCADE |
+| `duplicate_of_id` | `uuid` | NOT NULL, FK → `items(id)` ON DELETE CASCADE |
+| `notes` | `text` | nullable |
+| `created_at` | `timestamptz` | NOT NULL, default `now()` |
+
+**PK:** `(item_id, duplicate_of_id)`
+
+**CHECK:** `item_id != duplicate_of_id`
+
+**Managed by:** `DuplicatesSection` (admin, in `ItemViewerModal`) — inserts always store the lexicographically smaller UUID as `item_id`. Adding/removing a link auto-syncs `items.is_duplicate` on both linked items (`true` if the item has any remaining link, `false` otherwise).
+
+---
+
 ### `item_order`
 
 Gallery display order for curated items. One row per pinned item. Items absent from this table appear after all pinned items in default `created_at DESC` order.
@@ -450,6 +469,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `item_tags` | SELECT all | INSERT, DELETE |
 | `teams` | SELECT all | — |
 | `item_teams` | SELECT all | INSERT, DELETE |
+| `item_duplicates` | SELECT all | INSERT, UPDATE, DELETE |
 | `images` | SELECT all | SELECT all, INSERT, UPDATE, DELETE |
 | `sets` | SELECT all | — |
 | `inquiries` | INSERT only | — |
@@ -489,6 +509,9 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0026_item_gallery_legendary_event_title.sql` | Add `legendary_event_title text` to `item_gallery` via left join on `legendary_context` |
 | `0027_fix_gallery_duplicate_signers.sql` | Restore `LATERAL LIMIT 1` for signatories and `signatory_count` after `0025`/`0026` reverted the fix; preserves `game_date`, `series_game_number`, `is_legendary`, `legendary_event_title` |
 | `0028_item_loas.sql` | Add `item_loas` table for Letters of Authenticity; supports images + PDFs, multiple per item, RLS mirrors `images` table |
+| `0029_loas_storage_bucket.sql` | Create Supabase Storage bucket for LOA files |
+| `0030_item_duplicates.sql` | Add `item_duplicates` join table for linking duplicate items together (one-direction), RLS |
+| `0031_item_duplicates_update_policy.sql` | Add UPDATE RLS policy for `item_duplicates` (editing notes) |
 
 ---
 

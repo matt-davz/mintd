@@ -17,6 +17,7 @@ import { BoxScoreDisplay } from '../BoxScoreDisplay'
 import { TYPE_FIELDS_MAP } from './itemTypes'
 import { ImageLightbox } from '../ImageLightbox'
 import { SetMembersAccordion } from '../SetMembersAccordion'
+import { DuplicatesSection } from './DuplicatesSection'
 
 // ─── Reconcile helpers ────────────────────────────────────────────────────────
 
@@ -1982,6 +1983,13 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                     currentItemId={itemId}
                     onItemClick={onOpenItem}
                   />
+                </Section>
+              )}
+
+              {/* ── Duplicates ── */}
+              {!isCreateMode && (
+                <Section>
+                  <DuplicatesSection itemId={itemId} onOpenItem={onOpenItem} />
                 </Section>
               )}
 

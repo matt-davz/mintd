@@ -44,6 +44,7 @@ src/
 │       ├── AdminLayout.jsx     # Sidebar nav + top bar + create modal
 │       ├── AdminFilterBar.jsx  # Admin advanced search: keyword + multi-select type/team/certService/grade pills in a collapsible accordion (each pill section expands/collapses independently)
 │       ├── ItemViewerModal.jsx # Modal: view/edit existing items + create new items
+│       ├── DuplicatesSection.jsx # Collapsible section — link/unlink duplicate items, edit notes, auto-syncs is_duplicate
 │       ├── ImageUploader.jsx   # Cloudinary image upload widget (product shots)
 │       ├── LoaUploader.jsx     # LOA upload widget — images + PDFs, multiple per item
 │       ├── CertForm.jsx
@@ -75,6 +76,7 @@ src/
 │   ├── useItems.js             # Queries item_gallery view + item_order; merges into pinned-first sort
 │   ├── useItem.js              # Single item with certs, sigs, images, type detail, game context, legendary context + images
 │   ├── useSetMembers.js        # Fetches sibling items by set_id from item_gallery + set name from sets table
+│   ├── useItemDuplicates.js    # Fetches item_duplicates links (both directions) + add/remove/notes mutations
 │   ├── useTags.js
 │   └── useTeams.js             # Fetches all teams from the teams table
 ├── styles/
