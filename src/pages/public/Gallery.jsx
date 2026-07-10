@@ -212,7 +212,7 @@ export default function Gallery() {
   return (
     <Page>
       <Hero>
-        <Heading>Test Header</Heading>
+        <Heading>The Archive</Heading>
         <FilterBar
           availableTypes={availableTypes}
           activeTypes={activeTypes}
