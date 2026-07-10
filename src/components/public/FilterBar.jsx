@@ -143,10 +143,42 @@ const SectionLabel = styled.span`
   color: #4b5563;
 `
 
+const PillsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+`
+
 const Pills = styled.div`
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+
+  ${({ $expanded }) => $expanded ? `
+    flex-wrap: wrap;
+    overflow: visible;
+  ` : `
+    flex-wrap: nowrap;
+    overflow: hidden;
+  `}
+`
+
+const ExpandCaret = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #9ca3af;
+  transition: color var(--transition-base);
+
+  .material-symbols-outlined {
+    font-size: 1rem;
+    transition: transform var(--transition-base);
+    transform: ${({ $expanded }) => $expanded ? 'rotate(180deg)' : 'rotate(0deg)'};
+  }
+
+  &:hover { color: var(--color-on-background); }
 `
 
 const Pill = styled.button`
@@ -198,6 +230,8 @@ export function FilterBar({
   sortBy, onSortChange, search, onSearchChange,
 }) {
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [expandedSections, setExpandedSections] = useState({})
+  const toggleSection = key => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
 
   const activePills = [
     ...activeTypes.map(t => ({ key: `type:${t}`, label: formatSlug(t), onRemove: () => onTypeToggle(t) })),
@@ -236,79 +270,115 @@ export function FilterBar({
         <AccordionBody>
           <FilterSection>
             <SectionLabel>Item Type</SectionLabel>
-            <Pills>
-              <Pill $active={activeTypes.length === 0} onClick={onTypeClear}>
-                All
-              </Pill>
-              {availableTypes.map(type => (
-                <Pill
-                  key={type}
-                  $active={activeTypes.includes(type)}
-                  onClick={() => onTypeToggle(type)}
-                >
-                  {formatSlug(type)}
+            <PillsRow>
+              <Pills $expanded={!!expandedSections.type}>
+                <Pill $active={activeTypes.length === 0} onClick={onTypeClear}>
+                  All
                 </Pill>
-              ))}
-            </Pills>
+                {availableTypes.map(type => (
+                  <Pill
+                    key={type}
+                    $active={activeTypes.includes(type)}
+                    onClick={() => onTypeToggle(type)}
+                  >
+                    {formatSlug(type)}
+                  </Pill>
+                ))}
+              </Pills>
+              <ExpandCaret
+                $expanded={!!expandedSections.type}
+                onClick={() => toggleSection('type')}
+                aria-label={expandedSections.type ? 'Show fewer item types' : 'Show all item types'}
+              >
+                <span className="material-symbols-outlined">expand_more</span>
+              </ExpandCaret>
+            </PillsRow>
           </FilterSection>
 
           {availableTeams.length > 0 && (
             <FilterSection>
               <SectionLabel>Teams</SectionLabel>
-              <Pills>
-                <Pill $active={activeTeams.length === 0} onClick={onTeamClear}>
-                  All
-                </Pill>
-                {availableTeams.map(team => (
-                  <Pill
-                    key={team}
-                    $active={activeTeams.includes(team)}
-                    onClick={() => onTeamToggle(team)}
-                  >
-                    {formatSlug(team)}
+              <PillsRow>
+                <Pills $expanded={!!expandedSections.team}>
+                  <Pill $active={activeTeams.length === 0} onClick={onTeamClear}>
+                    All
                   </Pill>
-                ))}
-              </Pills>
+                  {availableTeams.map(team => (
+                    <Pill
+                      key={team}
+                      $active={activeTeams.includes(team)}
+                      onClick={() => onTeamToggle(team)}
+                    >
+                      {formatSlug(team)}
+                    </Pill>
+                  ))}
+                </Pills>
+                <ExpandCaret
+                  $expanded={!!expandedSections.team}
+                  onClick={() => toggleSection('team')}
+                  aria-label={expandedSections.team ? 'Show fewer teams' : 'Show all teams'}
+                >
+                  <span className="material-symbols-outlined">expand_more</span>
+                </ExpandCaret>
+              </PillsRow>
             </FilterSection>
           )}
 
           {availableCertServices.length > 0 && (
             <FilterSection>
               <SectionLabel>Grade Type</SectionLabel>
-              <Pills>
-                <Pill $active={activeCertServices.length === 0} onClick={onCertServiceClear}>
-                  All
-                </Pill>
-                {availableCertServices.map(cs => (
-                  <Pill
-                    key={cs}
-                    $active={activeCertServices.includes(cs)}
-                    onClick={() => onCertServiceToggle(cs)}
-                  >
-                    {cs}
+              <PillsRow>
+                <Pills $expanded={!!expandedSections.certService}>
+                  <Pill $active={activeCertServices.length === 0} onClick={onCertServiceClear}>
+                    All
                   </Pill>
-                ))}
-              </Pills>
+                  {availableCertServices.map(cs => (
+                    <Pill
+                      key={cs}
+                      $active={activeCertServices.includes(cs)}
+                      onClick={() => onCertServiceToggle(cs)}
+                    >
+                      {cs}
+                    </Pill>
+                  ))}
+                </Pills>
+                <ExpandCaret
+                  $expanded={!!expandedSections.certService}
+                  onClick={() => toggleSection('certService')}
+                  aria-label={expandedSections.certService ? 'Show fewer grade types' : 'Show all grade types'}
+                >
+                  <span className="material-symbols-outlined">expand_more</span>
+                </ExpandCaret>
+              </PillsRow>
             </FilterSection>
           )}
 
           {availableGrades.length > 0 && (
             <FilterSection>
               <SectionLabel>Grade</SectionLabel>
-              <Pills>
-                <Pill $active={activeGrades.length === 0} onClick={onGradeClear}>
-                  All
-                </Pill>
-                {availableGrades.map(g => (
-                  <Pill
-                    key={g}
-                    $active={activeGrades.includes(g)}
-                    onClick={() => onGradeToggle(g)}
-                  >
-                    {formatGradeLabel(g)}
+              <PillsRow>
+                <Pills $expanded={!!expandedSections.grade}>
+                  <Pill $active={activeGrades.length === 0} onClick={onGradeClear}>
+                    All
                   </Pill>
-                ))}
-              </Pills>
+                  {availableGrades.map(g => (
+                    <Pill
+                      key={g}
+                      $active={activeGrades.includes(g)}
+                      onClick={() => onGradeToggle(g)}
+                    >
+                      {formatGradeLabel(g)}
+                    </Pill>
+                  ))}
+                </Pills>
+                <ExpandCaret
+                  $expanded={!!expandedSections.grade}
+                  onClick={() => toggleSection('grade')}
+                  aria-label={expandedSections.grade ? 'Show fewer grades' : 'Show all grades'}
+                >
+                  <span className="material-symbols-outlined">expand_more</span>
+                </ExpandCaret>
+              </PillsRow>
             </FilterSection>
           )}
 
