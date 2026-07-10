@@ -23,6 +23,15 @@ const ToggleLabel = styled.span`
   color: var(--color-outline);
 `
 
+const ViewLabel = styled.p`
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--color-outline);
+  margin-bottom: var(--space-4);
+`
+
 // ─── Expanded body ──────────────────────────────────────────────────────────
 
 const Body = styled.div`
@@ -214,7 +223,7 @@ const ErrorMsg = styled.p`
 
 const SCROLL_STEP = 516 // ~3 cards at 160px + gap
 
-export function DuplicatesSection({ itemId, isDuplicate, onDuplicateChange }) {
+export function DuplicatesSection({ itemId, isEditing, isDuplicate, onDuplicateChange, onItemClick }) {
   const { links, loading, saveDuplicates, clearAllDuplicates } = useItemDuplicates(itemId)
   const [search, setSearch] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -297,6 +306,35 @@ export function DuplicatesSection({ itemId, isDuplicate, onDuplicateChange }) {
 
   function scrollNext() {
     trackRef.current?.scrollBy({ left: SCROLL_STEP, behavior: 'smooth' })
+  }
+
+  if (!isEditing) {
+    if (loading || linkedIds.length === 0) return null
+    return (
+      <Wrap>
+        <ViewLabel>Duplicates</ViewLabel>
+        <CarouselRow>
+          <NavBtn onClick={scrollPrev} aria-label="Scroll left">
+            <span className="material-symbols-outlined">chevron_left</span>
+          </NavBtn>
+          <Track ref={trackRef}>
+            {links.map(l => (
+              <Card key={l.otherItemId} type="button" onClick={() => onItemClick?.(l.otherItemId)}>
+                <CardImage>
+                  {l.otherImageUrl
+                    ? <img src={l.otherImageUrl} alt={l.otherTitle} loading="lazy" />
+                    : <span className="material-symbols-outlined">image_not_supported</span>}
+                </CardImage>
+                <CardTitle>{l.otherTitle}</CardTitle>
+              </Card>
+            ))}
+          </Track>
+          <NavBtn onClick={scrollNext} aria-label="Scroll right">
+            <span className="material-symbols-outlined">chevron_right</span>
+          </NavBtn>
+        </CarouselRow>
+      </Wrap>
+    )
   }
 
   return (

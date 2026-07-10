@@ -1977,12 +1977,14 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
               )}
 
               {/* ── Duplicates ── */}
-              {!isCreateMode && form && (
+              {!isCreateMode && (isEditing || item?.is_duplicate) && (
                 <Section>
                   <DuplicatesSection
                     itemId={itemId}
-                    isDuplicate={form.is_duplicate}
+                    isEditing={isEditing}
+                    isDuplicate={isEditing ? form?.is_duplicate : item?.is_duplicate}
                     onDuplicateChange={checked => setField('is_duplicate', checked)}
+                    onItemClick={onOpenItem}
                   />
                 </Section>
               )}
