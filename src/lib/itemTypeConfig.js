@@ -4,10 +4,12 @@
 export const ITEM_TYPES = [
   'ticket', 'card', 'baseball', 'bat', 'jersey',
   'photo', 'magazine', 'program', 'book', 'base', 'glove',
+  'miscellaneous', 'stadium_giveaway',
 ]
 
 export const HAS_GAME_CONTEXT = new Set([
   'ticket', 'baseball', 'bat', 'jersey', 'photo', 'program', 'base', 'glove',
+  'stadium_giveaway',
 ])
 
 export const DETAIL_TABLE = {
@@ -22,6 +24,8 @@ export const DETAIL_TABLE = {
   book:     'item_books',
   base:     'item_bases',
   glove:    'item_gloves',
+  miscellaneous:    'item_miscellaneous',
+  stadium_giveaway: 'item_stadium_giveaways',
 }
 
 export const EMPTY_DETAIL = {
@@ -36,6 +40,8 @@ export const EMPTY_DETAIL = {
   book:     { author: '', publisher: '', year_published: '', edition: '', isbn: '', is_first_edition: false, is_signed_by_author: false },
   base:     { base_position: '', is_game_used: false, manufacturer: '', has_mlb_authentication: false },
   glove:    { manufacturer: '', model: '', player_position: '', handedness: '', year_used: '', is_game_used: false },
+  miscellaneous:    { category: '', description: '' },
+  stadium_giveaway: { event_name: '', event_date: '', giveaway_item_type: '', manufacturer: '' },
 }
 
 export const EMPTY_GAME_CONTEXT = {

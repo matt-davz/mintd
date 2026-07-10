@@ -20,7 +20,7 @@ Defined in `0004_enums.sql`.
 
 | Enum | Values |
 |---|---|
-| `item_type_enum` | `ticket`, `card`, `baseball`, `bat`, `jersey`, `photo`, `magazine`, `program`, `book`, `base`, `glove` |
+| `item_type_enum` | `ticket`, `card`, `baseball`, `bat`, `jersey`, `photo`, `magazine`, `program`, `book`, `base`, `glove`, `miscellaneous`, `stadium_giveaway` |
 | `game_type_enum` | `regular_season`, `alds`, `alcs`, `nlds`, `nlcs`, `world_series`, `all_star`, `spring_training`, `exhibition` |
 | `game_result_enum` | `home_win`, `home_loss`, `tie`, `unknown` |
 | `ticket_game_result_enum` | `win`, `loss`, `tie`, `unknown` — *unused, column dropped in 0015* |
@@ -336,7 +336,9 @@ Each detail table has:
 - `created_at`, `updated_at` timestamps with trigger
 - Unique index on `item_id` — one detail row per item
 
-Tables with `game_context_id uuid` FK → `game_context(id)` ON DELETE SET NULL: `item_tickets`, `item_baseballs`, `item_bats`, `item_jerseys`, `item_photos`, `item_programs`, `item_bases`, `item_gloves`.
+Tables with `game_context_id uuid` FK → `game_context(id)` ON DELETE SET NULL: `item_tickets`, `item_baseballs`, `item_bats`, `item_jerseys`, `item_photos`, `item_programs`, `item_bases`, `item_gloves`, `item_stadium_giveaways`.
+
+`item_miscellaneous` has no `game_context_id` — miscellaneous items don't have game context.
 
 ### `item_tickets`
 | Column | Type |
@@ -429,6 +431,20 @@ Tables with `game_context_id uuid` FK → `game_context(id)` ON DELETE SET NULL:
 | `is_game_used` | `boolean NOT NULL default false` |
 | `game_context_id` | `uuid` |
 
+### `item_miscellaneous`
+| Column | Type |
+|---|---|
+| `category`, `description` | `text` |
+
+*No `game_context_id` — miscellaneous items don't have game context.*
+
+### `item_stadium_giveaways`
+| Column | Type |
+|---|---|
+| `event_name`, `giveaway_item_type`, `manufacturer` | `text` |
+| `event_date` | `date` |
+| `game_context_id` | `uuid` |
+
 ---
 
 ## Functions
@@ -448,7 +464,7 @@ Denormalised view for the public gallery. One row per item with primary image, f
 
 **Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
 
-`game_date` and `series_game_number` come from `game_context` via a lateral join across all 8 detail tables. Both are `NULL` for items without game context (cards, non-game items). Used by the Timeline to sort by exact game date rather than `season_year` alone.
+`game_date` and `series_game_number` come from `game_context` via a lateral join across all 9 game-context detail tables (`item_tickets`, `item_baseballs`, `item_bats`, `item_jerseys`, `item_photos`, `item_programs`, `item_bases`, `item_gloves`, `item_stadium_giveaways`). Both are `NULL` for items without game context (cards, miscellaneous, non-game items). Used by the Timeline to sort by exact game date rather than `season_year` alone.
 
 > Previously named `item_cards`. Renamed in migration `0011` — `item_cards` is now the trading card detail table.
 
@@ -473,7 +489,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `images` | SELECT all | SELECT all, INSERT, UPDATE, DELETE |
 | `sets` | SELECT all | — |
 | `inquiries` | INSERT only | — |
-| `item_tickets` … `item_gloves` | SELECT for visible items | SELECT all, INSERT, UPDATE, DELETE |
+| `item_tickets` … `item_gloves`, `item_miscellaneous`, `item_stadium_giveaways` | SELECT for visible items | SELECT all, INSERT, UPDATE, DELETE |
 
 ---
 
@@ -512,6 +528,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0029_loas_storage_bucket.sql` | Create Supabase Storage bucket for LOA files |
 | `0030_item_duplicates.sql` | Add `item_duplicates` join table for linking duplicate items together (one-direction), RLS |
 | `0031_item_duplicates_update_policy.sql` | Add UPDATE RLS policy for `item_duplicates` (editing notes) |
+| `0032_miscellaneous_stadium_giveaway_types.sql` | Add `miscellaneous` and `stadium_giveaway` values to `item_type_enum`; add `item_miscellaneous` (no game context) and `item_stadium_giveaways` (has `game_context_id`) detail tables with RLS; rebuild `item_gallery` to include `item_stadium_giveaways` in the game_context lateral join |
 
 ---
 

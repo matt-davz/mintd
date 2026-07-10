@@ -11,6 +11,8 @@ import { ProgramDisplay } from './ProgramDisplay'
 import { BookDisplay } from './BookDisplay'
 import { BaseDisplay } from './BaseDisplay'
 import { GloveDisplay } from './GloveDisplay'
+import { MiscellaneousDisplay } from './MiscellaneousDisplay'
+import { StadiumGiveawayDisplay } from './StadiumGiveawayDisplay'
 
 const TYPE_COMPONENTS = {
   ticket: TicketDisplay,
@@ -24,6 +26,8 @@ const TYPE_COMPONENTS = {
   book: BookDisplay,
   base: BaseDisplay,
   glove: GloveDisplay,
+  miscellaneous: MiscellaneousDisplay,
+  stadium_giveaway: StadiumGiveawayDisplay,
 }
 
 export function ItemTypeDetails({ itemType, detail, gameContext, item }) {
