@@ -51,6 +51,11 @@ We reject the standard "drop shadow." Depth is a result of light and material, n
 *   **The Rule of No Dividers:** Forbid the use of horizontal lines to separate items in a list. Instead, use a 12px (`3`) or 16px (`4`) vertical gap from the spacing scale.
 *   **Image Handling:** Memorabilia should be masked with `rounded-lg` (8px). Use a very subtle inner glow (`inset 0 1px 1px rgba(255,255,255,0.05)`) to make the image "pop" against the dark surface.
 
+### Filter Pills (Collapsible Rows)
+*   **Collapsed state:** a pill row is a single, fixed-height, non-wrapping line — pills never shrink to fit, so overflow clips silently rather than compressing text onto two lines.
+*   **Expand, don't overlap:** an `expand_more` caret (rotates 180° when open) reveals the full wrapped set of pills and grows the row's height, pushing subsequent content down. Never let an expanded row float over content below it.
+*   Each pill row expands/collapses independently — expanding "Teams" should not affect "Grade Type".
+
 ### Status Badges (The "Grade" Badge)
 *   **PSA/BGS Grades:** Use `secondary_container` (#8f7100) for the background and `secondary_fixed` (#ffe08d) for the text. This creates a "Muted Gold" effect that signifies value without looking "yellow."
 

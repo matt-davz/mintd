@@ -187,6 +187,14 @@ Grade Type pills use the raw `cert_service` string as their label (no `formatSlu
 
 The "Advanced Search" accordion contains sections in order: **Item Type** → **Teams** → **Grade Type** → **Grade** → **Sort**. Teams, Grade Type, and Grade sections only render when their `availableX.length > 0`. Sort section always renders.
 
+### Collapsible pill sections
+
+Every pill-based section (Item Type, Teams, Grade Type, Grade) is independently collapsible. Local `expandedSections` state (`useState({})`, keyed by section name — `type`, `team`, `certService`, `grade`) tracks which sections are expanded; `toggleSection(key)` flips one entry.
+
+- **Collapsed** (default): pills render in a single non-wrapping row (`flex-wrap: nowrap`, fixed 2rem height, `overflow: hidden`) — pills are non-shrinking so long labels clip via the row's overflow instead of squeezing every pill onto two lines.
+- **Expanded**: the row wraps (`flex-wrap: wrap`, `height: auto`) and grows downward, pushing the rest of the accordion body down rather than overlapping it.
+- An `ExpandCaret` button (rotates 180° when expanded) sits at the end of each row and toggles that section only — sections expand/collapse independently of each other.
+
 ### Props interface (both FilterBar and AdminFilterBar)
 
 ```
@@ -231,7 +239,7 @@ onSearchChange  (val) => void
    return ... && matchesX
    ```
 5. **Add to `activePills`** in both `FilterBar.jsx` and `AdminFilterBar.jsx` so the active state shows as a removable pill in the search bar.
-6. **Add a section** to the accordion body in both filter components.
+6. **Add a section** to the accordion body in both filter components, following the existing `FilterSection` → `PillsRow`/`Pills`/`ExpandCaret` pattern (see "Collapsible pill sections" above) with a new key in `expandedSections`.
 7. **Pass the new props** to both filter components from all three pages.
 8. **For sorts**: add a new `<option>` to the Sort dropdown and a new branch in the `displayed` sort useMemo in each page.
 

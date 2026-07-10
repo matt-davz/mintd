@@ -21,7 +21,7 @@ src/
 │   │   └── Layout.jsx           # Public layout shell: Header + Outlet + Footer
 │   ├── public/
 │   │   ├── ItemCard.jsx
-│   │   ├── FilterBar.jsx       # Advanced search: keyword + multi-select type/team pills in accordion
+│   │   ├── FilterBar.jsx       # Advanced search: keyword + multi-select type/team/certService/grade pills in a collapsible accordion (each pill section expands/collapses independently)
 │   │   ├── SignatoryList.jsx
 │   │   └── EmberEffect.jsx     # Particle ember effect for legendary timeline cards — props: height, intensity, zIndex, spread
 │   ├── itemDetail/             # Public item detail display components
@@ -42,7 +42,7 @@ src/
 │   └── admin/
 │       ├── AdminGuard.jsx      # Clerk auth wrapper for /admin/* routes
 │       ├── AdminLayout.jsx     # Sidebar nav + top bar + create modal
-│       ├── AdminFilterBar.jsx  # Admin advanced search: keyword + multi-select type/team pills in accordion
+│       ├── AdminFilterBar.jsx  # Admin advanced search: keyword + multi-select type/team/certService/grade pills in a collapsible accordion (each pill section expands/collapses independently)
 │       ├── ItemViewerModal.jsx # Modal: view/edit existing items + create new items
 │       ├── ImageUploader.jsx   # Cloudinary image upload widget (product shots)
 │       ├── LoaUploader.jsx     # LOA upload widget — images + PDFs, multiple per item
