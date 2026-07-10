@@ -143,20 +143,24 @@ const PillsRow = styled.div`
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  height: 1.75rem;
 `
 
 const Pills = styled.div`
   display: flex;
+  align-items: center;
   gap: var(--space-2);
   flex: 1;
   min-width: 0;
+  height: 1.75rem;
+  overflow: hidden;
 
   ${({ $expanded }) => $expanded ? `
     flex-wrap: wrap;
     overflow: visible;
+    height: auto;
   ` : `
     flex-wrap: nowrap;
-    overflow: hidden;
   `}
 `
 
@@ -165,6 +169,7 @@ const ExpandCaret = styled.button`
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  height: 1.75rem;
   color: rgba(229, 226, 225, 0.35);
   transition: color var(--transition-base);
 
@@ -178,11 +183,17 @@ const ExpandCaret = styled.button`
 `
 
 const Pill = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 1.75rem;
+  padding: 0 var(--space-3);
   font-family: var(--font-mono);
   font-size: 0.5625rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  padding: var(--space-1) var(--space-3);
+  white-space: nowrap;
   border-radius: var(--radius-full);
   transition: border-color var(--transition-base), color var(--transition-base), background-color var(--transition-base);
 
