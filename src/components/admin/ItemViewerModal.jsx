@@ -1554,7 +1554,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                       <EditSelect value={form.item_type} onChange={e => handleTypeChange(e.target.value)}>
                         <option value="">— Select type —</option>
                         {ITEM_TYPES.map(t => (
-                          <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                          <option key={t} value={t}>{t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</option>
                         ))}
                       </EditSelect>
                     </div>
