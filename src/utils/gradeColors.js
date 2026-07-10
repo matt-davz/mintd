@@ -2,18 +2,18 @@
 // Keeps every grade cohesive (no red/yellow "bad grade" signaling) while still
 // giving premium grades a richer, more saturated look.
 
-// White (low grades) → Green (high grades). Everything on the same scale.
+// White (low grades) → Green (high grades). Solid backgrounds, no transparency.
 const GREEN_TIERS = [
-  { max: 1, $bg: 'rgba(255, 255, 255, 0.12)', $fg: '#d4d4d4' },
-  { max: 2, $bg: 'rgba(220, 240, 220, 0.16)', $fg: '#c4cfc5' },
-  { max: 3, $bg: 'rgba(190, 230, 195, 0.22)', $fg: '#b0c8b2' },
-  { max: 4, $bg: 'rgba(160, 215, 170, 0.28)', $fg: '#9ac0a0' },
-  { max: 5, $bg: 'rgba(130, 200, 145, 0.34)', $fg: '#84b890' },
-  { max: 6, $bg: 'rgba(100, 190, 120, 0.42)', $fg: '#6eb880' },
-  { max: 7, $bg: 'rgba(75, 180, 100, 0.50)', $fg: '#5cc878' },
-  { max: 8, $bg: 'rgba(50, 168, 85, 0.58)', $fg: '#4ad870' },
-  { max: 9, $bg: 'rgba(34, 155, 72, 0.68)', $fg: '#3ae868' },
-  { max: Infinity, $bg: 'rgba(20, 140, 60, 0.80)', $fg: '#2cfc6a' },
+  { max: 1, $bg: '#e8e8e8', $fg: '#1a1a1a' },
+  { max: 2, $bg: '#d4e6d4', $fg: '#1a1a1a' },
+  { max: 3, $bg: '#b8d9b8', $fg: '#1a1a1a' },
+  { max: 4, $bg: '#9acc9a', $fg: '#1a1a1a' },
+  { max: 5, $bg: '#7cbf7c', $fg: '#1a1a1a' },
+  { max: 6, $bg: '#5fb25f', $fg: '#ffffff' },
+  { max: 7, $bg: '#44a244', $fg: '#ffffff' },
+  { max: 8, $bg: '#2e8f2e', $fg: '#ffffff' },
+  { max: 9, $bg: '#1e7a1e', $fg: '#ffffff' },
+  { max: Infinity, $bg: '#146514', $fg: '#ffffff' },
 ]
 
 export function gradeToNumber(grade) {
@@ -24,8 +24,8 @@ export function gradeToNumber(grade) {
 
 export function gradeColors(grade) {
   const n = gradeToNumber(grade)
-  // Auth / non-numeric — use the white end of the gradient
-  if (n < 0) return { $bg: 'rgba(255, 255, 255, 0.12)', $fg: '#d4d4d4' }
+  // Auth / non-numeric — white end of the gradient
+  if (n < 0) return { $bg: '#e8e8e8', $fg: '#1a1a1a' }
   const tier = GREEN_TIERS.find(tier => n <= tier.max) ?? GREEN_TIERS[GREEN_TIERS.length - 1]
   return { $bg: tier.$bg, $fg: tier.$fg }
 }
