@@ -174,7 +174,7 @@ const CardTitle = styled.p`
 const SCROLL_STEP = 516 // ~3 cards at 160px + gap
 
 export function SetMembersAccordion({ setId, currentItemId, onItemClick }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const { members, setName, loading } = useSetMembers(open ? setId : null, currentItemId)
   const trackRef = useRef(null)
 
