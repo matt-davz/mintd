@@ -1650,16 +1650,6 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                 <Section>
                   <SectionLabel>Type Details — {form.item_type.charAt(0).toUpperCase() + form.item_type.slice(1)}</SectionLabel>
                   <TypeFields form={detailForm} setField={setDetailField} />
-                  {form.item_type === 'ticket' && (
-                    <Field style={{ marginTop: 'var(--space-4)' }}>
-                      <FieldLabel>Duplicate</FieldLabel>
-                      <CheckboxLabel>
-                        <input type="checkbox" checked={form.is_duplicate}
-                          onChange={e => setField('is_duplicate', e.target.checked)} />
-                        Yes
-                      </CheckboxLabel>
-                    </Field>
-                  )}
                 </Section>
               )}
               {!isEditing && detail && item.item_type && (
@@ -1989,7 +1979,11 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
               {/* ── Duplicates ── */}
               {!isCreateMode && (
                 <Section>
-                  <DuplicatesSection itemId={itemId} onOpenItem={onOpenItem} />
+                  <DuplicatesSection
+                    itemId={itemId}
+                    isDuplicate={form.is_duplicate}
+                    onDuplicateChange={checked => setField('is_duplicate', checked)}
+                  />
                 </Section>
               )}
 

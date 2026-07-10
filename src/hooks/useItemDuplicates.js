@@ -100,5 +100,55 @@ export function useItemDuplicates(itemId) {
     await refetchRef.current()
   }
 
-  return { links: itemId ? links : [], loading, refetch, addDuplicate, removeDuplicate, updateNotes }
+  async function saveDuplicates(selectedItemIds) {
+    const currentIds = links.map(l => l.otherItemId)
+    const toAdd = selectedItemIds.filter(id => !currentIds.includes(id))
+    const toRemove = currentIds.filter(id => !selectedItemIds.includes(id))
+
+    if (toAdd.length) {
+      const rows = toAdd.map(otherId => {
+        const [lo, hi] = orderPair(itemId, otherId)
+        return { item_id: lo, duplicate_of_id: hi }
+      })
+      const { error } = await supabase.from('item_duplicates').insert(rows)
+      if (error) throw new Error(error.message)
+    }
+
+    if (toRemove.length) {
+      const orFilter = toRemove
+        .map(otherId => {
+          const [lo, hi] = orderPair(itemId, otherId)
+          return `and(item_id.eq.${lo},duplicate_of_id.eq.${hi})`
+        })
+        .join(',')
+      const { error } = await supabase.from('item_duplicates').delete().or(orFilter)
+      if (error) throw new Error(error.message)
+    }
+
+    const affectedIds = new Set([itemId, ...toAdd, ...toRemove])
+    await Promise.all(Array.from(affectedIds).map(id => syncIsDuplicateFlag(id)))
+    await refetchRef.current()
+  }
+
+  async function clearAllDuplicates() {
+    const otherIds = links.map(l => l.otherItemId)
+    const { error } = await supabase
+      .from('item_duplicates')
+      .delete()
+      .or(`item_id.eq.${itemId},duplicate_of_id.eq.${itemId}`)
+    if (error) throw new Error(error.message)
+    await Promise.all([itemId, ...otherIds].map(id => syncIsDuplicateFlag(id)))
+    await refetchRef.current()
+  }
+
+  return {
+    links: itemId ? links : [],
+    loading,
+    refetch,
+    addDuplicate,
+    removeDuplicate,
+    updateNotes,
+    saveDuplicates,
+    clearAllDuplicates,
+  }
 }
