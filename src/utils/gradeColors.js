@@ -2,15 +2,15 @@
 // Keeps every grade cohesive (no red/yellow "bad grade" signaling) while still
 // giving premium grades a richer, more saturated look.
 
-const GOLD = { $bg: 'rgba(143, 113, 0, 0.25)', $fg: '#ffe08d' }
+const GOLD = { $bg: 'rgba(143, 113, 0, 0.45)', $fg: '#ffe08d' }
 
 const GREEN_TIERS = [
-  { max: 2, $bg: 'rgba(74, 175, 96, 0.08)', $fg: '#a9c9ae' },
-  { max: 4, $bg: 'rgba(70, 178, 98, 0.16)', $fg: '#a0d6a8' },
-  { max: 6, $bg: 'rgba(60, 175, 96, 0.24)', $fg: '#8fdda0' },
-  { max: 8, $bg: 'rgba(46, 168, 92, 0.32)', $fg: '#6ee09a' },
-  { max: 9, $bg: 'rgba(34, 150, 84, 0.42)', $fg: '#52e4a0' },
-  { max: Infinity, $bg: 'rgba(22, 130, 74, 0.55)', $fg: '#3df0a8' },
+  { max: 2, $bg: 'rgba(74, 175, 96, 0.18)', $fg: '#8ab892' },
+  { max: 4, $bg: 'rgba(70, 178, 98, 0.28)', $fg: '#7ecc8a' },
+  { max: 6, $bg: 'rgba(60, 175, 96, 0.40)', $fg: '#6ed88e' },
+  { max: 8, $bg: 'rgba(46, 168, 92, 0.52)', $fg: '#5ae890' },
+  { max: 9, $bg: 'rgba(34, 150, 84, 0.65)', $fg: '#44f09a' },
+  { max: Infinity, $bg: 'rgba(22, 130, 74, 0.80)', $fg: '#30ffa4' },
 ]
 
 export function gradeToNumber(grade) {
