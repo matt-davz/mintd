@@ -1977,7 +1977,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
               )}
 
               {/* ── Duplicates ── */}
-              {!isCreateMode && (
+              {!isCreateMode && form && (
                 <Section>
                   <DuplicatesSection
                     itemId={itemId}
