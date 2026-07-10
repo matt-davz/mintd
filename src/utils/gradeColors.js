@@ -22,6 +22,16 @@ export function gradeToNumber(grade) {
   return match ? parseFloat(match[1]) : -1
 }
 
+// Buckets a cert grade for filtering — numeric grades collapse to their number
+// (cross-service, e.g. PSA 8 and SGC 8 both bucket to "8"), non-numeric grades
+// (e.g. "Authentic") bucket to 'authentic'. Returns null when there is no grade
+// at all, so a missing cert_grade never matches the "authentic" bucket.
+export function gradeBucket(grade) {
+  if (!grade) return null
+  const n = gradeToNumber(grade)
+  return n === -1 ? 'authentic' : String(n)
+}
+
 export function gradeColors(grade) {
   const n = gradeToNumber(grade)
   // Auth / non-numeric — white end of the gradient

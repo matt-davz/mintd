@@ -174,6 +174,10 @@ function formatSlug(slug) {
   return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
+function formatGradeLabel(grade) {
+  return grade === 'authentic' ? 'Authentic' : grade
+}
+
 const SORT_LABELS = {
   year_desc:  'Year: Newest',
   year_asc:   'Year: Oldest',
@@ -181,12 +185,20 @@ const SORT_LABELS = {
   grade_asc:  'Grade: Low → High',
 }
 
-export function AdminFilterBar({ availableTypes, activeTypes, onTypeToggle, onTypeClear, availableTeams, activeTeams, onTeamToggle, onTeamClear, sortBy, onSortChange, search, onSearchChange }) {
+export function AdminFilterBar({
+  availableTypes, activeTypes, onTypeToggle, onTypeClear,
+  availableTeams, activeTeams, onTeamToggle, onTeamClear,
+  availableCertServices, activeCertServices, onCertServiceToggle, onCertServiceClear,
+  availableGrades, activeGrades, onGradeToggle, onGradeClear,
+  sortBy, onSortChange, search, onSearchChange,
+}) {
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const activePills = [
     ...activeTypes.map(t => ({ key: `type:${t}`, label: formatSlug(t), onRemove: () => onTypeToggle(t) })),
     ...activeTeams.map(t => ({ key: `team:${t}`, label: formatSlug(t), onRemove: () => onTeamToggle(t) })),
+    ...activeCertServices.map(cs => ({ key: `certService:${cs}`, label: cs, onRemove: () => onCertServiceToggle(cs) })),
+    ...activeGrades.map(g => ({ key: `grade:${g}`, label: formatGradeLabel(g), onRemove: () => onGradeToggle(g) })),
     ...(sortBy ? [{ key: 'sort', label: SORT_LABELS[sortBy], onRemove: () => onSortChange('') }] : []),
   ]
 
@@ -249,6 +261,46 @@ export function AdminFilterBar({ availableTypes, activeTypes, onTypeToggle, onTy
                     onClick={() => onTeamToggle(team)}
                   >
                     {formatSlug(team)}
+                  </Pill>
+                ))}
+              </Pills>
+            </div>
+          )}
+
+          {availableCertServices.length > 0 && (
+            <div>
+              <SectionLabel>Grade Type</SectionLabel>
+              <Pills style={{ marginTop: 'var(--space-2)' }}>
+                <Pill $active={activeCertServices.length === 0} onClick={onCertServiceClear}>
+                  All
+                </Pill>
+                {availableCertServices.map(cs => (
+                  <Pill
+                    key={cs}
+                    $active={activeCertServices.includes(cs)}
+                    onClick={() => onCertServiceToggle(cs)}
+                  >
+                    {cs}
+                  </Pill>
+                ))}
+              </Pills>
+            </div>
+          )}
+
+          {availableGrades.length > 0 && (
+            <div>
+              <SectionLabel>Grade</SectionLabel>
+              <Pills style={{ marginTop: 'var(--space-2)' }}>
+                <Pill $active={activeGrades.length === 0} onClick={onGradeClear}>
+                  All
+                </Pill>
+                {availableGrades.map(g => (
+                  <Pill
+                    key={g}
+                    $active={activeGrades.includes(g)}
+                    onClick={() => onGradeToggle(g)}
+                  >
+                    {formatGradeLabel(g)}
                   </Pill>
                 ))}
               </Pills>

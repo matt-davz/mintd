@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { useItems } from '../../hooks/useItems'
 import { ItemViewerModal } from '../../components/admin/ItemViewerModal'
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar'
-import { gradeColors, gradeToNumber } from '../../utils/gradeColors'
+import { gradeColors, gradeToNumber, gradeBucket } from '../../utils/gradeColors'
 
 // ─── Page heading ─────────────────────────────────────────────────────────────
 
@@ -400,6 +400,8 @@ export default function Dashboard() {
   const [wsOwnedYears, setWsOwnedYears] = useState(null)
   const [activeTypes, setActiveTypes] = useState([])
   const [activeTeams, setActiveTeams] = useState([])
+  const [activeCertServices, setActiveCertServices] = useState([])
+  const [activeGrades, setActiveGrades] = useState([])
   const [sortBy, setSortBy] = useState('')
   const [search, setSearch] = useState('')
   const [selectedItemId, setSelectedItemId] = useState(null)
@@ -417,6 +419,17 @@ export default function Dashboard() {
     return ['yankees', ...sorted.filter(t => t !== 'yankees')]
   }, [items])
 
+  const availableCertServices = useMemo(() => {
+    const seen = new Set(items.map(item => item.cert_service).filter(Boolean))
+    return [...seen].sort()
+  }, [items])
+
+  const availableGrades = useMemo(() => {
+    const seen = new Set(items.filter(item => item.cert_grade).map(item => gradeBucket(item.cert_grade)))
+    const numeric = [...seen].filter(g => g !== 'authentic').sort((a, b) => parseFloat(a) - parseFloat(b))
+    return seen.has('authentic') ? [...numeric, 'authentic'] : numeric
+  }, [items])
+
   function handleTypeToggle(type) {
     setActiveTypes(prev =>
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
@@ -426,6 +439,18 @@ export default function Dashboard() {
   function handleTeamToggle(team) {
     setActiveTeams(prev =>
       prev.includes(team) ? prev.filter(t => t !== team) : [...prev, team]
+    )
+  }
+
+  function handleCertServiceToggle(cs) {
+    setActiveCertServices(prev =>
+      prev.includes(cs) ? prev.filter(c => c !== cs) : [...prev, cs]
+    )
+  }
+
+  function handleGradeToggle(grade) {
+    setActiveGrades(prev =>
+      prev.includes(grade) ? prev.filter(g => g !== grade) : [...prev, grade]
     )
   }
 
@@ -480,9 +505,11 @@ export default function Dashboard() {
   const filtered = useMemo(() => items.filter(item => {
     const matchesType = activeTypes.length === 0 || activeTypes.includes(item.item_type)
     const matchesTeam = activeTeams.length === 0 || (item.team_slugs ?? []).some(s => activeTeams.includes(s))
+    const matchesCertService = activeCertServices.length === 0 || (item.cert_service && activeCertServices.includes(item.cert_service))
+    const matchesGrade = activeGrades.length === 0 || activeGrades.includes(gradeBucket(item.cert_grade))
     const matchesSearch = !search.trim() || item.title.toLowerCase().includes(search.trim().toLowerCase())
-    return matchesType && matchesTeam && matchesSearch
-  }), [items, activeTypes, activeTeams, search])
+    return matchesType && matchesTeam && matchesCertService && matchesGrade && matchesSearch
+  }), [items, activeTypes, activeTeams, activeCertServices, activeGrades, search])
 
   const displayed = useMemo(() => {
     if (!sortBy) return filtered
@@ -586,6 +613,14 @@ export default function Dashboard() {
         activeTeams={activeTeams}
         onTeamToggle={handleTeamToggle}
         onTeamClear={() => setActiveTeams([])}
+        availableCertServices={availableCertServices}
+        activeCertServices={activeCertServices}
+        onCertServiceToggle={handleCertServiceToggle}
+        onCertServiceClear={() => setActiveCertServices([])}
+        availableGrades={availableGrades}
+        activeGrades={activeGrades}
+        onGradeToggle={handleGradeToggle}
+        onGradeClear={() => setActiveGrades([])}
         sortBy={sortBy}
         onSortChange={setSortBy}
         search={search}

@@ -4,15 +4,18 @@ import styled from 'styled-components'
 import { useItems } from '../../hooks/useItems'
 import { ItemCard } from '../../components/public/ItemCard'
 import { FilterBar } from '../../components/public/FilterBar'
+import { gradeToNumber, gradeBucket } from '../../utils/gradeColors'
 
 const PAGE_SIZE_OPTIONS = [16, 32, 64]
 const DEFAULT_PAGE_SIZE = PAGE_SIZE_OPTIONS[0]
 
-function buildCleanParams({ search, activeTypes, activeTeams, sortBy, page, pageSize }) {
+function buildCleanParams({ search, activeTypes, activeTeams, activeCertServices, activeGrades, sortBy, page, pageSize }) {
   const params = new URLSearchParams()
   if (search) params.set('q', search)
   if (activeTypes.length > 0) params.set('types', activeTypes.join(','))
   if (activeTeams.length > 0) params.set('teams', activeTeams.join(','))
+  if (activeCertServices.length > 0) params.set('certServices', activeCertServices.join(','))
+  if (activeGrades.length > 0) params.set('grades', activeGrades.join(','))
   if (sortBy) params.set('sort', sortBy)
   if (page !== 1) params.set('page', String(page))
   if (pageSize !== DEFAULT_PAGE_SIZE) params.set('size', String(pageSize))
@@ -147,12 +150,6 @@ const PageSizeSelect = styled.select`
   }
 `
 
-function gradeToNumber(grade) {
-  if (!grade) return -1
-  const match = grade.match(/(\d+(?:\.\d+)?)$/)
-  return match ? parseFloat(match[1]) : -1
-}
-
 function buildPages(current, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
   if (current <= 4) return [1, 2, 3, 4, 5, '...', total]
@@ -167,6 +164,8 @@ export default function Gallery() {
   const search = searchParams.get('q') ?? ''
   const typesParam = searchParams.get('types') ?? ''
   const teamsParam = searchParams.get('teams') ?? ''
+  const certServicesParam = searchParams.get('certServices') ?? ''
+  const gradesParam = searchParams.get('grades') ?? ''
   const sortBy = searchParams.get('sort') ?? ''
   const page = Number(searchParams.get('page') ?? '1')
   const pageSize = PAGE_SIZE_OPTIONS.includes(Number(searchParams.get('size')))
@@ -174,6 +173,8 @@ export default function Gallery() {
     : DEFAULT_PAGE_SIZE
   const activeTypes = typesParam ? typesParam.split(',') : []
   const activeTeams = teamsParam ? teamsParam.split(',') : []
+  const activeCertServices = certServicesParam ? certServicesParam.split(',') : []
+  const activeGrades = gradesParam ? gradesParam.split(',') : []
 
   const { items, loading, error } = useItems()
 
@@ -188,14 +189,27 @@ export default function Gallery() {
     return ['yankees', ...sorted.filter(t => t !== 'yankees')]
   }, [items])
 
+  const availableCertServices = useMemo(() => {
+    const seen = new Set(items.map(item => item.cert_service).filter(Boolean))
+    return [...seen].sort()
+  }, [items])
+
+  const availableGrades = useMemo(() => {
+    const seen = new Set(items.filter(item => item.cert_grade).map(item => gradeBucket(item.cert_grade)))
+    const numeric = [...seen].filter(g => g !== 'authentic').sort((a, b) => parseFloat(a) - parseFloat(b))
+    return seen.has('authentic') ? [...numeric, 'authentic'] : numeric
+  }, [items])
+
   // Use primitive param strings as deps so the memo doesn't recompute on every render
   // due to activeTypes/activeTeams being new array instances each time
   const filtered = useMemo(() => items.filter(item => {
     const matchesType = activeTypes.length === 0 || activeTypes.includes(item.item_type)
     const matchesTeam = activeTeams.length === 0 || (item.team_slugs ?? []).some(s => activeTeams.includes(s))
+    const matchesCertService = activeCertServices.length === 0 || (item.cert_service && activeCertServices.includes(item.cert_service))
+    const matchesGrade = activeGrades.length === 0 || activeGrades.includes(gradeBucket(item.cert_grade))
     const matchesSearch = !search.trim() || item.title.toLowerCase().includes(search.trim().toLowerCase())
-    return matchesType && matchesTeam && matchesSearch
-  }), [items, typesParam, teamsParam, search]) // eslint-disable-line react-hooks/exhaustive-deps
+    return matchesType && matchesTeam && matchesCertService && matchesGrade && matchesSearch
+  }), [items, typesParam, teamsParam, certServicesParam, gradesParam, search]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const displayed = useMemo(() => {
     if (!sortBy) return filtered
@@ -217,30 +231,40 @@ export default function Gallery() {
 
   // Filter/sort handlers — reset page to 1 and use replace so history stays clean
   function handleSearchChange(val) {
-    setSearchParams(buildCleanParams({ search: val, activeTypes, activeTeams, sortBy, page: 1, pageSize }), { replace: true })
+    setSearchParams(buildCleanParams({ search: val, activeTypes, activeTeams, activeCertServices, activeGrades, sortBy, page: 1, pageSize }), { replace: true })
   }
 
   function handleTypeToggle(type) {
     const next = activeTypes.includes(type) ? activeTypes.filter(t => t !== type) : [...activeTypes, type]
-    setSearchParams(buildCleanParams({ search, activeTypes: next, activeTeams, sortBy, page: 1, pageSize }), { replace: true })
+    setSearchParams(buildCleanParams({ search, activeTypes: next, activeTeams, activeCertServices, activeGrades, sortBy, page: 1, pageSize }), { replace: true })
   }
 
   function handleTeamToggle(team) {
     const next = activeTeams.includes(team) ? activeTeams.filter(t => t !== team) : [...activeTeams, team]
-    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams: next, sortBy, page: 1, pageSize }), { replace: true })
+    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams: next, activeCertServices, activeGrades, sortBy, page: 1, pageSize }), { replace: true })
+  }
+
+  function handleCertServiceToggle(cs) {
+    const next = activeCertServices.includes(cs) ? activeCertServices.filter(c => c !== cs) : [...activeCertServices, cs]
+    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, activeCertServices: next, activeGrades, sortBy, page: 1, pageSize }), { replace: true })
+  }
+
+  function handleGradeToggle(grade) {
+    const next = activeGrades.includes(grade) ? activeGrades.filter(g => g !== grade) : [...activeGrades, grade]
+    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, activeCertServices, activeGrades: next, sortBy, page: 1, pageSize }), { replace: true })
   }
 
   function handleSortChange(val) {
-    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, sortBy: val, page: 1, pageSize }), { replace: true })
+    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, activeCertServices, activeGrades, sortBy: val, page: 1, pageSize }), { replace: true })
   }
 
   function handlePageSizeChange(val) {
-    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, sortBy, page: 1, pageSize: val }), { replace: true })
+    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, activeCertServices, activeGrades, sortBy, page: 1, pageSize: val }), { replace: true })
   }
 
   // Page changes push to history so back/forward navigate between pages
   function handlePageChange(newPage) {
-    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, sortBy, page: newPage, pageSize }))
+    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, activeCertServices, activeGrades, sortBy, page: newPage, pageSize }))
   }
 
   return (
@@ -251,11 +275,19 @@ export default function Gallery() {
           availableTypes={availableTypes}
           activeTypes={activeTypes}
           onTypeToggle={handleTypeToggle}
-          onTypeClear={() => setSearchParams(buildCleanParams({ search, activeTypes: [], activeTeams, sortBy, page: 1, pageSize }), { replace: true })}
+          onTypeClear={() => setSearchParams(buildCleanParams({ search, activeTypes: [], activeTeams, activeCertServices, activeGrades, sortBy, page: 1, pageSize }), { replace: true })}
           availableTeams={availableTeams}
           activeTeams={activeTeams}
           onTeamToggle={handleTeamToggle}
-          onTeamClear={() => setSearchParams(buildCleanParams({ search, activeTypes, activeTeams: [], sortBy, page: 1, pageSize }), { replace: true })}
+          onTeamClear={() => setSearchParams(buildCleanParams({ search, activeTypes, activeTeams: [], activeCertServices, activeGrades, sortBy, page: 1, pageSize }), { replace: true })}
+          availableCertServices={availableCertServices}
+          activeCertServices={activeCertServices}
+          onCertServiceToggle={handleCertServiceToggle}
+          onCertServiceClear={() => setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, activeCertServices: [], activeGrades, sortBy, page: 1, pageSize }), { replace: true })}
+          availableGrades={availableGrades}
+          activeGrades={activeGrades}
+          onGradeToggle={handleGradeToggle}
+          onGradeClear={() => setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, activeCertServices, activeGrades: [], sortBy, page: 1, pageSize }), { replace: true })}
           sortBy={sortBy}
           onSortChange={handleSortChange}
           search={search}

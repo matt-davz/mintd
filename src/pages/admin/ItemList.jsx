@@ -3,7 +3,7 @@ import styled from 'styled-components'
 import { supabase } from '../../lib/supabase'
 import { ItemViewerModal } from '../../components/admin/ItemViewerModal'
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar'
-import { gradeColors, gradeToNumber } from '../../utils/gradeColors'
+import { gradeColors, gradeToNumber, gradeBucket } from '../../utils/gradeColors'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -504,6 +504,8 @@ export default function ItemList() {
   }
 
   const [activeTeams, setActiveTeams] = useState([])
+  const [activeCertServices, setActiveCertServices] = useState([])
+  const [activeGrades, setActiveGrades] = useState([])
   const [sortBy, setSortBy] = useState('')
 
   const availableTypes = useMemo(() => {
@@ -517,6 +519,16 @@ export default function ItemList() {
     return ['yankees', ...sorted.filter(t => t !== 'yankees')]
   }, [rows])
 
+  const availableCertServices = useMemo(() => {
+    const seen = new Set(rows.map(r => r.cert_service).filter(Boolean))
+    return [...seen].sort()
+  }, [rows])
+
+  const availableGrades = useMemo(() => {
+    const seen = new Set(rows.filter(r => r.cert_grade).map(r => gradeBucket(r.cert_grade)))
+    const numeric = [...seen].filter(g => g !== 'authentic').sort((a, b) => parseFloat(a) - parseFloat(b))
+    return seen.has('authentic') ? [...numeric, 'authentic'] : numeric
+  }, [rows])
 
   function handleTypeToggle(type) {
     setActiveTypes(prev =>
@@ -530,18 +542,32 @@ export default function ItemList() {
     )
   }
 
+  function handleCertServiceToggle(cs) {
+    setActiveCertServices(prev =>
+      prev.includes(cs) ? prev.filter(c => c !== cs) : [...prev, cs]
+    )
+  }
+
+  function handleGradeToggle(grade) {
+    setActiveGrades(prev =>
+      prev.includes(grade) ? prev.filter(g => g !== grade) : [...prev, grade]
+    )
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return rows.filter(r => {
       const matchesType = activeTypes.length === 0 || activeTypes.includes(r.item_type)
       const matchesTeam = activeTeams.length === 0 || (r.team_slugs ?? []).some(s => activeTeams.includes(s))
+      const matchesCertService = activeCertServices.length === 0 || (r.cert_service && activeCertServices.includes(r.cert_service))
+      const matchesGrade = activeGrades.length === 0 || activeGrades.includes(gradeBucket(r.cert_grade))
       const matchesSearch = !q ||
         r.title.toLowerCase().includes(q) ||
         (r.cert_id ?? '').toLowerCase().includes(q) ||
         (r.notes ?? '').toLowerCase().includes(q)
-      return matchesType && matchesTeam && matchesSearch
+      return matchesType && matchesTeam && matchesCertService && matchesGrade && matchesSearch
     })
-  }, [rows, activeTypes, activeTeams, search])
+  }, [rows, activeTypes, activeTeams, activeCertServices, activeGrades, search])
 
   const DATE_KEYS = new Set(['created_at', 'updated_at', 'purchase_date'])
 
@@ -654,6 +680,14 @@ export default function ItemList() {
         activeTeams={activeTeams}
         onTeamToggle={handleTeamToggle}
         onTeamClear={() => setActiveTeams([])}
+        availableCertServices={availableCertServices}
+        activeCertServices={activeCertServices}
+        onCertServiceToggle={handleCertServiceToggle}
+        onCertServiceClear={() => setActiveCertServices([])}
+        availableGrades={availableGrades}
+        activeGrades={activeGrades}
+        onGradeToggle={handleGradeToggle}
+        onGradeClear={() => setActiveGrades([])}
         sortBy={sortBy}
         onSortChange={setSortBy}
         search={search}

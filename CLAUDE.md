@@ -123,7 +123,7 @@ Both the public gallery and admin overview/table view share the same filter+sort
 
 All filtering and sorting is **client-side**. Items are fetched once (all of them), then filtered/sorted in memory via `useMemo`. No query reruns on filter change.
 
-**URL persistence (public gallery only):** `Gallery.jsx` uses React Router `useSearchParams` as the single source of truth for all filter/sort/page/size state — there are no `useState` calls for these. URL param mapping: `q` (keyword search), `types` (comma-separated), `teams` (comma-separated), `sort`, `page`, `size`. Only non-default values appear in the URL (clean URLs when everything is default). Filter/sort/size changes use `replace: true` (no back-stack pollution); page changes push to history so back/forward works. Navigating to an item detail page and pressing Back restores the exact gallery state.
+**URL persistence (public gallery only):** `Gallery.jsx` uses React Router `useSearchParams` as the single source of truth for all filter/sort/page/size state — there are no `useState` calls for these. URL param mapping: `q` (keyword search), `types` (comma-separated), `teams` (comma-separated), `certServices` (comma-separated), `grades` (comma-separated — numeric grade tokens or the literal `authentic`), `sort`, `page`, `size`. Only non-default values appear in the URL (clean URLs when everything is default). Filter/sort/size changes use `replace: true` (no back-stack pollution); page changes push to history so back/forward works. Navigating to an item detail page and pressing Back restores the exact gallery state.
 
 The admin filter pages (`Dashboard.jsx`, `ItemList.jsx`) still use plain `useState` — URL persistence is public-gallery-only.
 
@@ -132,11 +132,13 @@ Each page that uses a filter bar manages its own state and derives available opt
 ```
 useItems() / raw query
   → items[]
-    → availableTypes  (useMemo — distinct item_type values)
-    → availableTeams  (useMemo — flattened team_slugs, Yankees pinned first)
-    → filtered        (items.filter — type AND team AND keyword)
-    → displayed       (filtered sorted by sortBy, or unsorted if sortBy is '')
-    → paginated       (displayed.slice for current page)
+    → availableTypes         (useMemo — distinct item_type values)
+    → availableTeams         (useMemo — flattened team_slugs, Yankees pinned first)
+    → availableCertServices  (useMemo — distinct cert_service values, sorted)
+    → availableGrades        (useMemo — distinct gradeBucket(cert_grade) values, numeric ascending, 'authentic' last)
+    → filtered               (items.filter — type AND team AND certService AND grade AND keyword)
+    → displayed              (filtered sorted by sortBy, or unsorted if sortBy is '')
+    → paginated              (displayed.slice for current page)
 ```
 
 ### Current filter conditions
@@ -148,6 +150,8 @@ All conditions are AND — an item must pass every active condition to appear.
 | Keyword search | `search: string` | `item.title.toLowerCase().includes(search)` |
 | Item type | `activeTypes: string[]` | `activeTypes.length === 0 \|\| activeTypes.includes(item.item_type)` — multi-select OR |
 | Team | `activeTeams: string[]` | `activeTeams.length === 0 \|\| item.team_slugs.some(s => activeTeams.includes(s))` — multi-select OR |
+| Grade Type | `activeCertServices: string[]` | `activeCertServices.length === 0 \|\| (item.cert_service && activeCertServices.includes(item.cert_service))` — multi-select OR; items with no `cert_service` are excluded from options and never match |
+| Grade | `activeGrades: string[]` | `activeGrades.length === 0 \|\| activeGrades.includes(gradeBucket(item.cert_grade))` — multi-select OR; `gradeBucket` (in `src/utils/gradeColors.js`) collapses numeric grades cross-service (PSA 8 and SGC 8 both bucket to `"8"`) and returns `null` for a missing `cert_grade`, so items with no cert never match the `authentic` bucket |
 
 ### Current sort options (`sortBy` state)
 
@@ -171,13 +175,17 @@ Active conditions render as removable pills **inside the search bar**. Each pill
 const activePills = [
   ...activeTypes.map(t => ({ key: `type:${t}`, label, onRemove })),
   ...activeTeams.map(t => ({ key: `team:${t}`, label, onRemove })),
+  ...activeCertServices.map(cs => ({ key: `certService:${cs}`, label: cs, onRemove })),
+  ...activeGrades.map(g => ({ key: `grade:${g}`, label: formatGradeLabel(g), onRemove })),
   ...(sortBy ? [{ key: 'sort', label: SORT_LABELS[sortBy], onRemove }] : []),
 ]
 ```
 
+Grade Type pills use the raw `cert_service` string as their label (no `formatSlug` — it would mangle `PSA/DNA`). Grade pills use `formatGradeLabel` — the bucket value itself (e.g. `"8"`) or `"Authentic"` for the `authentic` bucket.
+
 ### Accordion sections
 
-The "Advanced Search" accordion contains sections in order: **Item Type** → **Teams** → **Sort**. Teams section only renders when `availableTeams.length > 0`. Sort section always renders.
+The "Advanced Search" accordion contains sections in order: **Item Type** → **Teams** → **Grade Type** → **Grade** → **Sort**. Teams, Grade Type, and Grade sections only render when their `availableX.length > 0`. Sort section always renders.
 
 ### Props interface (both FilterBar and AdminFilterBar)
 
@@ -191,6 +199,16 @@ availableTeams  string[]     distinct team slugs from item.team_slugs, Yankees f
 activeTeams     string[]     currently selected teams
 onTeamToggle    (team) => void
 onTeamClear     () => void
+
+availableCertServices  string[]     distinct cert_service values from loaded items, sorted
+activeCertServices     string[]     currently selected cert services
+onCertServiceToggle    (certService) => void
+onCertServiceClear     () => void
+
+availableGrades  string[]     distinct gradeBucket(cert_grade) values, numeric ascending then 'authentic'
+activeGrades     string[]     currently selected grade buckets
+onGradeToggle    (grade) => void
+onGradeClear     () => void
 
 sortBy          string       '' | 'year_desc' | 'year_asc' | 'grade_desc' | 'grade_asc'
 onSortChange    (val) => void
