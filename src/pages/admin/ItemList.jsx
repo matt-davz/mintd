@@ -175,7 +175,7 @@ const CertLink = styled.a`
 // ─── Sticky columns ───────────────────────────────────────────────────────────
 
 const NUM_COL_WIDTH = '3rem'
-const THUMB_COL_WIDTH = '3.5rem'
+const THUMB_COL_WIDTH = '4.5rem'
 const THUMB_COL_LEFT = NUM_COL_WIDTH
 const TITLE_COL_LEFT = `calc(${NUM_COL_WIDTH} + ${THUMB_COL_WIDTH})`
 
@@ -251,8 +251,8 @@ const StickyTitleTd = styled(Td)`
 `
 
 const ThumbBox = styled.div`
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.9rem;
+  height: 2.9rem;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background-color: rgba(140, 144, 159, 0.08);
@@ -405,7 +405,7 @@ function toThumbUrl(url) {
   if (!url) return null
   const oriented = withAutoOrient(url)
   return oriented.includes('/upload/')
-    ? oriented.replace('/upload/', '/upload/c_fill,w_80,h_80,f_auto,q_auto/')
+    ? oriented.replace('/upload/', '/upload/c_fill,w_120,h_120,f_auto,q_auto/')
     : oriented
 }
 
