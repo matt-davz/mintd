@@ -10,6 +10,7 @@ import { SignatoryList } from '../../components/public/SignatoryList'
 import { ItemTypeDetails } from '../../components/itemDetail/ItemTypeDetails'
 import { ImageLightbox } from '../../components/ImageLightbox'
 import { SetMembersAccordion } from '../../components/SetMembersAccordion'
+import { gradeColors } from '../../utils/gradeColors'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -475,7 +476,7 @@ export default function ItemDetail() {
               {certifications.map(cert => (
                 <DataRow key={cert.id}>
                   <DataLabel>{cert.cert_service} Certification</DataLabel>
-                  <DataValue $accent="gold">
+                  <DataValue style={{ color: gradeColors(cert.item_grade ?? cert.auto_grade).$fg }}>
                     {cert.item_grade ?? cert.auto_grade ?? 'Authenticated'}
                   </DataValue>
                   {cert.cert_id && (

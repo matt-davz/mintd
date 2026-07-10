@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { useItems } from '../../hooks/useItems'
 import { ItemViewerModal } from '../../components/admin/ItemViewerModal'
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar'
+import { gradeColors, gradeToNumber } from '../../utils/gradeColors'
 
 // ─── Page heading ─────────────────────────────────────────────────────────────
 
@@ -390,20 +391,6 @@ const StatusRow = styled.tr`
     letter-spacing: 0.1em;
   }
 `
-
-function gradeToNumber(grade) {
-  if (!grade) return -1
-  const match = grade.match(/(\d+(?:\.\d+)?)$/)
-  return match ? parseFloat(match[1]) : -1
-}
-
-function gradeColors(grade) {
-  const n = gradeToNumber(grade)
-  if (n >= 1 && n <= 4) return { $bg: 'rgba(220, 60, 60, 0.25)',  $fg: '#ff8a8a' }
-  if (n >= 5 && n <= 7) return { $bg: 'rgba(200, 140, 30, 0.25)', $fg: '#f5c060' }
-  if (n > 7)            return { $bg: 'rgba(40, 160, 80, 0.25)',  $fg: '#6ee09a' }
-  return {}
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { withAutoOrient } from '../../lib/cloudinary'
+import { gradeColors } from '../../utils/gradeColors'
 
 const Card = styled(Link)`
   display: flex;
@@ -69,8 +70,8 @@ const GradeBadge = styled.div`
   position: absolute;
   bottom: 1rem;
   right: 1rem;
-  background-color: var(--color-secondary-container);
-  color: var(--color-secondary-fixed);
+  background-color: ${p => p.$bg ?? 'var(--color-secondary-container)'};
+  color: ${p => p.$fg ?? 'var(--color-secondary-fixed)'};
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
@@ -179,7 +180,7 @@ export function ItemCard({ item }) {
           </ImagePlaceholder>
         )}
         {for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
-        {gradeLabel && <GradeBadge>{gradeLabel}</GradeBadge>}
+        {gradeLabel && <GradeBadge {...gradeColors(cert_grade)}>{gradeLabel}</GradeBadge>}
       </ImageWrapper>
 
       <Body>

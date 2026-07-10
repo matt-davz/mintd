@@ -4,6 +4,7 @@ import styled, { keyframes } from 'styled-components'
 import { useItems } from '../../hooks/useItems'
 import { withAutoOrient } from '../../lib/cloudinary'
 import { EmberEffect } from '../../components/public/EmberEffect'
+import { gradeColors } from '../../utils/gradeColors'
 
 const STOP_WIDTH = 320
 const CARD_WIDTH = 200
@@ -451,8 +452,8 @@ const GradeBadge = styled.div`
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: var(--color-secondary-container);
-  color: var(--color-secondary-fixed);
+  background: ${p => p.$bg ?? 'var(--color-secondary-container)'};
+  color: ${p => p.$fg ?? 'var(--color-secondary-fixed)'};
   font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 700;
@@ -650,8 +651,8 @@ const MobileGradeBadge = styled.span`
   font-family: var(--font-mono);
   font-size: 0.5rem;
   font-weight: 700;
-  color: var(--color-secondary-fixed);
-  background: var(--color-secondary-container);
+  color: ${p => p.$fg ?? 'var(--color-secondary-fixed)'};
+  background: ${p => p.$bg ?? 'var(--color-secondary-container)'};
   padding: 0.15rem 0.35rem;
   border-radius: 2px;
   text-transform: uppercase;
@@ -703,7 +704,7 @@ function TimelineCard({ item }) {
               <span className="material-symbols-outlined">image_not_supported</span>
             </NoImg>
           )}
-          {gradeLabel && <GradeBadge>{gradeLabel}</GradeBadge>}
+          {gradeLabel && <GradeBadge {...gradeColors(item.cert_grade)}>{gradeLabel}</GradeBadge>}
         </CardImg>
         <CardBody>
           <CardTitle>{item.title}</CardTitle>
@@ -885,7 +886,7 @@ export default function Timeline() {
                   <MobileCardBody>
                     <MobileCardTitle>{item.title}</MobileCardTitle>
                     {item.item_type && <MobileCardType>{item.item_type}</MobileCardType>}
-                    {gradeLabel && <MobileGradeBadge>{gradeLabel}</MobileGradeBadge>}
+                    {gradeLabel && <MobileGradeBadge {...gradeColors(item.cert_grade)}>{gradeLabel}</MobileGradeBadge>}
                   </MobileCardBody>
                 </MobileCard>
               </MobileStop>
