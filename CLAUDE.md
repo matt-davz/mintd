@@ -93,11 +93,15 @@ For all things database and image retrieval check `docs/DATABASE.md`. Full schem
 
 ## Item Type System
 
-Items have an `item_type` enum column (ticket, card, baseball, bat, jersey, photo, magazine, program, book, base, glove). Each type has a corresponding detail table (`item_tickets`, `item_cards`, etc.) with type-specific fields.
+Items have an `item_type` enum column (ticket, card, baseball, bat, jersey, photo, magazine, program, book, base, glove, miscellaneous, stadium_giveaway). Each type has a corresponding detail table (`item_tickets`, `item_cards`, etc.) with type-specific fields.
 
-Types with game context (linked via `game_context_id` on the detail table): ticket, baseball, bat, jersey, photo, program, base, glove.
+Types with game context (linked via `game_context_id` on the detail table): ticket, baseball, bat, jersey, photo, program, base, glove, stadium_giveaway. `miscellaneous` has no game context.
 
 Configuration lives in `src/lib/itemTypeConfig.js`. Type-specific form components are in `src/components/admin/itemTypes/`.
+
+## Duplicates
+
+Items can be linked as duplicates of one another via the `item_duplicates` join table. Managed in admin by `DuplicatesSection` (carousel multi-select, in `ItemViewerModal`); shown on the public item detail page as an accordion via `DuplicateCopiesSection`. Linking/unlinking auto-syncs `items.is_duplicate` on both linked items. Data hook: `src/hooks/useItemDuplicates.js`.
 
 ## Design — important
 

@@ -16,6 +16,7 @@ Schema: `supabase/migrations/`. Full reference: `docs/DATABASE_SCHEMA.md`.
 - `legendary_context` — 1:1 with `items` (only for `is_legendary = true` items); holds `event_title` and `event_description` for the Timeline legendary display
 - `legendary_images` — contextual/historical images for a legendary item; hangs off `legendary_context`. Separate from product shots in `images`. Named `legendary/{itemId_first8}/image_{n}` in Cloudinary.
 - `item_loas` — Letters of Authenticity per item; multiple per item, supports images and PDFs. Cloudinary path: `mintd/loas/{itemId_first8}/{filename}`
+- `item_duplicates` — join table linking duplicate items together (one-direction: `item_id` → `duplicate_of_id`, query both columns to find an item's duplicates). Managed by `DuplicatesSection` (admin); auto-syncs `items.is_duplicate` on both linked items
 - `inquiries` — visitor contact form submissions; stored in DB and emailed via Edge Function
 
 ### Item detail tables (one row per item, linked by `item_id`)
@@ -35,8 +36,10 @@ Each type-specific table holds fields that only apply to that item type. Populat
 | `item_books` | Book |
 | `item_bases` | Base |
 | `item_gloves` | Glove |
+| `item_miscellaneous` | Miscellaneous |
+| `item_stadium_giveaways` | Stadium giveaway |
 
-Tables with game context (tickets, baseballs, bats, jerseys, photos, programs, bases, gloves) have a `game_context_id` FK → `game_context`.
+Tables with game context (tickets, baseballs, bats, jerseys, photos, programs, bases, gloves, stadium giveaways) have a `game_context_id` FK → `game_context`. `item_miscellaneous` has no game context.
 
 ### Key item fields
 

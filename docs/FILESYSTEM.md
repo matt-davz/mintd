@@ -23,6 +23,7 @@ src/
 │   │   ├── ItemCard.jsx
 │   │   ├── FilterBar.jsx       # Advanced search: keyword + multi-select type/team/certService/grade pills in a collapsible accordion (each pill section expands/collapses independently)
 │   │   ├── SignatoryList.jsx
+│   │   ├── DuplicateCopiesSection.jsx # Accordion listing an item's linked duplicates (public item detail)
 │   │   └── EmberEffect.jsx     # Particle ember effect for legendary timeline cards — props: height, intensity, zIndex, spread
 │   ├── itemDetail/             # Public item detail display components
 │   │   ├── styles.js           # Shared styled components + formatters
@@ -38,7 +39,9 @@ src/
 │   │   ├── ProgramDisplay.jsx
 │   │   ├── BookDisplay.jsx
 │   │   ├── BaseDisplay.jsx
-│   │   └── GloveDisplay.jsx
+│   │   ├── GloveDisplay.jsx
+│   │   ├── MiscellaneousDisplay.jsx
+│   │   └── StadiumGiveawayDisplay.jsx
 │   └── admin/
 │       ├── AdminGuard.jsx      # Clerk auth wrapper for /admin/* routes
 │       ├── AdminLayout.jsx     # Sidebar nav + top bar + create modal
@@ -66,7 +69,9 @@ src/
 │           ├── ProgramFields.jsx
 │           ├── BookFields.jsx
 │           ├── BaseFields.jsx
-│           └── GloveFields.jsx
+│           ├── GloveFields.jsx
+│           ├── MiscellaneousFields.jsx
+│           └── StadiumGiveawayFields.jsx
 ├── lib/
 │   ├── supabase.js             # Supabase client (anon key)
 │   ├── cloudinary.js           # Cloudinary helpers
