@@ -127,7 +127,7 @@ Both the public gallery and admin overview/table view share the same filter+sort
 
 All filtering and sorting is **client-side**. Items are fetched once (all of them), then filtered/sorted in memory via `useMemo`. No query reruns on filter change.
 
-**URL persistence (public gallery only):** `Gallery.jsx` uses React Router `useSearchParams` as the single source of truth for all filter/sort/page/size state — there are no `useState` calls for these. URL param mapping: `q` (keyword search), `types` (comma-separated), `teams` (comma-separated), `certServices` (comma-separated), `grades` (comma-separated — numeric grade tokens or the literal `authentic`), `sort`, `page`, `size`. Only non-default values appear in the URL (clean URLs when everything is default). Filter/sort/size changes use `replace: true` (no back-stack pollution); page changes push to history so back/forward works. Navigating to an item detail page and pressing Back restores the exact gallery state.
+**URL persistence (public gallery only):** `Gallery.jsx` uses React Router `useSearchParams` as the single source of truth for all filter/sort/page/size state — there are no `useState` calls for these. URL param mapping: `q` (keyword search), `types` (comma-separated), `teams` (comma-separated), `certServices` (comma-separated), `grades` (comma-separated — numeric grade tokens or the literal `authentic`), `dupes` (`1` when the Dupes toggle is active, omitted otherwise), `sort`, `page`, `size`. Only non-default values appear in the URL (clean URLs when everything is default). Filter/sort/size changes use `replace: true` (no back-stack pollution); page changes push to history so back/forward works. Navigating to an item detail page and pressing Back restores the exact gallery state.
 
 The admin filter pages (`Dashboard.jsx`, `ItemList.jsx`) still use plain `useState` — URL persistence is public-gallery-only.
 
@@ -140,7 +140,7 @@ useItems() / raw query
     → availableTeams         (useMemo — flattened team_slugs, Yankees pinned first)
     → availableCertServices  (useMemo — distinct cert_service values, sorted)
     → availableGrades        (useMemo — distinct gradeBucket(cert_grade) values, numeric ascending, 'authentic' last)
-    → filtered               (items.filter — type AND team AND certService AND grade AND keyword)
+    → filtered               (items.filter — type AND team AND certService AND grade AND dupes AND keyword)
     → displayed              (filtered sorted by sortBy, or unsorted if sortBy is '')
     → paginated              (displayed.slice for current page)
 ```
@@ -156,6 +156,7 @@ All conditions are AND — an item must pass every active condition to appear.
 | Team | `activeTeams: string[]` | `activeTeams.length === 0 \|\| item.team_slugs.some(s => activeTeams.includes(s))` — multi-select OR |
 | Grade Type | `activeCertServices: string[]` | `activeCertServices.length === 0 \|\| (item.cert_service && activeCertServices.includes(item.cert_service))` — multi-select OR; items with no `cert_service` are excluded from options and never match |
 | Grade | `activeGrades: string[]` | `activeGrades.length === 0 \|\| activeGrades.includes(gradeBucket(item.cert_grade))` — multi-select OR; `gradeBucket` (in `src/utils/gradeColors.js`) collapses numeric grades cross-service (PSA 8 and SGC 8 both bucket to `"8"`) and returns `null` for a missing `cert_grade`, so items with no cert never match the `authentic` bucket |
+| Dupes | `showDupesOnly: boolean` | `!showDupesOnly \|\| item.is_duplicate === true` — single boolean toggle pill (not multi-select), backed by `item_gallery.is_duplicate` |
 
 ### Current sort options (`sortBy` state)
 
@@ -181,19 +182,20 @@ const activePills = [
   ...activeTeams.map(t => ({ key: `team:${t}`, label, onRemove })),
   ...activeCertServices.map(cs => ({ key: `certService:${cs}`, label: cs, onRemove })),
   ...activeGrades.map(g => ({ key: `grade:${g}`, label: formatGradeLabel(g), onRemove })),
+  ...(showDupesOnly ? [{ key: 'dupes', label: 'Dupes', onRemove: onDupesToggle }] : []),
   ...(sortBy ? [{ key: 'sort', label: SORT_LABELS[sortBy], onRemove }] : []),
 ]
 ```
 
-Grade Type pills use the raw `cert_service` string as their label (no `formatSlug` — it would mangle `PSA/DNA`). Grade pills use `formatGradeLabel` — the bucket value itself (e.g. `"8"`) or `"Authentic"` for the `authentic` bucket.
+Grade Type pills use the raw `cert_service` string as their label (no `formatSlug` — it would mangle `PSA/DNA`). Grade pills use `formatGradeLabel` — the bucket value itself (e.g. `"8"`) or `"Authentic"` for the `authentic` bucket. The Dupes pill has a fixed label (`'Dupes'`) since it's a single boolean toggle, not a per-value list.
 
 ### Accordion sections
 
-The "Advanced Search" accordion contains sections in order: **Item Type** → **Teams** → **Grade Type** → **Grade** → **Sort**. Teams, Grade Type, and Grade sections only render when their `availableX.length > 0`. Sort section always renders.
+The "Advanced Search" accordion contains sections in order: **Item Type** → **Special Filters** (Dupes toggle) → **Teams** → **Grade Type** → **Grade** → **Sort**. Teams, Grade Type, and Grade sections only render when their `availableX.length > 0`; Special Filters and Sort always render.
 
 ### Collapsible pill sections
 
-Every pill-based section (Item Type, Teams, Grade Type, Grade) is independently collapsible. Local `expandedSections` state (`useState({})`, keyed by section name — `type`, `team`, `certService`, `grade`) tracks which sections are expanded; `toggleSection(key)` flips one entry.
+Every multi-value pill-based section (Item Type, Teams, Grade Type, Grade) is independently collapsible. Local `expandedSections` state (`useState({})`, keyed by section name — `type`, `team`, `certService`, `grade`) tracks which sections are expanded; `toggleSection(key)` flips one entry. The Special Filters section (Dupes) is a single always-visible toggle pill, so it isn't part of the collapse/expand system.
 
 - **Collapsed** (default): pills render in a single non-wrapping row (`flex-wrap: nowrap`, fixed 2rem height, `overflow: hidden`) — pills are non-shrinking so long labels clip via the row's overflow instead of squeezing every pill onto two lines.
 - **Expanded**: the row wraps (`flex-wrap: wrap`, `height: auto`) and grows downward, pushing the rest of the accordion body down rather than overlapping it.
@@ -221,6 +223,9 @@ availableGrades  string[]     distinct gradeBucket(cert_grade) values, numeric a
 activeGrades     string[]     currently selected grade buckets
 onGradeToggle    (grade) => void
 onGradeClear     () => void
+
+showDupesOnly   boolean      whether the Dupes toggle is active
+onDupesToggle   () => void
 
 sortBy          string       '' | 'year_desc' | 'year_asc' | 'grade_desc' | 'grade_asc'
 onSortChange    (val) => void
