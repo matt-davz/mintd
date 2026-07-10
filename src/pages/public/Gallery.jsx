@@ -1,10 +1,23 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { useItems } from '../../hooks/useItems'
 import { ItemCard } from '../../components/public/ItemCard'
 import { FilterBar } from '../../components/public/FilterBar'
 
 const PAGE_SIZE_OPTIONS = [16, 32, 64]
+const DEFAULT_PAGE_SIZE = PAGE_SIZE_OPTIONS[0]
+
+function buildCleanParams({ search, activeTypes, activeTeams, sortBy, page, pageSize }) {
+  const params = new URLSearchParams()
+  if (search) params.set('q', search)
+  if (activeTypes.length > 0) params.set('types', activeTypes.join(','))
+  if (activeTeams.length > 0) params.set('teams', activeTeams.join(','))
+  if (sortBy) params.set('sort', sortBy)
+  if (page !== 1) params.set('page', String(page))
+  if (pageSize !== DEFAULT_PAGE_SIZE) params.set('size', String(pageSize))
+  return params
+}
 
 const Page = styled.div`
   max-width: 1536px;
@@ -148,15 +161,21 @@ function buildPages(current, total) {
 }
 
 export default function Gallery() {
-  const [activeTypes, setActiveTypes] = useState([])
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0])
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Derive all filter/sort/page state from URL params
+  const search = searchParams.get('q') ?? ''
+  const typesParam = searchParams.get('types') ?? ''
+  const teamsParam = searchParams.get('teams') ?? ''
+  const sortBy = searchParams.get('sort') ?? ''
+  const page = Number(searchParams.get('page') ?? '1')
+  const pageSize = PAGE_SIZE_OPTIONS.includes(Number(searchParams.get('size')))
+    ? Number(searchParams.get('size'))
+    : DEFAULT_PAGE_SIZE
+  const activeTypes = typesParam ? typesParam.split(',') : []
+  const activeTeams = teamsParam ? teamsParam.split(',') : []
 
   const { items, loading, error } = useItems()
-
-  const [activeTeams, setActiveTeams] = useState([])
-  const [sortBy, setSortBy] = useState('')
 
   const availableTypes = useMemo(() => {
     const seen = new Set(items.map(item => item.item_type).filter(Boolean))
@@ -169,24 +188,14 @@ export default function Gallery() {
     return ['yankees', ...sorted.filter(t => t !== 'yankees')]
   }, [items])
 
-  function handleTypeToggle(type) {
-    setActiveTypes(prev =>
-      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-    )
-  }
-
-  function handleTeamToggle(team) {
-    setActiveTeams(prev =>
-      prev.includes(team) ? prev.filter(t => t !== team) : [...prev, team]
-    )
-  }
-
-  const filtered = items.filter(item => {
+  // Use primitive param strings as deps so the memo doesn't recompute on every render
+  // due to activeTypes/activeTeams being new array instances each time
+  const filtered = useMemo(() => items.filter(item => {
     const matchesType = activeTypes.length === 0 || activeTypes.includes(item.item_type)
     const matchesTeam = activeTeams.length === 0 || (item.team_slugs ?? []).some(s => activeTeams.includes(s))
     const matchesSearch = !search.trim() || item.title.toLowerCase().includes(search.trim().toLowerCase())
     return matchesType && matchesTeam && matchesSearch
-  })
+  }), [items, typesParam, teamsParam, search]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const displayed = useMemo(() => {
     if (!sortBy) return filtered
@@ -203,11 +212,36 @@ export default function Gallery() {
   const paginated = displayed.slice((page - 1) * pageSize, page * pageSize)
   const pages = buildPages(page, totalPages)
 
-  // Reset to page 1 when filters or page size change
-  useEffect(() => { setPage(1) }, [activeTypes, activeTeams, sortBy, search, pageSize])
-
   // Scroll to top when page changes
   useEffect(() => { window.scrollTo(0, 0) }, [page])
+
+  // Filter/sort handlers — reset page to 1 and use replace so history stays clean
+  function handleSearchChange(val) {
+    setSearchParams(buildCleanParams({ search: val, activeTypes, activeTeams, sortBy, page: 1, pageSize }), { replace: true })
+  }
+
+  function handleTypeToggle(type) {
+    const next = activeTypes.includes(type) ? activeTypes.filter(t => t !== type) : [...activeTypes, type]
+    setSearchParams(buildCleanParams({ search, activeTypes: next, activeTeams, sortBy, page: 1, pageSize }), { replace: true })
+  }
+
+  function handleTeamToggle(team) {
+    const next = activeTeams.includes(team) ? activeTeams.filter(t => t !== team) : [...activeTeams, team]
+    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams: next, sortBy, page: 1, pageSize }), { replace: true })
+  }
+
+  function handleSortChange(val) {
+    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, sortBy: val, page: 1, pageSize }), { replace: true })
+  }
+
+  function handlePageSizeChange(val) {
+    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, sortBy, page: 1, pageSize: val }), { replace: true })
+  }
+
+  // Page changes push to history so back/forward navigate between pages
+  function handlePageChange(newPage) {
+    setSearchParams(buildCleanParams({ search, activeTypes, activeTeams, sortBy, page: newPage, pageSize }))
+  }
 
   return (
     <Page>
@@ -217,15 +251,15 @@ export default function Gallery() {
           availableTypes={availableTypes}
           activeTypes={activeTypes}
           onTypeToggle={handleTypeToggle}
-          onTypeClear={() => setActiveTypes([])}
+          onTypeClear={() => setSearchParams(buildCleanParams({ search, activeTypes: [], activeTeams, sortBy, page: 1, pageSize }), { replace: true })}
           availableTeams={availableTeams}
           activeTeams={activeTeams}
           onTeamToggle={handleTeamToggle}
-          onTeamClear={() => setActiveTeams([])}
+          onTeamClear={() => setSearchParams(buildCleanParams({ search, activeTypes, activeTeams: [], sortBy, page: 1, pageSize }), { replace: true })}
           sortBy={sortBy}
-          onSortChange={setSortBy}
+          onSortChange={handleSortChange}
           search={search}
-          onSearchChange={setSearch}
+          onSearchChange={handleSearchChange}
         />
       </Hero>
 
@@ -241,7 +275,7 @@ export default function Gallery() {
               </ResultsMeta>
               <PageSizeSelect
                 value={pageSize}
-                onChange={e => setPageSize(Number(e.target.value))}
+                onChange={e => handlePageSizeChange(Number(e.target.value))}
               >
                 {PAGE_SIZE_OPTIONS.map(n => (
                   <option key={n} value={n}>{n} per page</option>
@@ -264,7 +298,7 @@ export default function Gallery() {
 
           {totalPages > 1 && (
             <Pagination>
-              <NavBtn onClick={() => setPage(p => p - 1)} disabled={page === 1}>
+              <NavBtn onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
                 Previous
               </NavBtn>
 
@@ -272,13 +306,13 @@ export default function Gallery() {
                 p === '...' ? (
                   <Ellipsis key={`ellipsis-${i}`}>...</Ellipsis>
                 ) : (
-                  <PageBtn key={p} $active={p === page} onClick={() => setPage(p)}>
+                  <PageBtn key={p} $active={p === page} onClick={() => handlePageChange(p)}>
                     {p}
                   </PageBtn>
                 )
               )}
 
-              <NavBtn onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>
+              <NavBtn onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}>
                 Next
               </NavBtn>
             </Pagination>
