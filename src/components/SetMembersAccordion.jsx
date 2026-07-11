@@ -124,22 +124,21 @@ const CardBtn = styled.button`
 const CardImage = styled.div`
   aspect-ratio: 4/5;
   overflow: hidden;
-  background-color: var(--color-surface-high);
+  background-color: #fff;
 
   img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     opacity: 0.85;
     filter: grayscale(20%);
-    transition: opacity var(--transition-base), filter var(--transition-base), transform 500ms ease;
+    transition: opacity var(--transition-base), filter var(--transition-base);
   }
 
   ${CardLink}:hover &, ${CardBtn}:hover & {
     img {
       opacity: 1;
       filter: grayscale(0%);
-      transform: scale(1.04);
     }
   }
 

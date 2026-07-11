@@ -200,10 +200,10 @@ const PositionBadge = styled.div`
 const Thumbnail = styled.img`
   width: 44px;
   height: 44px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
-  background: var(--color-surface-high);
+  background: #fff;
 `
 
 const ThumbnailPlaceholder = styled.div`
