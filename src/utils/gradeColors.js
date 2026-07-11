@@ -18,7 +18,9 @@ const GREEN_TIERS = [
 
 export function gradeToNumber(grade) {
   if (!grade) return -1
-  const match = String(grade).match(/(\d+(?:\.\d+)?)$/)
+  // Match the first number in the grade string so qualifiers like "MK", "OC",
+  // "ST" etc. after the numeric grade don't prevent a match.
+  const match = String(grade).match(/(\d+(?:\.\d+)?)/)
   return match ? parseFloat(match[1]) : -1
 }
 
