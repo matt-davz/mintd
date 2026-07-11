@@ -210,7 +210,7 @@ export default function Gallery() {
     const matchesCertService = activeCertServices.length === 0 || (item.cert_service && activeCertServices.includes(item.cert_service))
     const matchesGrade = activeGrades.length === 0 || activeGrades.includes(gradeBucket(item.cert_grade))
     const matchesDupes = !showDupesOnly || item.is_duplicate === true
-    const matchesSearch = !search.trim() || item.title.toLowerCase().includes(search.trim().toLowerCase())
+    const matchesSearch = !search.trim() || search.trim().toLowerCase().split(/\s+/).every(word => item.title.toLowerCase().includes(word))
     return matchesType && matchesTeam && matchesCertService && matchesGrade && matchesDupes && matchesSearch
   }), [items, typesParam, teamsParam, certServicesParam, gradesParam, showDupesOnly, search]) // eslint-disable-line react-hooks/exhaustive-deps
 
