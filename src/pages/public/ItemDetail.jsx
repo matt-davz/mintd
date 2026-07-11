@@ -103,6 +103,25 @@ const CarouselWrap = styled.div`
     max-height: 40vh;
     object-fit: contain;
   }
+
+  .thumbs-wrapper {
+    overflow: hidden;
+  }
+
+  .thumb {
+    width: 80px;
+    height: 80px;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: #fff;
+  }
+
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius-sm);
+  }
 `
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
