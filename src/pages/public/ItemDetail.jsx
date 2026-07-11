@@ -11,7 +11,7 @@ import { ItemTypeDetails } from '../../components/itemDetail/ItemTypeDetails'
 import { ImageLightbox } from '../../components/ImageLightbox'
 import { SetMembersAccordion } from '../../components/SetMembersAccordion'
 import { DuplicateCopiesSection } from '../../components/public/DuplicateCopiesSection'
-import { gradeColors } from '../../utils/gradeColors'
+import { gradeColors, gradeToNumber } from '../../utils/gradeColors'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -496,7 +496,7 @@ export default function ItemDetail() {
               {certifications.map(cert => (
                 <DataRow key={cert.id}>
                   <DataLabel>{cert.cert_service} Certification</DataLabel>
-                  <DataValue style={{ color: gradeColors(cert.item_grade ?? cert.auto_grade).$fg }}>
+                  <DataValue style={{ color: gradeToNumber(cert.item_grade ?? cert.auto_grade) === -1 ? 'var(--color-on-surface)' : gradeColors(cert.item_grade ?? cert.auto_grade).$fg }}>
                     {cert.item_grade ?? cert.auto_grade ?? 'Authenticated'}
                   </DataValue>
                   {cert.cert_id && (
