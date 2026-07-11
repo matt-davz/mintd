@@ -419,7 +419,9 @@ export default function ItemDetail() {
 
   const badgeCert = certifications.find(c => c.cert_service && c.cert_service.toLowerCase() !== 'unknown')
   const gradeLabel = badgeCert
-    ? `${badgeCert.cert_service} ${badgeCert.item_grade ?? badgeCert.auto_grade ?? ''}`.trim()
+    ? `${badgeCert.cert_service} ${badgeCert.item_grade && badgeCert.auto_grade
+        ? `${badgeCert.item_grade} / Auto ${badgeCert.auto_grade}`
+        : badgeCert.item_grade ?? badgeCert.auto_grade ?? ''}`.trim()
     : null
 
   const related = allItems.filter(i => i.id !== id).slice(0, 3)
