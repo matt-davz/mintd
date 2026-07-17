@@ -10,6 +10,7 @@ import { SignatoryList } from '../../components/public/SignatoryList'
 import { ItemTypeDetails } from '../../components/itemDetail/ItemTypeDetails'
 import { ImageLightbox } from '../../components/ImageLightbox'
 import { SetMembersAccordion } from '../../components/SetMembersAccordion'
+import { SeriesTicketsAccordion } from '../../components/SeriesTicketsAccordion'
 import { DuplicateCopiesSection } from '../../components/public/DuplicateCopiesSection'
 import { gradeColors, gradeToNumber, displayGrade } from '../../utils/gradeColors'
 
@@ -587,6 +588,10 @@ export default function ItemDetail() {
 
             {item.set_id && (
               <SetMembersAccordion setId={item.set_id} currentItemId={id} />
+            )}
+
+            {item.item_type === 'ticket' && item.season_year && detail?.series_game_number != null && (
+              <SeriesTicketsAccordion seasonYear={item.season_year} currentItemId={id} />
             )}
 
             <DuplicateCopiesSection itemId={id} />
