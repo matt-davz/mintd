@@ -18,7 +18,6 @@ import { BoxScoreDisplay } from '../BoxScoreDisplay'
 import { TYPE_FIELDS_MAP } from './itemTypes'
 import { ImageLightbox } from '../ImageLightbox'
 import { SetMembersAccordion } from '../SetMembersAccordion'
-import { SeriesTicketsAccordion } from '../SeriesTicketsAccordion'
 import { DuplicatesSection } from './DuplicatesSection'
 
 // ─── Reconcile helpers ────────────────────────────────────────────────────────
@@ -1975,18 +1974,6 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                   <SectionLabel>Set Members</SectionLabel>
                   <SetMembersAccordion
                     setId={item.set_id}
-                    currentItemId={itemId}
-                    onItemClick={onOpenItem}
-                  />
-                </Section>
-              )}
-
-              {/* ── Series tickets ── */}
-              {!isEditing && item?.item_type === 'ticket' && item?.season_year && detail?.series_game_number != null && (
-                <Section>
-                  <SectionLabel>{item.season_year} World Series Tickets</SectionLabel>
-                  <SeriesTicketsAccordion
-                    seasonYear={item.season_year}
                     currentItemId={itemId}
                     onItemClick={onOpenItem}
                   />

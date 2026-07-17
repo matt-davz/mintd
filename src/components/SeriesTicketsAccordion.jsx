@@ -116,11 +116,6 @@ const cardBase = `
 
 const CardLink = styled(Link)`${cardBase}`
 
-const CardBtn = styled.button`
-  ${cardBase}
-  text-align: left;
-`
-
 const CardImage = styled.div`
   aspect-ratio: 4/5;
   overflow: hidden;
@@ -135,7 +130,7 @@ const CardImage = styled.div`
     transition: opacity var(--transition-base), filter var(--transition-base);
   }
 
-  ${CardLink}:hover &, ${CardBtn}:hover & {
+  ${CardLink}:hover & {
     img {
       opacity: 1;
       filter: grayscale(0%);
@@ -172,7 +167,7 @@ const CardTitle = styled.p`
 
 const SCROLL_STEP = 516 // ~3 cards at 160px + gap
 
-export function SeriesTicketsAccordion({ seasonYear, currentItemId, onItemClick }) {
+export function SeriesTicketsAccordion({ seasonYear, currentItemId }) {
   const [open, setOpen] = useState(true)
   const { tickets, loading } = useSeriesTickets(open ? seasonYear : null, currentItemId)
   const trackRef = useRef(null)
@@ -194,17 +189,12 @@ export function SeriesTicketsAccordion({ seasonYear, currentItemId, onItemClick 
       <span className="material-symbols-outlined">image_not_supported</span>
     )
 
-    const inner = (
-      <>
+    return (
+      <CardLink key={t.id} to={`/item/${t.id}`}>
         <CardImage>{image}</CardImage>
         <CardTitle>{t.title}</CardTitle>
-      </>
+      </CardLink>
     )
-
-    if (onItemClick) {
-      return <CardBtn key={t.id} onClick={() => onItemClick(t.id)}>{inner}</CardBtn>
-    }
-    return <CardLink key={t.id} to={`/item/${t.id}`}>{inner}</CardLink>
   }
 
   return (
