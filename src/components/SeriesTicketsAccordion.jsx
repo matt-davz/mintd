@@ -102,7 +102,7 @@ const Track = styled.div`
 const cardBase = `
   display: flex;
   flex-direction: column;
-  flex: 0 0 160px;
+  flex: 0 0 200px;
   cursor: pointer;
   text-decoration: none;
   border-radius: var(--radius-md);
@@ -161,16 +161,12 @@ const CardTitle = styled.p`
   text-transform: uppercase;
   color: var(--color-on-surface-variant);
   line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
   padding: var(--space-2) var(--space-2);
 `
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const SCROLL_STEP = 516 // ~3 cards at 160px + gap
+const SCROLL_STEP = 632 // ~3 cards at 200px + gap
 
 export function SeriesTicketsAccordion({ seasonYear, currentItemId, onItemClick }) {
   const [open, setOpen] = useState(true)

@@ -590,10 +590,6 @@ export default function ItemDetail() {
               <SetMembersAccordion setId={item.set_id} currentItemId={id} />
             )}
 
-            {item.item_type === 'ticket' && gameContext?.season_year && gameContext?.series_game_number != null && (
-              <SeriesTicketsAccordion seasonYear={gameContext.season_year} currentItemId={id} />
-            )}
-
             <DuplicateCopiesSection itemId={id} />
           </DetailCol>
         </Grid>
@@ -606,6 +602,11 @@ export default function ItemDetail() {
               {item.description}
             </p>
           </section>
+        )}
+
+        {/* ── Series tickets (full width, below description) ── */}
+        {item.item_type === 'ticket' && gameContext?.season_year && gameContext?.series_game_number != null && (
+          <SeriesTicketsAccordion seasonYear={gameContext.season_year} currentItemId={id} />
         )}
       </ContentWrap>
 
