@@ -1,21 +1,24 @@
 -- ============================================================
 -- 0034_legendary_museum_title.sql
--- Add museum_title to legendary_context.
--- Displayed on the Museum/Timeline page instead of the full
--- item title. Follows the short naming convention:
+-- Add museum_title to items table (not legendary_context).
+-- Applies to ALL items, not just legendary ones — any item
+-- on the Museum page can have a short display title.
+--
+-- Naming convention:
 --   non-autographed: [tidbit] — Ticket Stub / Full Ticket / Program / etc.
---   autographed:     [tidbit] — Ticket Stub — Signed by [Name(s)]
--- If NULL, the museum page falls back to items.title.
+--   autographed:     [tidbit] — Ticket Stub / Full Ticket — Signed by [Name(s)]
+--
+-- The museum page displays museum_title when present, falling
+-- back to title. The item detail page always shows title unchanged.
 -- ============================================================
 
-alter table public.legendary_context
+alter table public.items
   add column if not exists museum_title text;
 
-comment on column public.legendary_context.museum_title is
-  'Short title shown on the Museum/Timeline page. Follows the tidbit naming convention. Falls back to items.title when NULL.';
+comment on column public.items.museum_title is
+  'Short tidbit-style title shown on the Museum/Timeline page. Falls back to items.title when NULL. Full title still shown on item detail page.';
 
--- Expose in item_gallery view -------------------------------------------------------
--- Re-create item_gallery to include legendary_museum_title alongside existing fields.
+-- Rebuild item_gallery to expose museum_title ----------------------------------------
 
 drop view if exists public.item_gallery;
 
@@ -23,6 +26,7 @@ create view public.item_gallery as
   select
     i.id,
     i.title,
+    i.museum_title,
     i.description,
     i.reference_link,
     i.price,
@@ -39,8 +43,12 @@ create view public.item_gallery as
     i.created_at,
 
     img.cloudinary_url as primary_image_url,
-    s.name             as featured_signer,
-    sc.signatory_count,
+
+    -- Single featured signer (LATERAL prevents duplicates when multiple is_featured rows exist)
+    s.name as featured_signer,
+
+    -- Total signatory count for "+ N others" display
+    coalesce(sig_count.cnt, 0) as signatory_count,
 
     coalesce(
       array_agg(distinct t.slug) filter (where t.slug is not null),
@@ -64,8 +72,7 @@ create view public.item_gallery as
 
     i.is_duplicate,
 
-    lc.event_title       as legendary_event_title,
-    lc.museum_title      as legendary_museum_title
+    lc.event_title as legendary_event_title
 
   from public.items i
   left join public.images img
@@ -74,13 +81,14 @@ create view public.item_gallery as
     select name
     from public.signatories
     where item_id = i.id and is_featured = true
+    order by display_order
     limit 1
   ) s on true
   left join lateral (
-    select count(*)::integer as signatory_count
+    select count(*)::int as cnt
     from public.signatories
     where item_id = i.id
-  ) sc on true
+  ) sig_count on true
   left join public.item_tags it
     on it.item_id = i.id
   left join public.tags t
@@ -119,18 +127,19 @@ create view public.item_gallery as
       select game_context_id from public.item_bases           where item_id = i.id
       union all
       select game_context_id from public.item_gloves          where item_id = i.id
+      union all
+      select game_context_id from public.item_stadium_giveaways where item_id = i.id
     ) d
     join public.game_context gc2 on gc2.id = d.game_context_id
     where d.game_context_id is not null
     limit 1
   ) gc on true
-  left join public.legendary_context lc
-    on lc.item_id = i.id
+  left join public.legendary_context lc on lc.item_id = i.id
   where i.is_visible = true and i.is_baseball = true
   group by
-    i.id, i.item_type, i.season_year, img.cloudinary_url, s.name, sc.signatory_count,
-    st.name, c.cert_service, c.cert_id, c.item_grade, c.auto_grade,
+    i.id, i.item_type, i.season_year, img.cloudinary_url, s.name, sig_count.cnt, st.name,
+    c.cert_service, c.cert_id, c.item_grade, c.auto_grade,
     gc.game_date, gc.series_game_number,
-    lc.event_title, lc.museum_title;
+    lc.event_title;
 
-comment on view public.item_gallery is 'Denormalised view for the public gallery — one row per item with tag_slugs, team_slugs, season_year, primary cert, is_legendary, game_date, series_game_number, and legendary_museum_title aggregated.';
+comment on view public.item_gallery is 'Denormalised view for the public gallery — one row per item with museum_title, tag_slugs, team_slugs, season_year, signatory_count, primary cert, is_legendary, game_date, series_game_number, and legendary_event_title aggregated.';
