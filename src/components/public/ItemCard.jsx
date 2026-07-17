@@ -138,9 +138,10 @@ export function ItemCard({ item }) {
 
   // Show both grades when an autograph grade exists alongside a cert grade,
   // e.g. "PSA/DNA AA / Auto NM-MT 8". Falls back gracefully when only one exists.
+  // Auth-only certs (JSA, etc. — no grade at all) still get a badge: "[SERVICE] AUTH".
   const gradeLabel = (() => {
-    if (!cert_grade && !auto_grade) return null
     const service = cert_service ?? cert_grader ?? ''
+    if (!cert_grade && !auto_grade) return service ? `${service} AUTH`.trim() : null
     let grade
     if (cert_grade && auto_grade && !cert_grade.toLowerCase().includes('auto')) {
       grade = `${displayGrade(cert_grade)} / Auto ${displayGrade(auto_grade)}`
@@ -176,7 +177,7 @@ export function ItemCard({ item }) {
           </ImagePlaceholder>
         )}
         {for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
-        {gradeLabel && <GradeBadge {...gradeColors(gradeColorSource)}>{gradeLabel}</GradeBadge>}
+        {gradeLabel && <GradeBadge {...gradeColors(gradeColorSource, cert_service)}>{gradeLabel}</GradeBadge>}
       </ImageWrapper>
 
       <Body>

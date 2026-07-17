@@ -12,7 +12,7 @@ import { ImageLightbox } from '../../components/ImageLightbox'
 import { SetMembersAccordion } from '../../components/SetMembersAccordion'
 import { SeriesTicketsAccordion } from '../../components/SeriesTicketsAccordion'
 import { DuplicateCopiesSection } from '../../components/public/DuplicateCopiesSection'
-import { gradeColors, gradeToNumber, displayGrade } from '../../utils/gradeColors'
+import { gradeColors, displayGrade } from '../../utils/gradeColors'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -526,9 +526,9 @@ export default function ItemDetail() {
               {certifications.map(cert => (
                 <DataRow key={cert.id}>
                   <DataLabel>{cert.cert_service} Certification</DataLabel>
-                  <DataValue style={{ color: gradeToNumber(gradeColorSource(cert)) === -1 ? 'var(--color-on-surface)' : gradeColors(gradeColorSource(cert)).$fg }}>
+                  <GradeBadge {...gradeColors(gradeColorSource(cert), cert.cert_service)}>
                     {formatGradeLabel(cert) ?? 'Authenticated'}
-                  </DataValue>
+                  </GradeBadge>
                   {cert.cert_id && (
                     cert.cert_link ? (
                       <DataValue
