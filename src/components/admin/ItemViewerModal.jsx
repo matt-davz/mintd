@@ -1982,11 +1982,11 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
               )}
 
               {/* ── Series tickets ── */}
-              {!isEditing && item?.item_type === 'ticket' && item?.season_year && item?.series_game_number != null && (
+              {!isEditing && item?.item_type === 'ticket' && gameContext?.season_year && gameContext?.series_game_number != null && (
                 <Section>
-                  <SectionLabel>{item.season_year} World Series Tickets</SectionLabel>
+                  <SectionLabel>{gameContext.season_year} World Series Tickets</SectionLabel>
                   <SeriesTicketsAccordion
-                    seasonYear={item.season_year}
+                    seasonYear={gameContext.season_year}
                     currentItemId={itemId}
                     onItemClick={onOpenItem}
                   />

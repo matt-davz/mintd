@@ -590,8 +590,8 @@ export default function ItemDetail() {
               <SetMembersAccordion setId={item.set_id} currentItemId={id} />
             )}
 
-            {item.item_type === 'ticket' && item.season_year && item.series_game_number != null && (
-              <SeriesTicketsAccordion seasonYear={item.season_year} currentItemId={id} />
+            {item.item_type === 'ticket' && gameContext?.season_year && gameContext?.series_game_number != null && (
+              <SeriesTicketsAccordion seasonYear={gameContext.season_year} currentItemId={id} />
             )}
 
             <DuplicateCopiesSection itemId={id} />
