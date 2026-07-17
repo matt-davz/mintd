@@ -144,8 +144,8 @@ Authentication and grading certificates. One item can have multiple certs.
 | `cert_service` | `text` | NOT NULL | `PSA`, `PSA/DNA`, `BGS`, `JSA`, `SGC`, `Steiner`, `CGC`, `MLB Auth`, `Beckett`, `K&D` |
 | `cert_id` | `text` | | The cert number |
 | `cert_link` | `text` | | Verification URL |
-| `item_grade` | `text` | | e.g. `NM-MT 8`, `Authentic` |
-| `auto_grade` | `text` | | e.g. `GEM MT 10` — null if not autograph cert |
+| `item_grade` | `text` | | The cert/item grade, e.g. `NM-MT 8`, `AA` (Authentic Altered), `Authentic` |
+| `auto_grade` | `text` | | Autograph/signature grade, e.g. `NM-MT 8`, `GEM MT 10` — null if not autograph cert. When both `item_grade` and `auto_grade` are present, display as `[item_grade] / Auto [auto_grade]` |
 | `is_autograph_cert` | `boolean` | NOT NULL, default `false` | |
 | `created_at` | `timestamptz` | NOT NULL, default `now()` | |
 
@@ -463,6 +463,8 @@ Most recent population snapshot per cert. **Always query this instead of `popula
 Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, team slugs array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
 **Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
+
+**Grade display:** Use `displayGrade()` from `src/utils/gradeColors.js` when rendering `cert_grade` or `auto_grade` in the UI. Key mappings: `AA` → `Auth Alt`, `Authentic`/`Auth`/`AUTH` → `Auth`. When both `cert_grade` and `auto_grade` are present on an autographed item, display as `[cert_grade] / Auto [auto_grade]` (e.g. `Auth Alt / Auto NM-MT 8`). Use `auto_grade` for color-coding when both exist (it’s the numeric grade).
 
 `game_date` and `series_game_number` come from `game_context` via a lateral join across all 9 game-context detail tables (`item_tickets`, `item_baseballs`, `item_bats`, `item_jerseys`, `item_photos`, `item_programs`, `item_bases`, `item_gloves`, `item_stadium_giveaways`). Both are `NULL` for items without game context (cards, miscellaneous, non-game items). Used by the Timeline to sort by exact game date rather than `season_year` alone.
 

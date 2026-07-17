@@ -84,6 +84,12 @@ src/
 │   ├── useItemDuplicates.js    # Fetches item_duplicates links (both directions) + add/remove/notes mutations
 │   ├── useTags.js
 │   └── useTeams.js             # Fetches all teams from the teams table
+├── utils/
+│   └── gradeColors.js          # Grade display utilities:
+│                               #   gradeToNumber(grade) → float | -1
+│                               #   gradeBucket(grade) → 'authentic' | '8' | null  (for filter bucketing)
+│                               #   gradeColors(grade) → { $bg, $fg }  (green tier colors by numeric grade)
+│                               #   displayGrade(grade) → human label  ('AA'→'Auth Alt', 'Authentic'→'Auth', else passthrough)
 ├── styles/
 │   └── GlobalStyles.js         # Design tokens + global CSS
 └── main.jsx                    # React Router + Clerk provider setup

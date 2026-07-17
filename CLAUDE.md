@@ -172,6 +172,14 @@ Sort is single-select (dropdown). One sort active at a time. Empty string = defa
 
 `gradeToNumber` extracts the trailing number from PSA-style grade strings (`"NM-MT 8"` → 8, `"GEM MT 10"` → 10, `"Authentic"` → -1 sorts to the bottom).
 
+**Grade display utilities** (`src/utils/gradeColors.js`):
+- `gradeToNumber(grade)` — extract numeric value for sorting/coloring
+- `gradeBucket(grade)` — collapse to filter bucket (`'8'`, `'authentic'`, or `null`)
+- `gradeColors(grade)` — return `{ $bg, $fg }` green-tier colors
+- `displayGrade(grade)` — human-readable label. Always use this when rendering raw grade strings from the DB: `AA` → `Auth Alt`, `Authentic`/`Auth`/`AUTH` → `Auth`, everything else passes through unchanged.
+
+**Combined grade display (autographed items):** When an item has both `cert_grade` (item/authenticity grade) and `auto_grade` (signature grade), display as `[displayGrade(cert_grade)] / Auto [displayGrade(auto_grade)]` — e.g. `Auth Alt / Auto NM-MT 8`. For color-coding, prefer `auto_grade` when both exist (it's the numeric one).
+
 ### Active filter pills
 
 Active conditions render as removable pills **inside the search bar**. Each pill has a label and an `onRemove` callback. The `activePills` array in each filter component aggregates them:
