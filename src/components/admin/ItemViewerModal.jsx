@@ -1505,7 +1505,10 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                     <BadgeRow>
                       {certifications[0] && (
                         <GradeBadge>
-                          {certifications[0].cert_service} {certifications[0].item_grade ?? certifications[0].auto_grade ?? ''}
+                          {certifications[0].cert_service}{' '}
+                          {certifications[0].item_grade && certifications[0].auto_grade && !certifications[0].item_grade.toLowerCase().includes('auto')
+                            ? `${certifications[0].item_grade} / Auto ${certifications[0].auto_grade}`
+                            : certifications[0].item_grade ?? certifications[0].auto_grade ?? ''}
                         </GradeBadge>
                       )}
                       {item.for_sale && <ForSaleTag>For Sale</ForSaleTag>}
