@@ -35,16 +35,13 @@ export function gradeBucket(grade) {
 }
 
 // Maps raw PSA/grading-service grade codes to clean human-readable labels.
-// AA = Authentic Altered (not just Authentic), Auth/Authentic/AUTH = Auth.
+// Grade codes from PSA are kept as-is (e.g. AA stays AA — Authentic Altered).
+// Only verbose spellings of 'Authentic' are shortened to 'Auth'.
 // All other grades pass through unchanged.
 export function displayGrade(grade) {
   if (!grade) return grade
   const g = String(grade).trim()
-  // Exact code 'AA' → Auth Alt
-  if (g === 'AA') return 'Auth Alt'
-  // Verbose AA variants
-  if (/^AA[:\s]/i.test(g) || /authentic[\s-]*altered/i.test(g)) return 'Auth Alt'
-  // Authentic / Auth / AUTH (but not 'Authentic Auto' which has more words)
+  // Authentic / Auth / AUTH (standalone only — not 'Authentic Auto' etc.)
   if (/^auth(entic)?$/i.test(g)) return 'Auth'
   return g
 }

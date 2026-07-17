@@ -176,7 +176,7 @@ Sort is single-select (dropdown). One sort active at a time. Empty string = defa
 - `gradeToNumber(grade)` — extract numeric value for sorting/coloring
 - `gradeBucket(grade)` — collapse to filter bucket (`'8'`, `'authentic'`, or `null`)
 - `gradeColors(grade)` — return `{ $bg, $fg }` green-tier colors
-- `displayGrade(grade)` — human-readable label. Always use this when rendering raw grade strings from the DB: `AA` → `Auth Alt`, `Authentic`/`Auth`/`AUTH` → `Auth`, everything else passes through unchanged.
+- `displayGrade(grade)` — human-readable label. Always use this when rendering raw grade strings from the DB. PSA grade codes are kept as-is (`AA` stays `AA` — it means Authentic Altered). Only standalone `Authentic`/`Auth`/`AUTH` is shortened to `Auth`. Everything else passes through unchanged.
 
 **Combined grade display (autographed items):** When an item has both `cert_grade` (item/authenticity grade) and `auto_grade` (signature grade), display as `[displayGrade(cert_grade)] / Auto [displayGrade(auto_grade)]` — e.g. `Auth Alt / Auto NM-MT 8`. For color-coding, prefer `auto_grade` when both exist (it's the numeric one).
 
