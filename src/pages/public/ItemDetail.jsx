@@ -169,6 +169,20 @@ const ForSaleBadge = styled.span`
   text-transform: uppercase;
   padding: 0.25rem 0.75rem;
   margin-bottom: var(--space-4);
+  margin-right: var(--space-2);
+`
+
+const GradeBadge = styled.span`
+  display: inline-block;
+  background-color: ${p => p.$bg ?? 'var(--color-secondary-container)'};
+  color: ${p => p.$fg ?? 'var(--color-secondary-fixed)'};
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.625rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.75rem;
+  margin-bottom: var(--space-4);
 `
 
 const DataRow = styled.div`
@@ -391,6 +405,25 @@ const StatusText = styled.p`
   text-align: center;
 `
 
+// Combines a cert's item_grade (e.g. authenticity grade) and auto_grade (signature
+// grade) into a single display string, e.g. "Authentic / Auto 8". Falls back to
+// whichever grade is present when only one exists.
+function formatGradeLabel(cert) {
+  if (!cert) return null
+  const { item_grade, auto_grade } = cert
+  if (item_grade && auto_grade && !item_grade.toLowerCase().includes('auto')) {
+    return `${item_grade} / Auto ${auto_grade}`
+  }
+  return item_grade ?? auto_grade ?? null
+}
+
+// auto_grade is the numeric grade when both are present (item_grade is often a
+// non-numeric authenticity code), so prefer it for color-coding.
+function gradeColorSource(cert) {
+  if (!cert) return null
+  return cert.item_grade && cert.auto_grade ? cert.auto_grade : (cert.item_grade ?? cert.auto_grade)
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 
@@ -416,13 +449,6 @@ export default function ItemDetail() {
   const psaCerts = certifications.filter(c => ['PSA', 'PSA/DNA'].includes(c.cert_service))
   const firstPsaCert = psaCerts[0]
   const pop = firstPsaCert ? population.find(p => p.cert_id === firstPsaCert.id) : null
-
-  const badgeCert = certifications.find(c => c.cert_service && c.cert_service.toLowerCase() !== 'unknown')
-  const gradeLabel = badgeCert
-    ? `${badgeCert.cert_service} ${badgeCert.item_grade && badgeCert.auto_grade && !badgeCert.item_grade.toLowerCase().includes('auto')
-        ? `${badgeCert.item_grade} / Auto ${badgeCert.auto_grade}`
-        : badgeCert.item_grade ?? badgeCert.auto_grade ?? ''}`.trim()
-    : null
 
   const related = allItems.filter(i => i.id !== id).slice(0, 3)
 
@@ -498,8 +524,8 @@ export default function ItemDetail() {
               {certifications.map(cert => (
                 <DataRow key={cert.id}>
                   <DataLabel>{cert.cert_service} Certification</DataLabel>
-                  <DataValue style={{ color: gradeToNumber(cert.item_grade ?? cert.auto_grade) === -1 ? 'var(--color-on-surface)' : gradeColors(cert.item_grade ?? cert.auto_grade).$fg }}>
-                    {cert.item_grade ?? cert.auto_grade ?? 'Authenticated'}
+                  <DataValue style={{ color: gradeToNumber(gradeColorSource(cert)) === -1 ? 'var(--color-on-surface)' : gradeColors(gradeColorSource(cert)).$fg }}>
+                    {formatGradeLabel(cert) ?? 'Authenticated'}
                   </DataValue>
                   {cert.cert_id && (
                     cert.cert_link ? (
