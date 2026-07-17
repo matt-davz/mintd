@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { withAutoOrient } from '../../lib/cloudinary'
-import { gradeColors } from '../../utils/gradeColors'
+import { gradeColors, displayGrade } from '../../utils/gradeColors'
 
 const Card = styled(Link)`
   display: flex;
@@ -143,9 +143,9 @@ export function ItemCard({ item }) {
     const service = cert_service ?? cert_grader ?? ''
     let grade
     if (cert_grade && auto_grade && !cert_grade.toLowerCase().includes('auto')) {
-      grade = `${cert_grade} / Auto ${auto_grade}`
+      grade = `${displayGrade(cert_grade)} / Auto ${displayGrade(auto_grade)}`
     } else {
-      grade = cert_grade ?? auto_grade
+      grade = displayGrade(cert_grade ?? auto_grade)
     }
     return `${service} ${grade}`.trim()
   })()

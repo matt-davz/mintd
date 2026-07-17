@@ -11,7 +11,7 @@ import { ItemTypeDetails } from '../../components/itemDetail/ItemTypeDetails'
 import { ImageLightbox } from '../../components/ImageLightbox'
 import { SetMembersAccordion } from '../../components/SetMembersAccordion'
 import { DuplicateCopiesSection } from '../../components/public/DuplicateCopiesSection'
-import { gradeColors, gradeToNumber } from '../../utils/gradeColors'
+import { gradeColors, gradeToNumber, displayGrade } from '../../utils/gradeColors'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -412,9 +412,10 @@ function formatGradeLabel(cert) {
   if (!cert) return null
   const { item_grade, auto_grade } = cert
   if (item_grade && auto_grade && !item_grade.toLowerCase().includes('auto')) {
-    return `${item_grade} / Auto ${auto_grade}`
+    return `${displayGrade(item_grade)} / Auto ${displayGrade(auto_grade)}`
   }
-  return item_grade ?? auto_grade ?? null
+  const raw = item_grade ?? auto_grade ?? null
+  return raw ? displayGrade(raw) : null
 }
 
 // auto_grade is the numeric grade when both are present (item_grade is often a

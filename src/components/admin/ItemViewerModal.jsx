@@ -8,6 +8,7 @@ import {
   EMPTY_DETAIL, EMPTY_GAME_CONTEXT,
   isFormEmpty, serializeForm,
 } from '../../lib/itemTypeConfig'
+import { displayGrade } from '../../utils/gradeColors'
 import { CertForm } from './CertForm'
 import { SignatoryForm } from './SignatoryForm'
 import { ImageUploader } from './ImageUploader'
@@ -1507,8 +1508,8 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                         <GradeBadge>
                           {certifications[0].cert_service}{' '}
                           {certifications[0].item_grade && certifications[0].auto_grade && !certifications[0].item_grade.toLowerCase().includes('auto')
-                            ? `${certifications[0].item_grade} / Auto ${certifications[0].auto_grade}`
-                            : certifications[0].item_grade ?? certifications[0].auto_grade ?? ''}
+                            ? `${displayGrade(certifications[0].item_grade)} / Auto ${displayGrade(certifications[0].auto_grade)}`
+                            : displayGrade(certifications[0].item_grade ?? certifications[0].auto_grade ?? '')}
                         </GradeBadge>
                       )}
                       {item.for_sale && <ForSaleTag>For Sale</ForSaleTag>}
