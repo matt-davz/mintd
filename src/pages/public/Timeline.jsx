@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import styled, { keyframes } from 'styled-components'
 import { useItems } from '../../hooks/useItems'
+import { useTimelineGameContexts } from '../../hooks/useTimelineGameContexts'
 import { withAutoOrient } from '../../lib/cloudinary'
 import { gradeColors } from '../../utils/gradeColors'
 
@@ -319,25 +320,49 @@ const StopDot = styled.div`
   z-index: 3;
 `
 
-const YearLabel = styled.span`
+const DateBlock = styled.div`
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  white-space: nowrap;
+  z-index: 2;
+`
+
+const DateBlockBelow = styled(DateBlock)`
+  top: calc(50% + 14px);
+`
+
+const DateBlockAbove = styled(DateBlock)`
+  bottom: calc(50% + 14px);
+`
+
+const DateText = styled.span`
   font-family: var(--font-mono);
   font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--color-primary);
-  white-space: nowrap;
-  z-index: 2;
 `
 
-const YearBelow = styled(YearLabel)`
-  top: calc(50% + 14px);
+const GameLabel = styled.span`
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-secondary-fixed-dim);
 `
 
-const YearAbove = styled(YearLabel)`
-  bottom: calc(50% + 14px);
+const ScoreLine = styled.span`
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-on-surface-variant);
 `
 
 const Connector = styled.div`
@@ -682,11 +707,13 @@ function TimelineCard({ item }) {
     ? `${item.cert_grader ?? ''} ${item.cert_grade}`.trim()
     : null
 
+  const displayTitle = item.museum_title || item.title
+
   return (
     <>
       {tooltip && (
         <CursorTooltip style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}>
-          {item.title}
+          {displayTitle}
         </CursorTooltip>
       )}
       <CardLink
@@ -706,7 +733,7 @@ function TimelineCard({ item }) {
           {gradeLabel && <GradeBadge {...gradeColors(item.cert_grade)}>{gradeLabel}</GradeBadge>}
         </CardImg>
         <CardBody>
-          <CardTitle>{item.title}</CardTitle>
+          <CardTitle>{displayTitle}</CardTitle>
           {item.item_type && <CardType>{item.item_type}</CardType>}
         </CardBody>
       </CardLink>
@@ -744,6 +771,7 @@ function useMobile() {
 
 export default function Timeline() {
   const { items, loading, error } = useItems()
+  const gameContextsByItemId = useTimelineGameContexts(items ?? [])
   const isMobile = useMobile()
   const scrollRef = useRef(null)
   const scrubberRef = useRef(null)
@@ -883,7 +911,7 @@ export default function Timeline() {
                     )}
                   </MobileCardImg>
                   <MobileCardBody>
-                    <MobileCardTitle>{item.title}</MobileCardTitle>
+                    <MobileCardTitle>{item.museum_title || item.title}</MobileCardTitle>
                     {item.item_type && <MobileCardType>{item.item_type}</MobileCardType>}
                     {gradeLabel && <MobileGradeBadge {...gradeColors(item.cert_grade)}>{gradeLabel}</MobileGradeBadge>}
                   </MobileCardBody>
@@ -956,7 +984,7 @@ export default function Timeline() {
                               )}
                             </CardImg>
                             <CardBody>
-                              <CardTitle>{item.title}</CardTitle>
+                              <CardTitle>{item.museum_title || item.title}</CardTitle>
                               <LegendaryYearLabel>{dateLabel(item)}</LegendaryYearLabel>
                               {item.item_type && <CardType style={{ marginLeft: '0.4rem' }}>{item.item_type}</CardType>}
                             </CardBody>
@@ -975,7 +1003,22 @@ export default function Timeline() {
                       <StopDot />
                       {isTop ? (
                         <>
-                          <YearBelow>{dateLabel(item)}</YearBelow>
+                          <DateBlockBelow>
+                            {item.series_game_number != null && (
+                              <GameLabel>Game {item.series_game_number}</GameLabel>
+                            )}
+                            <DateText>{dateLabel(item)}</DateText>
+                            {(() => {
+                              const gc = gameContextsByItemId[item.id]
+                              if (!gc || gc.home_score == null || gc.away_score == null) return null
+                              return (
+                                <>
+                                  <ScoreLine>{gc.away_team}: {gc.away_score}</ScoreLine>
+                                  <ScoreLine>{gc.home_team}: {gc.home_score}</ScoreLine>
+                                </>
+                              )
+                            })()}
+                          </DateBlockBelow>
                           <ConnectorUp />
                           <CardAbove>
                             <TimelineCard item={item} />
@@ -983,7 +1026,22 @@ export default function Timeline() {
                         </>
                       ) : (
                         <>
-                          <YearAbove>{dateLabel(item)}</YearAbove>
+                          <DateBlockAbove>
+                            {item.series_game_number != null && (
+                              <GameLabel>Game {item.series_game_number}</GameLabel>
+                            )}
+                            <DateText>{dateLabel(item)}</DateText>
+                            {(() => {
+                              const gc = gameContextsByItemId[item.id]
+                              if (!gc || gc.home_score == null || gc.away_score == null) return null
+                              return (
+                                <>
+                                  <ScoreLine>{gc.away_team}: {gc.away_score}</ScoreLine>
+                                  <ScoreLine>{gc.home_team}: {gc.home_score}</ScoreLine>
+                                </>
+                              )
+                            })()}
+                          </DateBlockAbove>
                           <ConnectorDown />
                           <CardBelow>
                             <TimelineCard item={item} />
