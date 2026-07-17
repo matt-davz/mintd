@@ -21,7 +21,7 @@ src/
 │   │   └── Layout.jsx           # Public layout shell: Header + Outlet + Footer
 │   ├── public/
 │   │   ├── ItemCard.jsx
-│   │   ├── SeriesTicketsAccordion.jsx # Accordion + carousel of other tickets from the same World Series year — shown on ticket detail pages that have a series_game_number. Uses useSeriesTickets hook.
+│   │   ├── SeriesTicketsAccordion.jsx # Accordion + carousel of other tickets from the same World Series year — shown on ticket detail pages (public + admin modal) that have a series_game_number. Supports optional onItemClick prop for in-modal navigation (admin). Uses useSeriesTickets hook.
 │   │   ├── FilterBar.jsx       # Advanced search: keyword + multi-select type/team/certService/grade pills in a collapsible accordion (each pill section expands/collapses independently)
 │   │   ├── SignatoryList.jsx
 │   │   ├── DuplicateCopiesSection.jsx # Accordion listing an item's linked duplicates (public item detail)
