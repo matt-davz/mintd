@@ -44,6 +44,7 @@
 - [x] PSA population display — Higher / Same / Lower table, monospace numbers
 - [x] Image column — single image shows plain (no carousel); multiple images use carousel with thumbs. Fullscreen lightbox on click.
 - [x] Type-specific detail display — `components/itemDetail/` with per-type display components + game context
+- [x] **Item viewer modal on Museum/Timeline** — clicking a timeline card opens a read-only modal overlay instead of navigating to `/item/:id`. Glass card design (image left, details right on desktop; stacked on mobile). Shows grade/pop/cert stats, signatories, type details, description, series tickets accordion. "View Full Details" button links to full page. Close via X / Escape / click-outside. Body scroll lock. Keyboard accessible.
 - [ ] Verify `item_gallery` cert data works correctly with edge cases (0 certs, multiple certs)
 
 ### Contact (`/contact`)

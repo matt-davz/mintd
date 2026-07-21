@@ -21,6 +21,7 @@ src/
 │   │   └── Layout.jsx           # Public layout shell: Header + Outlet + Footer
 │   ├── public/
 │   │   ├── ItemCard.jsx
+│   │   ├── ItemViewerModal.jsx  # Read-only item modal for Museum/Timeline page — glass card overlay, image + details side-by-side (desktop) or stacked (mobile), grade/pop/cert stats grid, signatories, type details, lightbox, "View Full Details" link to /item/:id
 │   │   ├── SeriesTicketsAccordion.jsx # Accordion + carousel of other tickets from the same World Series year — shown on ticket detail pages (public + admin modal) that have a series_game_number. Supports optional onItemClick prop for in-modal navigation (admin). Uses useSeriesTickets hook.
 │   │   ├── FilterBar.jsx       # Advanced search: keyword + multi-select type/team/certService/grade pills in a collapsible accordion (each pill section expands/collapses independently)
 │   │   ├── SignatoryList.jsx
