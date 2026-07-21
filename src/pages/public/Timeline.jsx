@@ -1,10 +1,10 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
 import styled, { keyframes } from 'styled-components'
 import { useItems } from '../../hooks/useItems'
 import { useTimelineGameContexts } from '../../hooks/useTimelineGameContexts'
 import { withAutoOrient } from '../../lib/cloudinary'
 import { gradeColors } from '../../utils/gradeColors'
+import { ItemViewerModal } from '../../components/public/ItemViewerModal'
 
 const STOP_WIDTH = 320
 const CARD_WIDTH = 200
@@ -265,7 +265,7 @@ const LegendaryCardWrap = styled.div`
   overflow: visible;
 `
 
-const LegendaryCardLink = styled(Link)`
+const LegendaryCardLink = styled.div`
   position: relative;
   z-index: 1;
   display: flex;
@@ -276,6 +276,7 @@ const LegendaryCardLink = styled(Link)`
   border: 1px solid rgba(59, 130, 246, 0.4);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  cursor: pointer;
   animation: ${pulseGlow} 4s ease-in-out infinite;
   transition: transform 0.35s;
 
@@ -404,7 +405,7 @@ const CardBelow = styled.div`
 
 // ── Timeline card ─────────────────────────────────────────────────────────────
 
-const CardLink = styled(Link)`
+const CardLink = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -413,6 +414,7 @@ const CardLink = styled(Link)`
   border: 1px solid rgba(173, 198, 255, 0.12);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  cursor: pointer;
   transition: border-color 0.35s, transform 0.35s;
 
   &:hover {
@@ -618,13 +620,14 @@ const MobileYear = styled.div`
   margin-bottom: 0.625rem;
 `
 
-const MobileCard = styled(Link)`
+const MobileCard = styled.div`
   display: flex;
   gap: 0;
   background: rgba(20, 20, 20, 0.85);
   border: 1px solid rgba(173, 198, 255, 0.12);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  cursor: pointer;
   transition: border-color 0.25s;
 
   &:hover { border-color: rgba(173, 198, 255, 0.4); }
@@ -700,7 +703,15 @@ const StateBox = styled.div`
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function TimelineCard({ item }) {
+// Cards are clickable divs (not links) so Enter/Space also activate them.
+function handleActivateKey(e, onActivate) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault()
+    onActivate()
+  }
+}
+
+function TimelineCard({ item, onSelect }) {
   const [tooltip, setTooltip] = useState(null)
 
   const gradeLabel = item.cert_grade
@@ -717,7 +728,10 @@ function TimelineCard({ item }) {
         </CursorTooltip>
       )}
       <CardLink
-        to={`/item/${item.id}`}
+        role="button"
+        tabIndex={0}
+        onClick={onSelect}
+        onKeyDown={(e) => handleActivateKey(e, onSelect)}
         onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY })}
         onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY })}
         onMouseLeave={() => setTooltip(null)}
@@ -779,6 +793,7 @@ export default function Timeline() {
   const [progress, setProgress] = useState(0)
   const [activeDecade, setActiveDecade] = useState(null)
   const [centeredIdx, setCenteredIdx] = useState(0)
+  const [selectedItemId, setSelectedItemId] = useState(null)
   const timelineItemsRef = useRef([])
 
   const timelineItems = useMemo(() => {
@@ -904,7 +919,12 @@ export default function Timeline() {
               <MobileStop key={item.id}>
                 <MobileDot />
                 <MobileYear>{dateLabel(item)}</MobileYear>
-                <MobileCard to={`/item/${item.id}`}>
+                <MobileCard
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedItemId(item.id)}
+                  onKeyDown={(e) => handleActivateKey(e, () => setSelectedItemId(item.id))}
+                >
                   <MobileCardImg>
                     {item.primary_image_url && (
                       <img src={withAutoOrient(item.primary_image_url)} alt={item.title} loading="lazy" />
@@ -970,7 +990,12 @@ export default function Timeline() {
                       >
                         <LegendaryStopDot />
                         <LegendaryCardWrap>
-                          <LegendaryCardLink to={`/item/${item.id}`}>
+                          <LegendaryCardLink
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setSelectedItemId(item.id)}
+                            onKeyDown={(e) => handleActivateKey(e, () => setSelectedItemId(item.id))}
+                          >
                             {item.legendary_event_title && (
                               <LegendaryEventTitle>{item.legendary_event_title}</LegendaryEventTitle>
                             )}
@@ -1021,7 +1046,7 @@ export default function Timeline() {
                           </DateBlockBelow>
                           <ConnectorUp />
                           <CardAbove>
-                            <TimelineCard item={item} />
+                            <TimelineCard item={item} onSelect={() => setSelectedItemId(item.id)} />
                           </CardAbove>
                         </>
                       ) : (
@@ -1044,7 +1069,7 @@ export default function Timeline() {
                           </DateBlockAbove>
                           <ConnectorDown />
                           <CardBelow>
-                            <TimelineCard item={item} />
+                            <TimelineCard item={item} onSelect={() => setSelectedItemId(item.id)} />
                           </CardBelow>
                         </>
                       )}
@@ -1066,6 +1091,10 @@ export default function Timeline() {
             </ScrubberTrack>
           </ScrubberSection>
         </>
+      )}
+
+      {selectedItemId && (
+        <ItemViewerModal itemId={selectedItemId} onClose={() => setSelectedItemId(null)} />
       )}
     </Page>
   )
