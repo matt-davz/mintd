@@ -8,6 +8,7 @@ import {
   EMPTY_DETAIL, EMPTY_GAME_CONTEXT,
   isFormEmpty, serializeForm,
 } from '../../lib/itemTypeConfig'
+import { displayGrade } from '../../utils/gradeColors'
 import { CertForm } from './CertForm'
 import { SignatoryForm } from './SignatoryForm'
 import { ImageUploader } from './ImageUploader'
@@ -17,6 +18,7 @@ import { BoxScoreDisplay } from '../BoxScoreDisplay'
 import { TYPE_FIELDS_MAP } from './itemTypes'
 import { ImageLightbox } from '../ImageLightbox'
 import { SetMembersAccordion } from '../SetMembersAccordion'
+import { SeriesTicketsAccordion } from '../SeriesTicketsAccordion'
 import { DuplicatesSection } from './DuplicatesSection'
 
 // ─── Reconcile helpers ────────────────────────────────────────────────────────
@@ -1505,7 +1507,10 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                     <BadgeRow>
                       {certifications[0] && (
                         <GradeBadge>
-                          {certifications[0].cert_service} {certifications[0].item_grade ?? certifications[0].auto_grade ?? ''}
+                          {certifications[0].cert_service}{' '}
+                          {certifications[0].item_grade && certifications[0].auto_grade && !certifications[0].item_grade.toLowerCase().includes('auto')
+                            ? `${displayGrade(certifications[0].item_grade)} / Auto ${displayGrade(certifications[0].auto_grade)}`
+                            : displayGrade(certifications[0].item_grade ?? certifications[0].auto_grade ?? '')}
                         </GradeBadge>
                       )}
                       {item.for_sale && <ForSaleTag>For Sale</ForSaleTag>}
@@ -1970,6 +1975,18 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                   <SectionLabel>Set Members</SectionLabel>
                   <SetMembersAccordion
                     setId={item.set_id}
+                    currentItemId={itemId}
+                    onItemClick={onOpenItem}
+                  />
+                </Section>
+              )}
+
+              {/* ── Series tickets ── */}
+              {!isEditing && item?.item_type === 'ticket' && gameContext?.season_year && gameContext?.series_game_number != null && (
+                <Section>
+                  <SectionLabel>{gameContext.season_year} World Series Tickets</SectionLabel>
+                  <SeriesTicketsAccordion
+                    seasonYear={gameContext.season_year}
                     currentItemId={itemId}
                     onItemClick={onOpenItem}
                   />

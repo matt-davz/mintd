@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { withAutoOrient } from '../../lib/cloudinary'
-import { gradeColors } from '../../utils/gradeColors'
+import { gradeColors, displayGrade } from '../../utils/gradeColors'
 
 const Card = styled(Link)`
   display: flex;
@@ -131,12 +131,28 @@ export function ItemCard({ item }) {
     cert_grade,
     cert_grader,
     cert_number,
+    auto_grade,
+    cert_service,
     for_sale,
   } = item
 
-  const gradeLabel = cert_grade
-    ? `${cert_grader ?? ''} ${cert_grade}`.trim()
-    : null
+  // Show both grades when an autograph grade exists alongside a cert grade,
+  // e.g. "PSA/DNA AA / Auto NM-MT 8". Falls back gracefully when only one exists.
+  // Auth-only certs (JSA, etc. — no grade at all) still get a badge: "[SERVICE] AUTH".
+  const gradeLabel = (() => {
+    const service = cert_service ?? cert_grader ?? ''
+    if (!cert_grade && !auto_grade) return service ? `${service} AUTH`.trim() : null
+    let grade
+    if (cert_grade && auto_grade && !cert_grade.toLowerCase().includes('auto')) {
+      grade = `${displayGrade(cert_grade)} / Auto ${displayGrade(auto_grade)}`
+    } else {
+      grade = displayGrade(cert_grade ?? auto_grade)
+    }
+    return `${service} ${grade}`.trim()
+  })()
+
+  // Use auto_grade for color-coding when both exist (it's numeric; cert_grade is often 'AA')
+  const gradeColorSource = cert_grade && auto_grade ? auto_grade : (cert_grade ?? auto_grade)
 
   const signerDisplay = featured_signer
     ? signatory_count > 1
@@ -161,7 +177,7 @@ export function ItemCard({ item }) {
           </ImagePlaceholder>
         )}
         {for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
-        {gradeLabel && <GradeBadge {...gradeColors(cert_grade)}>{gradeLabel}</GradeBadge>}
+        {gradeLabel && <GradeBadge {...gradeColors(gradeColorSource, cert_service)}>{gradeLabel}</GradeBadge>}
       </ImageWrapper>
 
       <Body>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VAULT_CURATOR | Yankees Timeline - Modal Reference</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=Berkeley+Mono&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+body { background-color: #0e0e0e; color: #e5e2e1; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.glass-card {
+  background: rgba(28, 27, 27, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(173, 198, 255, 0.15);
+}
+</style>
+</head>
+<body>
+
+<!-- THIS IS THE MODAL DESIGN REFERENCE -->
+<!-- Key design elements to replicate in styled-components (no Tailwind): -->
+<!-- 1. Full-screen overlay: bg-surface-container-lowest/90 + backdrop-blur-md -->
+<!-- 2. Side-by-side layout: image left (50%), details right (50%) on desktop; stacked on mobile -->
+<!-- 3. Glass card container: glass-card style with rounded-xl, max-w-5xl, max-h-[90vh] -->
+<!-- 4. Close button: top-right, rounded-full, bg-surface-container-high -->
+<!-- 5. Image section: full bleed with gradient overlay at bottom showing "Digital Curator Verified" -->
+<!-- 6. Detail section: scrollable, with title, grade/pop/cert grid, description, and CTA buttons -->
+<!-- 7. Transition: opacity + pointer-events toggle for open/close -->
+
+<div class="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8" id="item-modal">
+  <div class="absolute inset-0 bg-[#0e0e0e]/90 backdrop-blur-md"></div>
+  <div class="relative glass-card w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-xl flex flex-col md:flex-row shadow-2xl border-white/10">
+    
+    <!-- Close button -->
+    <button class="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center hover:bg-[#4d8eff]/20 transition-colors">
+      <span class="material-symbols-outlined text-[#e5e2e1]">close</span>
+    </button>
+    
+    <!-- Left: Image -->
+    <div class="w-full md:w-1/2 h-64 md:h-auto relative overflow-hidden bg-[#1c1b1b]">
+      <img alt="Item Image" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRx9hsDrmG-29z8t6qMk5oawTUZp8mIrkG6LmQKu_n1QigesTZm6J09cTNHt4v0HLu8bbeHT2BOKb2q1lsCl15IIN1WvBo1UWqSh360xJRpemS0r0Ve1NbSV4Gf6GdDvkGT4gjUBxSNLTYzPlDMABQPIrIrJa2Nzn1SUQRSwOtOvDnd3UHhLi17S5PRalgl5i24KJ6vOas3VKj-gchExU-4JmhA9yg26VfpGf-xjEzBHKfMfuk3AbdPC2i6QbwtkO7lo4v6AtdVQ"/>
+      <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0e0e0e] to-transparent">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+          <span style="font-family: 'Berkeley Mono', monospace; font-size: 10px; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.2em;">Digital Curator Verified</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right: Details -->
+    <div class="w-full md:w-1/2 p-8 md:p-12 overflow-y-auto hide-scrollbar flex flex-col">
+      
+      <!-- Status badge -->
+      <div class="mb-8">
+        <div style="display: inline-block; padding: 4px 12px; border-radius: 4px; background: rgba(77,142,255,0.1); border: 1px solid rgba(77,142,255,0.2); color: #4d8eff; font-family: 'Berkeley Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 16px;">Legendary Status</div>
+        <h2 style="font-family: 'Space Grotesk'; font-size: 2rem; font-weight: 700; letter-spacing: -0.05em; margin-bottom: 8px;">1919 WS Ticket</h2>
+        <p style="font-family: 'Berkeley Mono', monospace; font-size: 12px; color: rgba(225,226,225,0.6); text-transform: uppercase; letter-spacing: 0.2em;">Entry #00192</p>
+      </div>
+      
+      <!-- Grade / Pop / Cert grid -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); padding: 24px 0;">
+        <div>
+          <p style="font-size: 10px; color: rgba(194,198,214,0.4); text-transform: uppercase; margin-bottom: 4px;">Grade</p>
+          <p style="font-family: 'Space Grotesk'; font-weight: 700; font-size: 1.25rem; color: #e8c357;">9.2</p>
+        </div>
+        <div>
+          <p style="font-size: 10px; color: rgba(194,198,214,0.4); text-transform: uppercase; margin-bottom: 4px;">Population</p>
+          <p style="font-family: 'Space Grotesk'; font-weight: 700; font-size: 1.25rem;">1 of 3</p>
+        </div>
+        <div>
+          <p style="font-size: 10px; color: rgba(194,198,214,0.4); text-transform: uppercase; margin-bottom: 4px;">Cert ID</p>
+          <p style="font-family: 'Space Grotesk'; font-weight: 700; font-size: 1.25rem;">#88291</p>
+        </div>
+      </div>
+      
+      <!-- Description sections -->
+      <div style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 48px;">
+        <div>
+          <h4 style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; color: #adc6ff; margin-bottom: 12px;">Provenance History</h4>
+          <p style="font-size: 14px; color: rgba(194,198,214,0.7); line-height: 1.6;">Acquired from the private estate of the Miller family in 1984. Previously held in the National Baseball Archive for exhibition between 1955-1960.</p>
+        </div>
+      </div>
+      
+      <!-- Bottom buttons -->
+      <div style="margin-top: auto; display: flex; gap: 16px;">
+        <button style="flex: 1; background: #4d8eff; color: white; font-family: 'Space Grotesk'; font-weight: 700; padding: 16px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.2em; font-size: 12px; border: none; cursor: pointer;">View Full Details</button>
+        <button style="width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: transparent; cursor: pointer; color: #e5e2e1;">
+          <span class="material-symbols-outlined">share</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body></html>

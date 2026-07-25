@@ -2,9 +2,12 @@ import styled from 'styled-components'
 
 const CERT_SERVICES = ['PSA', 'PSA/DNA', 'BGS', 'JSA', 'SGC', 'Steiner', 'CGC', 'MLB Auth', 'Beckett', 'K&D']
 
+// PSA and PSA/DNA certs both use the /psa lookup endpoint.
+// The /dna suffix is a separate PSA DNA registry path and does not resolve
+// individual cert lookups — all cert IDs (cards, tickets, autos) use /psa.
 const CERT_LINK_BUILDERS = {
   'PSA':     id => `https://www.psacard.com/cert/${id}/psa`,
-  'PSA/DNA': id => `https://www.psacard.com/cert/${id}/dna`,
+  'PSA/DNA': id => `https://www.psacard.com/cert/${id}/psa`,
   'JSA':     id => `https://www.spenceloa.com/verify-authenticity/results?certificateNumber=${id}`,
 }
 

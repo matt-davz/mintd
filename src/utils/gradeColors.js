@@ -16,9 +16,33 @@ const GREEN_TIERS = [
   { max: Infinity, $bg: '#146514', $fg: '#ffffff' },
 ]
 
+// Same shape as GREEN_TIERS but a steel-blue scale, used for non-PSA cert
+// services (JSA, BGS, iCert, etc.) so their badges read as visually distinct
+// from PSA's green.
+const BLUE_TIERS = [
+  { max: 1, $bg: '#e3e9f5', $fg: '#1a1a1a' },
+  { max: 2, $bg: '#c2cfe9', $fg: '#1a1a1a' },
+  { max: 3, $bg: '#9dafdb', $fg: '#1a1a1a' },
+  { max: 4, $bg: '#7890cc', $fg: '#1a1a1a' },
+  { max: 5, $bg: '#5b78bf', $fg: '#ffffff' },
+  { max: 6, $bg: '#4364ad', $fg: '#ffffff' },
+  { max: 7, $bg: '#345298', $fg: '#ffffff' },
+  { max: 8, $bg: '#2a4380', $fg: '#ffffff' },
+  { max: 9, $bg: '#1f3468', $fg: '#ffffff' },
+  { max: Infinity, $bg: '#162650', $fg: '#ffffff' },
+]
+
+const PSA_SERVICES = new Set(['PSA', 'PSA/DNA'])
+
+export function isPsaService(service) {
+  return !!service && PSA_SERVICES.has(service)
+}
+
 export function gradeToNumber(grade) {
   if (!grade) return -1
-  const match = String(grade).match(/(\d+(?:\.\d+)?)$/)
+  // Match the first number in the grade string so qualifiers like "MK", "OC",
+  // "ST" etc. after the numeric grade don't prevent a match.
+  const match = String(grade).match(/(\d+(?:\.\d+)?)/)
   return match ? parseFloat(match[1]) : -1
 }
 
@@ -32,10 +56,26 @@ export function gradeBucket(grade) {
   return n === -1 ? 'authentic' : String(n)
 }
 
-export function gradeColors(grade) {
+// Maps raw PSA/grading-service grade codes to clean human-readable labels.
+// Grade codes from PSA are kept as-is (e.g. AA stays AA — Authentic Altered).
+// Only verbose spellings of 'Authentic' are shortened to 'Auth'.
+// All other grades pass through unchanged.
+export function displayGrade(grade) {
+  if (!grade) return grade
+  const g = String(grade).trim()
+  // Authentic / Auth / AUTH (standalone only — not 'Authentic Auto' etc.)
+  if (/^auth(entic)?$/i.test(g)) return 'Auth'
+  return g
+}
+
+// `service` picks the color scale (green for PSA/PSA-DNA, blue for every other
+// grading company); omitting it defaults to the green scale for callers that
+// predate multi-service support.
+export function gradeColors(grade, service) {
+  const tiers = service && !isPsaService(service) ? BLUE_TIERS : GREEN_TIERS
   const n = gradeToNumber(grade)
-  // Auth / non-numeric — white end of the gradient
-  if (n < 0) return { $bg: '#e8e8e8', $fg: '#1a1a1a' }
-  const tier = GREEN_TIERS.find(tier => n <= tier.max) ?? GREEN_TIERS[GREEN_TIERS.length - 1]
+  // Auth / non-numeric — lightest end of the gradient
+  if (n < 0) return { $bg: tiers[0].$bg, $fg: tiers[0].$fg }
+  const tier = tiers.find(tier => n <= tier.max) ?? tiers[tiers.length - 1]
   return { $bg: tier.$bg, $fg: tier.$fg }
 }

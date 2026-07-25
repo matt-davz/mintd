@@ -1,9 +1,10 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
 import styled, { keyframes } from 'styled-components'
 import { useItems } from '../../hooks/useItems'
+import { useTimelineGameContexts } from '../../hooks/useTimelineGameContexts'
 import { withAutoOrient } from '../../lib/cloudinary'
 import { gradeColors } from '../../utils/gradeColors'
+import { ItemViewerModal } from '../../components/public/ItemViewerModal'
 
 const STOP_WIDTH = 320
 const CARD_WIDTH = 200
@@ -264,7 +265,7 @@ const LegendaryCardWrap = styled.div`
   overflow: visible;
 `
 
-const LegendaryCardLink = styled(Link)`
+const LegendaryCardLink = styled.div`
   position: relative;
   z-index: 1;
   display: flex;
@@ -275,6 +276,7 @@ const LegendaryCardLink = styled(Link)`
   border: 1px solid rgba(59, 130, 246, 0.4);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  cursor: pointer;
   animation: ${pulseGlow} 4s ease-in-out infinite;
   transition: transform 0.35s;
 
@@ -319,25 +321,49 @@ const StopDot = styled.div`
   z-index: 3;
 `
 
-const YearLabel = styled.span`
+const DateBlock = styled.div`
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  white-space: nowrap;
+  z-index: 2;
+`
+
+const DateBlockBelow = styled(DateBlock)`
+  top: calc(50% + 14px);
+`
+
+const DateBlockAbove = styled(DateBlock)`
+  bottom: calc(50% + 14px);
+`
+
+const DateText = styled.span`
   font-family: var(--font-mono);
   font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--color-primary);
-  white-space: nowrap;
-  z-index: 2;
 `
 
-const YearBelow = styled(YearLabel)`
-  top: calc(50% + 14px);
+const GameLabel = styled.span`
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-secondary-fixed-dim);
 `
 
-const YearAbove = styled(YearLabel)`
-  bottom: calc(50% + 14px);
+const ScoreLine = styled.span`
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-on-surface-variant);
 `
 
 const Connector = styled.div`
@@ -379,7 +405,7 @@ const CardBelow = styled.div`
 
 // ── Timeline card ─────────────────────────────────────────────────────────────
 
-const CardLink = styled(Link)`
+const CardLink = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -388,6 +414,7 @@ const CardLink = styled(Link)`
   border: 1px solid rgba(173, 198, 255, 0.12);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  cursor: pointer;
   transition: border-color 0.35s, transform 0.35s;
 
   &:hover {
@@ -593,13 +620,14 @@ const MobileYear = styled.div`
   margin-bottom: 0.625rem;
 `
 
-const MobileCard = styled(Link)`
+const MobileCard = styled.div`
   display: flex;
   gap: 0;
   background: rgba(20, 20, 20, 0.85);
   border: 1px solid rgba(173, 198, 255, 0.12);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  cursor: pointer;
   transition: border-color 0.25s;
 
   &:hover { border-color: rgba(173, 198, 255, 0.4); }
@@ -675,22 +703,35 @@ const StateBox = styled.div`
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function TimelineCard({ item }) {
+// Cards are clickable divs (not links) so Enter/Space also activate them.
+function handleActivateKey(e, onActivate) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault()
+    onActivate()
+  }
+}
+
+function TimelineCard({ item, onSelect }) {
   const [tooltip, setTooltip] = useState(null)
 
   const gradeLabel = item.cert_grade
     ? `${item.cert_grader ?? ''} ${item.cert_grade}`.trim()
     : null
 
+  const displayTitle = item.museum_title || item.title
+
   return (
     <>
       {tooltip && (
         <CursorTooltip style={{ left: tooltip.x + 14, top: tooltip.y + 14 }}>
-          {item.title}
+          {displayTitle}
         </CursorTooltip>
       )}
       <CardLink
-        to={`/item/${item.id}`}
+        role="button"
+        tabIndex={0}
+        onClick={onSelect}
+        onKeyDown={(e) => handleActivateKey(e, onSelect)}
         onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY })}
         onMouseMove={(e) => setTooltip({ x: e.clientX, y: e.clientY })}
         onMouseLeave={() => setTooltip(null)}
@@ -706,7 +747,7 @@ function TimelineCard({ item }) {
           {gradeLabel && <GradeBadge {...gradeColors(item.cert_grade)}>{gradeLabel}</GradeBadge>}
         </CardImg>
         <CardBody>
-          <CardTitle>{item.title}</CardTitle>
+          <CardTitle>{displayTitle}</CardTitle>
           {item.item_type && <CardType>{item.item_type}</CardType>}
         </CardBody>
       </CardLink>
@@ -744,6 +785,7 @@ function useMobile() {
 
 export default function Timeline() {
   const { items, loading, error } = useItems()
+  const gameContextsByItemId = useTimelineGameContexts(items ?? [])
   const isMobile = useMobile()
   const scrollRef = useRef(null)
   const scrubberRef = useRef(null)
@@ -751,6 +793,7 @@ export default function Timeline() {
   const [progress, setProgress] = useState(0)
   const [activeDecade, setActiveDecade] = useState(null)
   const [centeredIdx, setCenteredIdx] = useState(0)
+  const [selectedItemId, setSelectedItemId] = useState(null)
   const timelineItemsRef = useRef([])
 
   const timelineItems = useMemo(() => {
@@ -876,14 +919,19 @@ export default function Timeline() {
               <MobileStop key={item.id}>
                 <MobileDot />
                 <MobileYear>{dateLabel(item)}</MobileYear>
-                <MobileCard to={`/item/${item.id}`}>
+                <MobileCard
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedItemId(item.id)}
+                  onKeyDown={(e) => handleActivateKey(e, () => setSelectedItemId(item.id))}
+                >
                   <MobileCardImg>
                     {item.primary_image_url && (
                       <img src={withAutoOrient(item.primary_image_url)} alt={item.title} loading="lazy" />
                     )}
                   </MobileCardImg>
                   <MobileCardBody>
-                    <MobileCardTitle>{item.title}</MobileCardTitle>
+                    <MobileCardTitle>{item.museum_title || item.title}</MobileCardTitle>
                     {item.item_type && <MobileCardType>{item.item_type}</MobileCardType>}
                     {gradeLabel && <MobileGradeBadge {...gradeColors(item.cert_grade)}>{gradeLabel}</MobileGradeBadge>}
                   </MobileCardBody>
@@ -942,7 +990,12 @@ export default function Timeline() {
                       >
                         <LegendaryStopDot />
                         <LegendaryCardWrap>
-                          <LegendaryCardLink to={`/item/${item.id}`}>
+                          <LegendaryCardLink
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setSelectedItemId(item.id)}
+                            onKeyDown={(e) => handleActivateKey(e, () => setSelectedItemId(item.id))}
+                          >
                             {item.legendary_event_title && (
                               <LegendaryEventTitle>{item.legendary_event_title}</LegendaryEventTitle>
                             )}
@@ -956,7 +1009,7 @@ export default function Timeline() {
                               )}
                             </CardImg>
                             <CardBody>
-                              <CardTitle>{item.title}</CardTitle>
+                              <CardTitle>{item.museum_title || item.title}</CardTitle>
                               <LegendaryYearLabel>{dateLabel(item)}</LegendaryYearLabel>
                               {item.item_type && <CardType style={{ marginLeft: '0.4rem' }}>{item.item_type}</CardType>}
                             </CardBody>
@@ -975,18 +1028,48 @@ export default function Timeline() {
                       <StopDot />
                       {isTop ? (
                         <>
-                          <YearBelow>{dateLabel(item)}</YearBelow>
+                          <DateBlockBelow>
+                            {item.series_game_number != null && (
+                              <GameLabel>Game {item.series_game_number}</GameLabel>
+                            )}
+                            <DateText>{dateLabel(item)}</DateText>
+                            {(() => {
+                              const gc = gameContextsByItemId[item.id]
+                              if (!gc || gc.home_score == null || gc.away_score == null) return null
+                              return (
+                                <>
+                                  <ScoreLine>{gc.away_team}: {gc.away_score}</ScoreLine>
+                                  <ScoreLine>{gc.home_team}: {gc.home_score}</ScoreLine>
+                                </>
+                              )
+                            })()}
+                          </DateBlockBelow>
                           <ConnectorUp />
                           <CardAbove>
-                            <TimelineCard item={item} />
+                            <TimelineCard item={item} onSelect={() => setSelectedItemId(item.id)} />
                           </CardAbove>
                         </>
                       ) : (
                         <>
-                          <YearAbove>{dateLabel(item)}</YearAbove>
+                          <DateBlockAbove>
+                            {item.series_game_number != null && (
+                              <GameLabel>Game {item.series_game_number}</GameLabel>
+                            )}
+                            <DateText>{dateLabel(item)}</DateText>
+                            {(() => {
+                              const gc = gameContextsByItemId[item.id]
+                              if (!gc || gc.home_score == null || gc.away_score == null) return null
+                              return (
+                                <>
+                                  <ScoreLine>{gc.away_team}: {gc.away_score}</ScoreLine>
+                                  <ScoreLine>{gc.home_team}: {gc.home_score}</ScoreLine>
+                                </>
+                              )
+                            })()}
+                          </DateBlockAbove>
                           <ConnectorDown />
                           <CardBelow>
-                            <TimelineCard item={item} />
+                            <TimelineCard item={item} onSelect={() => setSelectedItemId(item.id)} />
                           </CardBelow>
                         </>
                       )}
@@ -1008,6 +1091,10 @@ export default function Timeline() {
             </ScrubberTrack>
           </ScrubberSection>
         </>
+      )}
+
+      {selectedItemId && (
+        <ItemViewerModal itemId={selectedItemId} onClose={() => setSelectedItemId(null)} />
       )}
     </Page>
   )

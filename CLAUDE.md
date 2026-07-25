@@ -172,6 +172,14 @@ Sort is single-select (dropdown). One sort active at a time. Empty string = defa
 
 `gradeToNumber` extracts the trailing number from PSA-style grade strings (`"NM-MT 8"` → 8, `"GEM MT 10"` → 10, `"Authentic"` → -1 sorts to the bottom).
 
+**Grade display utilities** (`src/utils/gradeColors.js`):
+- `gradeToNumber(grade)` — extract numeric value for sorting/coloring
+- `gradeBucket(grade)` — collapse to filter bucket (`'8'`, `'authentic'`, or `null`)
+- `gradeColors(grade)` — return `{ $bg, $fg }` green-tier colors
+- `displayGrade(grade)` — human-readable label. Always use this when rendering raw grade strings from the DB. PSA grade codes are kept as-is (`AA` stays `AA` — it means Authentic Altered). Only standalone `Authentic`/`Auth`/`AUTH` is shortened to `Auth`. Everything else passes through unchanged.
+
+**Combined grade display (autographed items):** When an item has both `cert_grade` (item/authenticity grade) and `auto_grade` (signature grade), display as `[displayGrade(cert_grade)] / Auto [displayGrade(auto_grade)]` — e.g. `Auth Alt / Auto NM-MT 8`. For color-coding, prefer `auto_grade` when both exist (it's the numeric one).
+
 ### Active filter pills
 
 Active conditions render as removable pills **inside the search bar**. Each pill has a label and an `onRemove` callback. The `activePills` array in each filter component aggregates them:
@@ -276,6 +284,7 @@ Item type tags (legacy — `item_type` column is now the primary way to categori
 - **Page size selector** — gallery has a dropdown to show 16, 32, or 64 items per page.
 - **Scroll-to-top** — gallery scrolls to top on page change; item detail scrolls to top on load.
 - **Box score** — if a game context has `box_score` data, a linescore table (inning-by-inning + R/H/E) renders on both the public item detail page and admin modal. Shared component: `src/components/BoxScoreDisplay.jsx`.
+- **Series tickets accordion** — if a ticket item has a non-null `series_game_number` and a `season_year`, a collapsible carousel section renders below the PSA population block (public) and as a section in the admin modal, showing all other tickets from the same World Series year sorted by `series_game_number` ascending. Header label: `"{year} World Series Tickets"`. Component: `src/components/SeriesTicketsAccordion.jsx`, hook: `src/hooks/useSeriesTickets.js`. Supports `onItemClick` prop for in-modal navigation (admin). Condition: `item.item_type === 'ticket' && item.season_year && item.series_game_number != null`. Note: `series_game_number` lives on `item` (from `item_gallery`), NOT on `detail` (which is the `item_tickets` row and doesn’t have that field).
 - **Set members accordion** — if an item has a `set_id`, an accordion renders at the bottom of the detail column (public) and as a "Set Members" section in the admin modal. Opening it fetches and displays a horizontal-scroll carousel of all other items in the same set. Shared component: `src/components/SetMembersAccordion.jsx`, data hook: `src/hooks/useSetMembers.js`. Condition is `item.set_id` only — `is_part_of_set` is not checked, so master set items (which have `set_id` but `is_part_of_set = false`) also show the carousel. In admin, clicking a carousel card switches the modal to that item via `onOpenItem` prop.
 - **Legendary items** — items with `is_legendary = true` receive special display on the Yankees Museum Timeline. The card is centered on the axis (not above/below), fills ~90% of the track height, shows `legendary_context.event_title` above the image (when set), and renders with a pulsing blue glow border + two `EmberEffect` layers (one behind the card with wide spread, one in front with tighter spread). Neighboring timeline stops drift 30px outward when the legendary item is centered, then return smoothly. Legendary context (event title, event description, contextual images) is stored in `legendary_context` and `legendary_images` tables. `item_gallery` exposes `legendary_event_title` directly so no extra fetch is needed on the timeline. In the admin modal, toggling `is_legendary` reveals a "Legendary Context" section for editing. Full context data (including images) is fetched via `useItem`.
 

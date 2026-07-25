@@ -75,6 +75,7 @@ Core table — everything hangs off this.
 | `notes` | `text` | | |
 | `is_duplicate` | `boolean` | NOT NULL, default `false` | |
 | `is_legendary` | `boolean` | NOT NULL, default `false` | Marks item for special "legendary" display treatment on the Timeline |
+| `museum_title` | `text` | nullable | Short tidbit-style title shown on the Museum/Timeline page. Falls back to `title` when NULL. Full title still shown on item detail page. Convention: `[tidbit] — Ticket Stub / Full Ticket / Program` (non-auto) or `[tidbit] — [type] — Signed by [Name(s)]` (auto). |
 | `season_year` | `integer` | nullable | Year of the game/event or card issue year. Backfilled from `game_context.season_year` for game-context items; from `item_cards.year_issued` for cards. Auto-synced from game context on save via `ItemViewerModal`. |
 | `created_at` | `timestamptz` | NOT NULL, default `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL, default `now()` | Auto-updated via trigger |
@@ -144,8 +145,8 @@ Authentication and grading certificates. One item can have multiple certs.
 | `cert_service` | `text` | NOT NULL | `PSA`, `PSA/DNA`, `BGS`, `JSA`, `SGC`, `Steiner`, `CGC`, `MLB Auth`, `Beckett`, `K&D` |
 | `cert_id` | `text` | | The cert number |
 | `cert_link` | `text` | | Verification URL |
-| `item_grade` | `text` | | e.g. `NM-MT 8`, `Authentic` |
-| `auto_grade` | `text` | | e.g. `GEM MT 10` — null if not autograph cert |
+| `item_grade` | `text` | | The cert/item grade, e.g. `NM-MT 8`, `AA` (Authentic Altered), `Authentic` |
+| `auto_grade` | `text` | | Autograph/signature grade, e.g. `NM-MT 8`, `GEM MT 10` — null if not autograph cert. When both `item_grade` and `auto_grade` are present, display as `[item_grade] / Auto [auto_grade]` |
 | `is_autograph_cert` | `boolean` | NOT NULL, default `false` | |
 | `created_at` | `timestamptz` | NOT NULL, default `now()` | |
 
@@ -274,6 +275,7 @@ Event narrative and context for items marked `is_legendary`. One row per legenda
 | `item_id` | `uuid` | NOT NULL, UNIQUE, FK → `items(id)` ON DELETE CASCADE | |
 | `event_title` | `text` | nullable | Short headline shown on Timeline legendary card |
 | `event_description` | `text` | nullable | Full historical narrative |
+
 | `created_at` | `timestamptz` | NOT NULL, default `now()` | |
 | `updated_at` | `timestamptz` | NOT NULL, default `now()` | Auto-updated via trigger |
 
@@ -462,7 +464,9 @@ Most recent population snapshot per cert. **Always query this instead of `popula
 ### `item_gallery`
 Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, team slugs array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
-**Columns:** `id`, `title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
+**Columns:** `id`, `title`, `museum_title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
+
+**Grade display:** Use `displayGrade()` from `src/utils/gradeColors.js` when rendering `cert_grade` or `auto_grade` in the UI. PSA grade codes are kept as-is (e.g. `AA` stays `AA` — it is Authentic Altered). Only standalone `Authentic`/`Auth`/`AUTH` is shortened to `Auth`. When both `cert_grade` and `auto_grade` are present on an autographed item, display as `[cert_grade] / Auto [auto_grade]` (e.g. `AA / Auto NM-MT 8`). Use `auto_grade` for color-coding when both exist (it’s the numeric grade).
 
 `game_date` and `series_game_number` come from `game_context` via a lateral join across all 9 game-context detail tables (`item_tickets`, `item_baseballs`, `item_bats`, `item_jerseys`, `item_photos`, `item_programs`, `item_bases`, `item_gloves`, `item_stadium_giveaways`). Both are `NULL` for items without game context (cards, miscellaneous, non-game items). Used by the Timeline to sort by exact game date rather than `season_year` alone.
 
@@ -530,6 +534,8 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0031_item_duplicates_update_policy.sql` | Add UPDATE RLS policy for `item_duplicates` (editing notes) |
 | `0032_miscellaneous_stadium_giveaway_types.sql` | Add `miscellaneous` and `stadium_giveaway` values to `item_type_enum`; add `item_miscellaneous` (no game context) and `item_stadium_giveaways` (has `game_context_id`) detail tables with RLS; rebuild `item_gallery` to include `item_stadium_giveaways` in the game_context lateral join |
 | `0033_gallery_is_duplicate.sql` | Rebuild `item_gallery` to add `is_duplicate`, powering the "Dupes" filter toggle on the public and admin filter bars |
+| `0034_legendary_museum_title.sql` | Add `museum_title text` to `items`; expose directly in `item_gallery`. Used by the Museum/Timeline page to show short tidbit-style titles without modifying `items.title`. Applies to ALL items (not just legendary ones). |
+| `0034_populate_museum_titles.sql` | Data migration: populate `museum_title` for all 11 existing legendary items. Run after `0034_legendary_museum_title.sql`. |
 
 ---
 

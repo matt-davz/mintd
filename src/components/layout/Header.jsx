@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 
 const HeaderWrapper = styled.header`
@@ -166,15 +166,13 @@ const DrawerLink = styled(NavLink)`
 
 export function Header() {
   const [open, setOpen] = useState(false)
-  const location = useLocation()
+  const navigate = useNavigate()
 
   const close = () => setOpen(false)
 
   const handleLogoClick = (e) => {
-    if (location.pathname === '/') {
-      e.preventDefault()
-      window.location.reload()
-    }
+    e.preventDefault()
+    navigate('/')
   }
 
   return (
