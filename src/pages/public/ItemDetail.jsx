@@ -175,6 +175,7 @@ const ForSaleBadge = styled.span`
 
 const GradeBadge = styled.span`
   display: inline-block;
+  width: fit-content;
   background-color: ${p => p.$bg ?? 'var(--color-secondary-container)'};
   color: ${p => p.$fg ?? 'var(--color-secondary-fixed)'};
   font-family: var(--font-mono);
