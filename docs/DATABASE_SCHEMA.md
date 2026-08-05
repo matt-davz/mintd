@@ -20,7 +20,7 @@ Defined in `0004_enums.sql`.
 
 | Enum | Values |
 |---|---|
-| `item_type_enum` | `ticket`, `card`, `baseball`, `bat`, `jersey`, `photo`, `magazine`, `program`, `book`, `base`, `glove`, `miscellaneous`, `stadium_giveaway` |
+| `item_type_enum` | `ticket`, `ticket_sheet`, `card`, `baseball`, `bat`, `jersey`, `photo`, `magazine`, `program`, `book`, `base`, `glove`, `miscellaneous`, `stadium_giveaway` |
 | `game_type_enum` | `regular_season`, `alds`, `alcs`, `nlds`, `nlcs`, `world_series`, `all_star`, `spring_training`, `exhibition` |
 | `game_result_enum` | `home_win`, `home_loss`, `tie`, `unknown` |
 | `ticket_game_result_enum` | `win`, `loss`, `tie`, `unknown` — *unused, column dropped in 0015* |
@@ -342,6 +342,8 @@ Tables with `game_context_id uuid` FK → `game_context(id)` ON DELETE SET NULL:
 
 `item_miscellaneous` has no `game_context_id` — miscellaneous items don't have game context.
 
+`item_ticket_sheets` has no `game_context_id` — ticket sheets link to **multiple** game contexts via the `ticket_sheet_games` junction table instead of a single FK.
+
 ### `item_tickets`
 | Column | Type |
 |---|---|
@@ -447,6 +449,40 @@ Tables with `game_context_id uuid` FK → `game_context(id)` ON DELETE SET NULL:
 | `event_date` | `date` |
 | `game_context_id` | `uuid` |
 
+### `item_ticket_sheets`
+
+Detail table for ticket sheet items — an uncut strip of multiple game tickets sold as a single collectible. Unlike other detail tables, this does **not** have a `game_context_id` FK. Instead, games are linked via the `ticket_sheet_games` junction table.
+
+| Column | Type | Notes |
+|---|---|---|
+| `sheet_size` | `integer NOT NULL` | Number of tickets on the sheet |
+| `is_uncut` | `boolean default true` | Whether the sheet is still intact |
+| `printer` | `text` | Ticket printer/manufacturer |
+| `section`, `row`, `seat` | `text` | Shared seating info (if all tickets same) |
+| `face_value` | `numeric` | Face value per ticket |
+| `includes_phantom_game` | `boolean default false` | Sheet has a game that was never played |
+| `phantom_game_label` | `text` | e.g. "Game 6", "Game X" |
+
+**Unique index** on `item_id` — one detail row per item.
+
+### `ticket_sheet_games`
+
+Junction table linking a ticket sheet to multiple `game_context` records (one per game on the sheet).
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | `uuid` | PK, default `gen_random_uuid()` |
+| `ticket_sheet_id` | `uuid` | NOT NULL, FK → `item_ticket_sheets(id)` ON DELETE CASCADE |
+| `game_context_id` | `uuid` | NOT NULL, FK → `game_context(id)` ON DELETE CASCADE |
+| `display_order` | `integer` | default `0` — order on the sheet (left to right) |
+| `is_phantom` | `boolean` | default `false` — true if this game was never played |
+| `game_label` | `text` | Optional label override, e.g. "Game 3", "Game 6 (never played)" |
+| `created_at` | `timestamptz` | default `now()` |
+
+**Unique constraint:** `(ticket_sheet_id, game_context_id)` — prevents linking the same game twice.
+
+**Indexes:** `idx_ticket_sheet_games_sheet`, `idx_ticket_sheet_games_context`
+
 ---
 
 ## Functions
@@ -468,7 +504,7 @@ Denormalised view for the public gallery. One row per item with primary image, f
 
 **Grade display:** Use `displayGrade()` from `src/utils/gradeColors.js` when rendering `cert_grade` or `auto_grade` in the UI. PSA grade codes are kept as-is (e.g. `AA` stays `AA` — it is Authentic Altered). Only standalone `Authentic`/`Auth`/`AUTH` is shortened to `Auth`. When both `cert_grade` and `auto_grade` are present on an autographed item, display as `[cert_grade] / Auto [auto_grade]` (e.g. `AA / Auto NM-MT 8`). Use `auto_grade` for color-coding when both exist (it’s the numeric grade).
 
-`game_date` and `series_game_number` come from `game_context` via a lateral join across all 9 game-context detail tables (`item_tickets`, `item_baseballs`, `item_bats`, `item_jerseys`, `item_photos`, `item_programs`, `item_bases`, `item_gloves`, `item_stadium_giveaways`). Both are `NULL` for items without game context (cards, miscellaneous, non-game items). Used by the Timeline to sort by exact game date rather than `season_year` alone.
+`game_date` and `series_game_number` come from `game_context` via a lateral join across all 9 single-game detail tables (`item_tickets`, `item_baseballs`, `item_bats`, `item_jerseys`, `item_photos`, `item_programs`, `item_bases`, `item_gloves`, `item_stadium_giveaways`) **plus** the `ticket_sheet_games` junction table (for `ticket_sheet` items, picks the earliest non-phantom game by `series_game_number`). Both are `NULL` for items without game context (cards, miscellaneous, non-game items). Used by the Timeline to sort by exact game date rather than `season_year` alone.
 
 > Previously named `item_cards`. Renamed in migration `0011` — `item_cards` is now the trading card detail table.
 
@@ -494,6 +530,8 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `sets` | SELECT all | — |
 | `inquiries` | INSERT only | — |
 | `item_tickets` … `item_gloves`, `item_miscellaneous`, `item_stadium_giveaways` | SELECT for visible items | SELECT all, INSERT, UPDATE, DELETE |
+| `item_ticket_sheets` | SELECT all | INSERT, UPDATE, DELETE |
+| `ticket_sheet_games` | SELECT all | INSERT, UPDATE, DELETE |
 
 ---
 
@@ -536,6 +574,8 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0033_gallery_is_duplicate.sql` | Rebuild `item_gallery` to add `is_duplicate`, powering the "Dupes" filter toggle on the public and admin filter bars |
 | `0034_legendary_museum_title.sql` | Add `museum_title text` to `items`; expose directly in `item_gallery`. Used by the Museum/Timeline page to show short tidbit-style titles without modifying `items.title`. Applies to ALL items (not just legendary ones). |
 | `0034_populate_museum_titles.sql` | Data migration: populate `museum_title` for all 11 existing legendary items. Run after `0034_legendary_museum_title.sql`. |
+| `0035_ticket_sheets.sql` | Add `ticket_sheet` to `item_type_enum`; create `item_ticket_sheets` detail table and `ticket_sheet_games` junction table; rebuild `item_gallery` to include ticket sheet games in game_context lateral join; RLS policies for both new tables |
+| `0036_migrate_1942_sheet.sql` | Data migration: convert 1942 WS DiMaggio sheet from `ticket` → `ticket_sheet`, create Game 4 + phantom Game 6 game contexts, populate `item_ticket_sheets` + `ticket_sheet_games` (4 games), remove old `item_tickets` row, normalize venue names |
 
 ---
 
