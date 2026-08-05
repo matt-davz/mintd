@@ -2,18 +2,29 @@
 // Pure data — no React imports. Single source of truth for type metadata.
 
 export const ITEM_TYPES = [
-  'ticket', 'card', 'baseball', 'bat', 'jersey',
+  'ticket', 'ticket_sheet', 'card', 'baseball', 'bat', 'jersey',
   'photo', 'magazine', 'program', 'book', 'base', 'glove',
   'miscellaneous', 'stadium_giveaway',
 ]
 
 export const HAS_GAME_CONTEXT = new Set([
+  'ticket', 'ticket_sheet', 'baseball', 'bat', 'jersey', 'photo', 'program',
+  'base', 'glove', 'stadium_giveaway',
+])
+
+// Types whose single game_context is linked via a `game_context_id` FK column
+// on their detail table. `ticket_sheet` is intentionally excluded — it links
+// multiple games through the `ticket_sheet_games` junction table instead, so
+// the single-game-context machinery (useItem, timeline, editor save path) must
+// not assume a `game_context_id` column on `item_ticket_sheets`.
+export const GAME_CONTEXT_VIA_DETAIL_FK = new Set([
   'ticket', 'baseball', 'bat', 'jersey', 'photo', 'program', 'base', 'glove',
   'stadium_giveaway',
 ])
 
 export const DETAIL_TABLE = {
   ticket:   'item_tickets',
+  ticket_sheet: 'item_ticket_sheets',
   card:     'item_cards',
   baseball: 'item_baseballs',
   bat:      'item_bats',
@@ -30,6 +41,7 @@ export const DETAIL_TABLE = {
 
 export const EMPTY_DETAIL = {
   ticket:   { is_full_ticket: false, section: '', row: '', seat: '', face_value: '', printer: '' },
+  ticket_sheet: { sheet_size: '', is_uncut: true, printer: '', section: '', row: '', seat: '', face_value: '', includes_phantom_game: false, phantom_game_label: '' },
   card:     { card_set_name: '', card_number: '', manufacturer: '', year_issued: '', parallel_variation: '', is_rookie_card: false, serial_number: '', print_run: '' },
   baseball: { is_game_used: false, game_used_type: '', manufacturer: '', league_stamp: '', is_team_signed: false, inscription: '' },
   bat:      { manufacturer: '', model_number: '', length_inches: '', weight_oz: '', is_game_used: false, year_used: '', is_cracked: false, has_pine_tar: false, inscription: '' },
@@ -52,7 +64,7 @@ export const EMPTY_GAME_CONTEXT = {
 }
 
 export const NUMERIC_FIELDS = new Set([
-  'face_value', 'year_issued', 'serial_number', 'print_run',
+  'face_value', 'sheet_size', 'year_issued', 'serial_number', 'print_run',
   'length_inches', 'weight_oz', 'year_used', 'year_worn',
   'year_published',
 ])

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { uploadToCloudinary } from '../../lib/cloudinary'
 import {
-  ITEM_TYPES, HAS_GAME_CONTEXT, DETAIL_TABLE,
+  ITEM_TYPES, GAME_CONTEXT_VIA_DETAIL_FK, DETAIL_TABLE,
   EMPTY_DETAIL, EMPTY_GAME_CONTEXT,
   isFormEmpty, serializeForm,
 } from '../../lib/itemTypeConfig'
@@ -74,7 +74,7 @@ export default function ItemEditor() {
     setField('item_type', newType)
     if (newType) {
       setDetailForm({ ...EMPTY_DETAIL[newType] })
-      setGcForm(HAS_GAME_CONTEXT.has(newType) ? { ...EMPTY_GAME_CONTEXT } : null)
+      setGcForm(GAME_CONTEXT_VIA_DETAIL_FK.has(newType) ? { ...EMPTY_GAME_CONTEXT } : null)
     } else {
       setDetailForm(null)
       setGcForm(null)
@@ -140,7 +140,7 @@ export default function ItemEditor() {
         const tableName = DETAIL_TABLE[form.item_type]
         const detailPayload = serializeForm(detailForm)
         detailPayload.item_id = itemId
-        if (gameContextId && HAS_GAME_CONTEXT.has(form.item_type)) {
+        if (gameContextId && GAME_CONTEXT_VIA_DETAIL_FK.has(form.item_type)) {
           detailPayload.game_context_id = gameContextId
         }
         const { error: detailErr } = await supabase.from(tableName).insert(detailPayload)

@@ -4,7 +4,7 @@ import { useItem } from '../../hooks/useItem'
 import { supabase } from '../../lib/supabase'
 import { uploadToCloudinary } from '../../lib/cloudinary'
 import {
-  ITEM_TYPES, HAS_GAME_CONTEXT, DETAIL_TABLE,
+  ITEM_TYPES, GAME_CONTEXT_VIA_DETAIL_FK, DETAIL_TABLE,
   EMPTY_DETAIL, EMPTY_GAME_CONTEXT,
   isFormEmpty, serializeForm,
 } from '../../lib/itemTypeConfig'
@@ -20,6 +20,7 @@ import { ImageLightbox } from '../ImageLightbox'
 import { SetMembersAccordion } from '../SetMembersAccordion'
 import { SeriesTicketsAccordion } from '../SeriesTicketsAccordion'
 import { DuplicatesSection } from './DuplicatesSection'
+import { TicketSheetGamesSection } from './TicketSheetGamesSection'
 
 // ─── Reconcile helpers ────────────────────────────────────────────────────────
 
@@ -948,7 +949,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
       }
       setDetailForm(initDetail)
 
-      if (HAS_GAME_CONTEXT.has(item.item_type)) {
+      if (GAME_CONTEXT_VIA_DETAIL_FK.has(item.item_type)) {
         initGc = { ...EMPTY_GAME_CONTEXT }
         if (gameContext) {
           for (const key of Object.keys(initGc)) {
@@ -1011,7 +1012,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
     setField('item_type', newType)
     if (newType) {
       setDetailForm({ ...EMPTY_DETAIL[newType] })
-      setGcForm(HAS_GAME_CONTEXT.has(newType) ? { ...EMPTY_GAME_CONTEXT } : null)
+      setGcForm(GAME_CONTEXT_VIA_DETAIL_FK.has(newType) ? { ...EMPTY_GAME_CONTEXT } : null)
     } else {
       setDetailForm(null)
       setGcForm(null)
@@ -1100,7 +1101,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
         is_legendary:     form.is_legendary,
         purchase_date:    form.purchase_date || null,
         season_year:      (() => {
-          const fromGc = HAS_GAME_CONTEXT.has(form.item_type) && gcForm?.season_year
+          const fromGc = GAME_CONTEXT_VIA_DETAIL_FK.has(form.item_type) && gcForm?.season_year
           const val = fromGc ? gcForm.season_year : form.season_year
           return val === '' || val == null ? null : Number(val)
         })(),
@@ -1134,7 +1135,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
           const tableName = DETAIL_TABLE[form.item_type]
           const detailPayload = serializeForm(detailForm)
           detailPayload.item_id = savedItemId
-          if (gameContextId && HAS_GAME_CONTEXT.has(form.item_type)) {
+          if (gameContextId && GAME_CONTEXT_VIA_DETAIL_FK.has(form.item_type)) {
             detailPayload.game_context_id = gameContextId
           }
           const { error: detailErr } = await supabase.from(tableName).insert(detailPayload)
@@ -1167,7 +1168,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
 
         // Upsert game_context if applicable
         let resolvedGcId = gameContext?.id ?? null
-        if (form.item_type && HAS_GAME_CONTEXT.has(form.item_type) && gcForm && !isFormEmpty(gcForm)) {
+        if (form.item_type && GAME_CONTEXT_VIA_DETAIL_FK.has(form.item_type) && gcForm && !isFormEmpty(gcForm)) {
           const gcPayload = serializeForm(gcForm)
           for (const k of ['season_year', 'series_game_number', 'home_score', 'away_score']) {
             if (gcPayload[k] !== null) gcPayload[k] = Number(gcPayload[k])
@@ -1190,7 +1191,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
           const tableName = DETAIL_TABLE[form.item_type]
           const detailPayload = serializeForm(detailForm)
           detailPayload.item_id = itemId
-          if (HAS_GAME_CONTEXT.has(form.item_type) && resolvedGcId) {
+          if (GAME_CONTEXT_VIA_DETAIL_FK.has(form.item_type) && resolvedGcId) {
             detailPayload.game_context_id = resolvedGcId
           }
           if (detail?.id) {
@@ -1733,6 +1734,14 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                       />
                     </>
                   )}
+                </Section>
+              )}
+
+              {/* ── Ticket sheet games (multi game context) ── */}
+              {!isCreateMode && (isEditing ? form?.item_type === 'ticket_sheet' : item?.item_type === 'ticket_sheet') && (
+                <Section>
+                  <SectionLabel>Sheet Games</SectionLabel>
+                  <TicketSheetGamesSection itemId={itemId} isEditing={isEditing} />
                 </Section>
               )}
 
