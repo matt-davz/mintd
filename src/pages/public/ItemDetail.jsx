@@ -173,6 +173,14 @@ const ForSaleBadge = styled.span`
   margin-right: var(--space-2);
 `
 
+const BadgesRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+`
+
 const GradeBadge = styled.span`
   display: inline-block;
   width: fit-content;
@@ -184,7 +192,19 @@ const GradeBadge = styled.span`
   letter-spacing: 0.15em;
   text-transform: uppercase;
   padding: 0.25rem 0.75rem;
-  margin-bottom: var(--space-4);
+`
+
+const RarityBadge = styled.span`
+  display: inline-block;
+  background-color: #92400e;
+  color: #fbbf24;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.625rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid rgba(251, 191, 36, 0.4);
 `
 
 const DataRow = styled.div`
@@ -524,12 +544,18 @@ export default function ItemDetail() {
                 <SignatoryList signatories={signatories} />
               )}
 
-              {certifications.map(cert => (
+              {certifications.map(cert => {
+                const certPop = population.find(p => p.cert_id === cert.id)
+                const isFinest = certPop != null && certPop.higher === 0 && certPop.same <= 1
+                return (
                 <DataRow key={cert.id}>
                   <DataLabel>{cert.cert_service} Certification</DataLabel>
-                  <GradeBadge {...gradeColors(gradeColorSource(cert), cert.cert_service)}>
-                    {formatGradeLabel(cert) ?? 'Authenticated'}
-                  </GradeBadge>
+                  <BadgesRow>
+                    <GradeBadge {...gradeColors(gradeColorSource(cert), cert.cert_service)}>
+                      {formatGradeLabel(cert) ?? 'Authenticated'}
+                    </GradeBadge>
+                    {isFinest && <RarityBadge>1/1 Finest</RarityBadge>}
+                  </BadgesRow>
                   {cert.cert_id && (
                     cert.cert_link ? (
                       <DataValue
@@ -549,7 +575,7 @@ export default function ItemDetail() {
                     )
                   )}
                 </DataRow>
-              ))}
+              )})}
 
             </DataGrid>
 

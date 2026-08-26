@@ -466,6 +466,20 @@ const GradeBadge = styled.span`
   border-radius: var(--radius-sm);
 `
 
+const RarityBadge = styled.span`
+  display: inline-block;
+  background-color: #92400e;
+  color: #fbbf24;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.25rem var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+`
+
 const Tag = styled.span`
   display: inline-block;
   background-color: var(--color-surface-high);
@@ -1469,6 +1483,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
 
   const psaCerts = (certifications ?? []).filter(c => ['PSA', 'PSA/DNA'].includes(c.cert_service))
   const pop = psaCerts.length > 0 ? (population ?? []).find(p => p.cert_id === psaCerts[0].id) : null
+  const isFinestKnown = pop != null && pop.higher === 0 && pop.same <= 1
   const priceSnap = psaCerts.length > 0 ? (priceData ?? []).find(p => p.cert_id === psaCerts[0].id) : null
 
   const handlePopSync = async () => {
@@ -1629,6 +1644,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                             : displayGrade(certifications[0].item_grade ?? certifications[0].auto_grade ?? '')}
                         </GradeBadge>
                       )}
+                      {isFinestKnown && <RarityBadge>1/1 Finest</RarityBadge>}
                       {item.for_sale && <ForSaleTag>For Sale</ForSaleTag>}
                       {item.is_autographed && <Tag>Signed</Tag>}
                     </BadgeRow>
