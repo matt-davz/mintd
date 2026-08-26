@@ -16,7 +16,7 @@ export function useSeriesTickets(seasonYear, currentItemId) {
     supabase
       .from('item_gallery')
       .select('*')
-      .eq('item_type', 'ticket')
+      .in('item_type', ['ticket', 'ticket_sheet'])
       .eq('season_year', seasonYear)
       .not('series_game_number', 'is', null)
       .neq('id', currentItemId)

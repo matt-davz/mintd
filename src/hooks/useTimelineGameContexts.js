@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { HAS_GAME_CONTEXT, DETAIL_TABLE } from '../lib/itemTypeConfig'
+import { GAME_CONTEXT_VIA_DETAIL_FK, DETAIL_TABLE } from '../lib/itemTypeConfig'
 
 // Batches a game_context lookup for a set of timeline items: one query per
 // detail table actually referenced, then one query into game_context.
@@ -10,7 +10,7 @@ export function useTimelineGameContexts(items) {
   useEffect(() => {
     const idsByTable = {}
     for (const item of items) {
-      if (!item.game_date || !HAS_GAME_CONTEXT.has(item.item_type)) continue
+      if (!item.game_date || !GAME_CONTEXT_VIA_DETAIL_FK.has(item.item_type)) continue
       const table = DETAIL_TABLE[item.item_type]
       ;(idsByTable[table] ??= []).push(item.id)
     }

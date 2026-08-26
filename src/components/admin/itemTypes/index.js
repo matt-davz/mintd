@@ -1,4 +1,5 @@
 import { TicketFields }   from './TicketFields'
+import { TicketSheetFields } from './TicketSheetFields'
 import { CardFields }     from './CardFields'
 import { BaseballFields } from './BaseballFields'
 import { BatFields }      from './BatFields'
@@ -13,13 +14,14 @@ import { MiscellaneousFields }   from './MiscellaneousFields'
 import { StadiumGiveawayFields } from './StadiumGiveawayFields'
 
 export {
-  TicketFields, CardFields, BaseballFields, BatFields, JerseyFields,
+  TicketFields, TicketSheetFields, CardFields, BaseballFields, BatFields, JerseyFields,
   PhotoFields, MagazineFields, ProgramFields, BookFields, BaseFields, GloveFields,
   MiscellaneousFields, StadiumGiveawayFields,
 }
 
 export const TYPE_FIELDS_MAP = {
   ticket:   TicketFields,
+  ticket_sheet: TicketSheetFields,
   card:     CardFields,
   baseball: BaseballFields,
   bat:      BatFields,

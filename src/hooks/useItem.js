@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { DETAIL_TABLE, HAS_GAME_CONTEXT } from '../lib/itemTypeConfig'
+import { DETAIL_TABLE, GAME_CONTEXT_VIA_DETAIL_FK } from '../lib/itemTypeConfig'
 
 export function useItem(id) {
   const [item, setItem] = useState(null)
@@ -70,7 +70,7 @@ export function useItem(id) {
         if (!cancelled && detailData) {
           setDetail(detailData)
 
-          if (HAS_GAME_CONTEXT.has(itemType) && detailData.game_context_id) {
+          if (GAME_CONTEXT_VIA_DETAIL_FK.has(itemType) && detailData.game_context_id) {
             const { data: gcData } = await supabase
               .from('game_context')
               .select()

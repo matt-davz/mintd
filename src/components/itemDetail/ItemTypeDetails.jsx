@@ -13,9 +13,11 @@ import { BaseDisplay } from './BaseDisplay'
 import { GloveDisplay } from './GloveDisplay'
 import { MiscellaneousDisplay } from './MiscellaneousDisplay'
 import { StadiumGiveawayDisplay } from './StadiumGiveawayDisplay'
+import { TicketSheetDisplay } from './TicketSheetDisplay'
 
 const TYPE_COMPONENTS = {
   ticket: TicketDisplay,
+  ticket_sheet: TicketSheetDisplay,
   card: CardDisplay,
   baseball: BaseballDisplay,
   bat: BatDisplay,
@@ -39,7 +41,7 @@ export function ItemTypeDetails({ itemType, detail, gameContext, item }) {
       <Divider />
       <section>
         <SectionHeading>{formatEnum(itemType)} Details</SectionHeading>
-        <TypeComponent detail={detail} />
+        <TypeComponent detail={detail} item={item} />
         {item?.is_duplicate && (
           <DetailGrid style={{ marginTop: 'var(--space-4)' }}>
             <DetailRow>
@@ -49,7 +51,8 @@ export function ItemTypeDetails({ itemType, detail, gameContext, item }) {
           </DetailGrid>
         )}
       </section>
-      <GameContextDisplay gameContext={gameContext} />
+      {/* ticket_sheet renders its own multi-game accordion inside TicketSheetDisplay */}
+      {itemType !== 'ticket_sheet' && <GameContextDisplay gameContext={gameContext} />}
     </>
   )
 }
