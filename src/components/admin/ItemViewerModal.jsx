@@ -548,6 +548,66 @@ const PopSyncStatus = styled.span`
     'var(--color-primary)'};
 `
 
+// ─── Market value section ─────────────────────────────────────────────────────
+
+const MarketPill = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.2rem var(--space-2);
+  border-radius: var(--radius-sm);
+  background-color: rgba(26, 163, 83, 0.12);
+
+  span {
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-outline);
+  }
+
+  strong {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #4ade80;
+  }
+`
+
+const SalesTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  margin-top: var(--space-3);
+
+  th {
+    text-align: left;
+    color: var(--color-outline);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: var(--space-1) var(--space-2) var(--space-1) 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  td {
+    padding: var(--space-1) var(--space-2) var(--space-1) 0;
+    color: var(--color-on-surface-variant);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  }
+
+  td:nth-child(2) {
+    color: #4ade80;
+    font-weight: 600;
+  }
+
+  a {
+    color: var(--color-outline);
+    text-decoration: none;
+    &:hover { color: var(--color-primary); }
+  }
+`
+
 // ─── Fields grid ──────────────────────────────────────────────────────────────
 
 const Section = styled.div`
@@ -835,6 +895,15 @@ const StatusMsg = styled.p`
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function timeAgo(ts) {
+  const diff = Date.now() - new Date(ts).getTime()
+  const h = Math.floor(diff / 3_600_000)
+  const d = Math.floor(h / 24)
+  if (d > 0) return `${d}d ago`
+  if (h > 0) return `${h}h ago`
+  return 'just now'
+}
+
 function formatDate(str) {
   if (!str) return null
   return new Date(str).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -867,11 +936,13 @@ const EMPTY_FORM = {
 
 export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
   const isCreateMode = !itemId
-  const { item, signatories, certifications, population, images, loas, detail, gameContext, legendaryContext, legendaryImages, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
+  const { item, signatories, certifications, population, priceData, images, loas, detail, gameContext, legendaryContext, legendaryImages, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
 
   const [isEditing, setIsEditing] = useState(isCreateMode)
   const [syncing, setSyncing] = useState(false)
   const [syncStatus, setSyncStatus] = useState(null) // { type: 'error'|'warn'|'ok', msg }
+  const [priceSyncing, setPriceSyncing] = useState(false)
+  const [priceSyncStatus, setPriceSyncStatus] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
   const [form, setForm] = useState(isCreateMode ? { ...EMPTY_FORM } : null)
@@ -1397,6 +1468,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
 
   const psaCerts = (certifications ?? []).filter(c => ['PSA', 'PSA/DNA'].includes(c.cert_service))
   const pop = psaCerts.length > 0 ? (population ?? []).find(p => p.cert_id === psaCerts[0].id) : null
+  const priceSnap = psaCerts.length > 0 ? (priceData ?? []).find(p => p.cert_id === psaCerts[0].id) : null
 
   const handlePopSync = async () => {
     const syncIds = psaCerts.filter(c => c.cert_id).map(c => c.id)
@@ -1421,6 +1493,49 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
       setSyncStatus({ type: 'error', msg: 'Sync request failed' })
     } finally {
       setSyncing(false)
+    }
+  }
+
+  const handlePriceSync = async () => {
+    const syncCert = psaCerts.find(c => c.cert_id)
+    if (!syncCert) return
+    const apiKey = import.meta.env.VITE_PARSE_BOT_API_KEY
+    if (!apiKey) {
+      setPriceSyncStatus({ type: 'error', msg: 'VITE_PARSE_BOT_API_KEY not set' })
+      return
+    }
+    setPriceSyncing(true)
+    setPriceSyncStatus(null)
+    try {
+      const BASE = 'https://api.parse.bot/scraper/311daf8c-242f-4c68-af70-b50617fd1d13'
+      const hdrs = { 'X-API-Key': apiKey }
+      const [detRes, salesRes] = await Promise.all([
+        fetch(`${BASE}/get_cert_details?cert_number=${syncCert.cert_id}`, { headers: hdrs }),
+        fetch(`${BASE}/get_cert_sales?cert_number=${syncCert.cert_id}`, { headers: hdrs }),
+      ])
+      let psaEstimate = null
+      let recentSales = null
+      if (detRes.ok) {
+        const d = await detRes.json()
+        if (d?.status === 'success') psaEstimate = d.data?.psa_estimate ?? null
+      }
+      if (salesRes.ok) {
+        const s = await salesRes.json()
+        if (s?.status === 'success' && Array.isArray(s.data?.sales)) recentSales = s.data.sales
+      }
+      const { error: insertErr } = await supabase
+        .from('psa_price_snapshots')
+        .insert({ cert_id: syncCert.id, psa_estimate: psaEstimate, recent_sales: recentSales })
+      if (insertErr) {
+        setPriceSyncStatus({ type: 'error', msg: insertErr.message })
+      } else {
+        setPriceSyncStatus({ type: 'ok', msg: 'Synced' })
+        await refetch()
+      }
+    } catch {
+      setPriceSyncStatus({ type: 'error', msg: 'Fetch failed' })
+    } finally {
+      setPriceSyncing(false)
     }
   }
 
@@ -1741,7 +1856,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                 <SectionLabel>Financials</SectionLabel>
                 <FieldGrid>
                   <Field>
-                    <FieldLabel>Price</FieldLabel>
+                    <FieldLabel>Acquisition Price</FieldLabel>
                     {isEditing ? (
                       <EditInput
                         type="number"
@@ -1804,6 +1919,65 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                   </Field>
                 </FieldGrid>
               </Section>
+
+              {/* ── Market Value ── */}
+              {!isCreateMode && psaCerts.some(c => c.cert_id) && (
+                <Section>
+                  <SectionLabel>Market Value</SectionLabel>
+                  <PopInline>
+                    {priceSnap?.psa_estimate ? (
+                      <MarketPill>
+                        <span>PSA Est.</span>
+                        <strong>{priceSnap.psa_estimate}</strong>
+                      </MarketPill>
+                    ) : (
+                      <PopInlineCell $type="lower">
+                        <span>No estimate</span>
+                      </PopInlineCell>
+                    )}
+                    {priceSnap?.synced_at && (
+                      <PopInlineCell>
+                        <span>{timeAgo(priceSnap.synced_at)}</span>
+                      </PopInlineCell>
+                    )}
+                    <PopSyncBtn onClick={handlePriceSync} disabled={priceSyncing} $syncing={priceSyncing} title="Sync PSA price">
+                      <span className="material-symbols-outlined">sell</span>
+                    </PopSyncBtn>
+                    {priceSyncStatus && <PopSyncStatus $type={priceSyncStatus.type}>{priceSyncStatus.msg}</PopSyncStatus>}
+                  </PopInline>
+                </Section>
+              )}
+
+              {/* ── Sale History ── */}
+              {!isCreateMode && priceSnap?.recent_sales?.length > 0 && (
+                <Section>
+                  <SectionLabel>Sale History</SectionLabel>
+                  <SalesTable>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Price</th>
+                        <th>Venue</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {priceSnap.recent_sales.map((sale, i) => (
+                        <tr key={i}>
+                          <td>{sale.date_sold}</td>
+                          <td>${Number(sale.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td>{sale.venue}</td>
+                          <td>
+                            {sale.url && (
+                              <a href={sale.url} target="_blank" rel="noreferrer">↗</a>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </SalesTable>
+                </Section>
+              )}
 
               {/* ── Dates & Flags ── */}
               <Section>

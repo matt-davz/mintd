@@ -171,6 +171,20 @@ PSA population report snapshots. Append-only — never overwrite.
 
 ---
 
+### `psa_price_snapshots`
+
+PSA price estimate + recent sales per cert. Append-only — never overwrite. Sourced from parse.bot (third-party PSA wrapper).
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | `uuid` | PK, default `gen_random_uuid()` | |
+| `cert_id` | `uuid` | NOT NULL, FK → `certifications(id)` ON DELETE CASCADE | |
+| `psa_estimate` | `text` | | PSA's own value estimate (e.g. `$59.00`), or `—` if unavailable |
+| `recent_sales` | `jsonb` | | Array of `{ date_sold, price (float), title, venue, url }` |
+| `synced_at` | `timestamptz` | NOT NULL, default `now()` | |
+
+---
+
 ### `tags` + `item_tags`
 
 Flexible many-to-many tag system.
@@ -461,6 +475,9 @@ Sets `new.updated_at = now()` on update. Used by all tables with `updated_at`.
 ### `latest_population`
 Most recent population snapshot per cert. **Always query this instead of `population_snapshots` directly.**
 
+### `latest_psa_price`
+Most recent price snapshot per cert. **Always query this instead of `psa_price_snapshots` directly.**
+
 ### `item_gallery`
 Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, team slugs array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
@@ -485,6 +502,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `signatories` | SELECT for visible items | SELECT all, INSERT, UPDATE, DELETE |
 | `certifications` | SELECT for visible items | SELECT all, INSERT, UPDATE, DELETE |
 | `population_snapshots` | SELECT for visible items | SELECT all, INSERT |
+| `psa_price_snapshots` | SELECT all | SELECT all, INSERT |
 | `tags` | SELECT all | — |
 | `item_tags` | SELECT all | INSERT, DELETE |
 | `teams` | SELECT all | — |
@@ -536,6 +554,8 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0033_gallery_is_duplicate.sql` | Rebuild `item_gallery` to add `is_duplicate`, powering the "Dupes" filter toggle on the public and admin filter bars |
 | `0034_legendary_museum_title.sql` | Add `museum_title text` to `items`; expose directly in `item_gallery`. Used by the Museum/Timeline page to show short tidbit-style titles without modifying `items.title`. Applies to ALL items (not just legendary ones). |
 | `0034_populate_museum_titles.sql` | Data migration: populate `museum_title` for all 11 existing legendary items. Run after `0034_legendary_museum_title.sql`. |
+| `0035_populate_museum_titles.sql` | Rename of `0034_populate_museum_titles.sql` to resolve version conflict with the two `0034` files. |
+| `0036_psa_price_snapshots.sql` | Add `psa_price_snapshots` table (PSA estimate + recent sales per cert, sourced from parse.bot) and `latest_psa_price` view. |
 
 ---
 
@@ -544,4 +564,5 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | Function | Purpose | Trigger |
 |---|---|---|
 | `psa-sync` | Fetches PSA population data for all PSA/PSA-DNA certs, inserts `population_snapshots` rows | `pg_cron` weekly (Mondays 9am UTC) + manual from admin panel |
+| *(none — browser call)* | Price sync calls parse.bot (`get_cert_details` + `get_cert_sales`) directly from the admin browser using `VITE_PARSE_BOT_API_KEY`, then inserts into `psa_price_snapshots`. Triggered per-item from the `sell` icon in `ItemViewerModal`. | Manual only |
 

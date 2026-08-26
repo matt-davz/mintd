@@ -296,6 +296,21 @@ On gallery cards: show the `is_featured = true` signatory name prominently. If t
 
 Always read from the `latest_population` view, not `population_snapshots` directly. Display Higher / Same / Lower as a minimal data table with monospace numbers. Only show population data if a PSA or PSA/DNA cert exists for the item.
 
+## PSA market price (parse.bot)
+
+PSA price estimates and recent sales are fetched via [parse.bot](https://parse.bot/marketplace/e4bff78d-ff22-4603-b9d3-e3cbb455544e/psacard-com-api) — a third-party REST wrapper over PSA's public site. Two endpoints are called in parallel per cert:
+
+- `get_cert_details` → `psa_estimate` (PSA's own value estimate, e.g. `$59.00`; returns `—` when unavailable)
+- `get_cert_sales` → `data.sales[]` array of `{ date_sold, price (float), title, venue, url }`
+
+Results are stored in `psa_price_snapshots` (append-only). Always read from `latest_psa_price` view. The sync is triggered **per-item** from the `sell` icon in the admin `ItemViewerModal` — there is no bulk sync. API key: `VITE_PARSE_BOT_API_KEY` in `.env.local`. Calls are made directly from the browser (no edge function).
+
+Admin modal sections powered by this data:
+- **Market Value** — PSA estimate pill + sync button + "X ago" timestamp. Only renders when the item has a PSA/PSA-DNA cert with a cert number.
+- **Sale History** — full recent sales table. Only renders once a sync has been run and sales data exists.
+
+The "Price" field in the Financials section is labeled **Acquisition Price** (what was paid, not market value).
+
 ## Images (Cloudinary)
 
 All item images are stored as full Cloudinary secure URLs in `images.cloudinary_url`. The `item_gallery` view surfaces the primary image as `primary_image_url`.
