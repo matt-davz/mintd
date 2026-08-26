@@ -95,6 +95,7 @@
 - [x] `supabase/functions/psa-sync` — deployed Edge Function
 - [ ] PSA/DNA autograph cert population — map `DNACert` pop fields correctly
 - [ ] Configure `pg_cron` to call `psa-sync` weekly (Mondays 9am UTC)
+- [ ] **"1/1 FINEST" badge false positives** — badge condition is `pop_higher = 0 AND pop_same <= 1`. The `same=0` case covers PSA hand-cut cards where PSA excludes the item from its own grade bucket (e.g. 1919-21 W514 Babe Ruth Hand Cut). However, items with stale/un-synced population data also show `same=0` and will incorrectly get the badge (e.g. 1989 Upper Deck Griffey PSA 10). Fix: add `pop_lower` to `item_gallery` and require `pop_lower > 0` when `pop_same = 0`, so stale all-zero records don't qualify.
 
 ## 7. Deployment
 - [ ] Connect repo to Netlify

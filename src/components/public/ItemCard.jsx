@@ -60,6 +60,22 @@ const ForSaleBadge = styled.span`
   padding: 0.25rem 0.5rem;
 `
 
+const RarityBadge = styled.div`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: #92400e;
+  color: #fbbf24;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  text-transform: uppercase;
+`
+
 const GradeBadge = styled.div`
   position: absolute;
   bottom: 1rem;
@@ -134,6 +150,8 @@ export function ItemCard({ item }) {
     auto_grade,
     cert_service,
     for_sale,
+    pop_higher,
+    pop_same,
   } = item
 
   // Show both grades when an autograph grade exists alongside a cert grade,
@@ -161,6 +179,7 @@ export function ItemCard({ item }) {
     : null
 
   const certDisplay = cert_number ? `Cert ID: ${cert_number}` : null
+  const isFinestKnown = pop_higher === 0 && pop_same != null && pop_same <= 1
 
   return (
     <Card to={`/item/${id}`}>
@@ -177,6 +196,7 @@ export function ItemCard({ item }) {
           </ImagePlaceholder>
         )}
         {for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
+        {isFinestKnown && <RarityBadge>1/1 Finest</RarityBadge>}
         {gradeLabel && <GradeBadge {...gradeColors(gradeColorSource, cert_service)}>{gradeLabel}</GradeBadge>}
       </ImageWrapper>
 

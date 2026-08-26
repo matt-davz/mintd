@@ -517,7 +517,9 @@ Most recent price snapshot per cert. **Always query this instead of `psa_price_s
 ### `item_gallery`
 Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, team slugs array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
-**Columns:** `id`, `title`, `museum_title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
+**Columns:** `id`, `title`, `museum_title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `pop_higher integer`, `pop_same integer`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
+
+`pop_higher` and `pop_same` come from `latest_population` joined via the primary cert's UUID (`certifications.id`). Both are `NULL` when no population snapshot exists. The public gallery card shows a **"1/1 FINEST"** amber badge when `pop_higher = 0 AND pop_same = 1` (sole finest-known example at the highest graded level).
 
 **Grade display:** Use `displayGrade()` from `src/utils/gradeColors.js` when rendering `cert_grade` or `auto_grade` in the UI. PSA grade codes are kept as-is (e.g. `AA` stays `AA` — it is Authentic Altered). Only standalone `Authentic`/`Auth`/`AUTH` is shortened to `Auth`. When both `cert_grade` and `auto_grade` are present on an autographed item, display as `[cert_grade] / Auto [auto_grade]` (e.g. `AA / Auto NM-MT 8`). Use `auto_grade` for color-coding when both exist (it’s the numeric grade).
 
@@ -594,6 +596,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0034_populate_museum_titles.sql` | Data migration: populate `museum_title` for all 11 existing legendary items. Run after `0034_legendary_museum_title.sql`. |
 | `0035_populate_museum_titles.sql` | Rename of `0034_populate_museum_titles.sql` to resolve version conflict with the two `0034` files. |
 | `0036_psa_price_snapshots.sql` | Add `psa_price_snapshots` table (PSA estimate + recent sales per cert, sourced from parse.bot) and `latest_psa_price` view. |
+| `0037_gallery_pop_rarity.sql` | Extend `item_gallery` cert lateral to left-join `latest_population`, exposing `pop_higher integer` and `pop_same integer`. Powers the "1/1 FINEST" badge on public gallery cards. |
 
 ---
 
