@@ -70,14 +70,15 @@ See `docs/FILESYSTEM.md`.
 /museum              → Timeline (Yankees Museum - chronological horizontal timeline)
 /contact             → Contact
 
-// Admin routes - Clerk auth required on ALL /admin/* routes
-/admin               → redirect to /admin/dashboard
+// Admin routes - Clerk auth required; all share the same public Layout (Header + Footer)
+/admin               → redirect to / (triggers Clerk login if not signed in; after login, gallery loads with admin nav unlocked in Header)
 /admin/dashboard     → Dashboard
 /admin/items         → ItemList
 /admin/psa-sync      → PsaSync
+/admin/gallery-order → GalleryOrder
 ```
 
-Item viewing/editing/creating is handled by `<ItemViewerModal>` (modal), not page routes. "Add New Asset" opens the modal in create mode from AdminLayout. Clicking an item in Dashboard or ItemList opens the modal in view mode.
+Item viewing/editing/creating is handled by `<ItemViewerModal>` (modal), not page routes. "Add New Asset" opens the modal in create mode from `Header` (visible when Clerk session is active). Clicking an item in Dashboard or ItemList opens the modal in view mode.
 
 ## Auth rules
 

@@ -8,6 +8,11 @@ import { withAutoOrient } from '../../lib/cloudinary'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
+const Page = styled.div`
+  padding: var(--space-6) var(--space-4);
+  @media (min-width: 769px) { padding: var(--space-10); }
+`
+
 const PageHeading = styled.div`
   margin-bottom: var(--space-8);
 `
@@ -716,6 +721,7 @@ export default function ItemList() {
         />
       )}
 
+      <Page>
       <PageHeading>
         <PageTitle>Table View</PageTitle>
         <PageSub>All fields, raw data — click any column header to sort.</PageSub>
@@ -894,6 +900,7 @@ export default function ItemList() {
           </Table>
         </TableWrap>
       </TableSection>
+      </Page>
     </>
   )
 }
