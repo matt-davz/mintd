@@ -10,6 +10,7 @@ Schema: `supabase/migrations/`. Full reference: `docs/DATABASE_SCHEMA.md`.
 - `signatories` — one row per signer per item; `is_featured = true` drives card display
 - `certifications` — PSA, PSA/DNA, BGS, JSA, SGC, Steiner, CGC etc. — one row per cert per item
 - `population_snapshots` — append-only PSA pop report history, hangs off `certifications`
+- `psa_price_snapshots` — append-only PSA price estimate + recent sales history, hangs off `certifications`. Sourced from parse.bot.
 - `tags` + `item_tags` — many-to-many tag system
 - `teams` + `item_teams` — MLB team associations; many-to-many. Auto-populated from `game_context.home_team` / `away_team` on item save. Drives the Teams filter in the gallery and admin advanced search.
 - `images` — Cloudinary references; unique constraint enforces one `is_primary = true` per item
@@ -106,6 +107,7 @@ To add a new service, add an entry to `CERT_LINK_BUILDERS` in `src/components/ad
 
 - `item_gallery` — denormalised gallery view; one row per item with primary image, featured signer, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `season_year`, set name, primary cert, `is_legendary`, `is_duplicate`, `game_date date`, `series_game_number integer`, and `legendary_event_title text`. Filtered to `is_visible = true AND is_baseball = true`. Featured signer uses `LATERAL LIMIT 1` to prevent duplicate rows when multiple `is_featured` signatories exist — `signatory_count` carries the total for "+ N others" display. Previously named `item_cards` — renamed in migration `0011` (`item_cards` is now the trading card detail table). This is the data source for all client-side filtering and sorting in the gallery. `game_date` and `series_game_number` are `NULL` for items without game context (e.g. cards).
 - `latest_population` — most recent population snapshot per cert
+- `latest_psa_price` — most recent price snapshot per cert. **Always query this instead of `psa_price_snapshots` directly.**
 
 ### RLS
 

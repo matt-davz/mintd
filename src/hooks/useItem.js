@@ -7,6 +7,7 @@ export function useItem(id) {
   const [signatories, setSignatories] = useState([])
   const [certifications, setCertifications] = useState([])
   const [population, setPopulation] = useState([])
+  const [priceData, setPriceData] = useState([])
   const [images, setImages] = useState([])
   const [loas, setLoas] = useState([])
   const [detail, setDetail] = useState(null)
@@ -88,12 +89,13 @@ export function useItem(id) {
 
       if (psaCerts.length > 0) {
         const certIds = psaCerts.map(c => c.id)
-        const { data: popData } = await supabase
-          .from('latest_population')
-          .select()
-          .in('cert_id', certIds)
+        const [{ data: popData }, { data: priceSnaps }] = await Promise.all([
+          supabase.from('latest_population').select().in('cert_id', certIds),
+          supabase.from('latest_psa_price').select().in('cert_id', certIds),
+        ])
 
         if (!cancelled) setPopulation(popData ?? [])
+        if (!cancelled) setPriceData(priceSnaps ?? [])
       }
 
       if (!cancelled) setLoading(false)
@@ -106,5 +108,5 @@ export function useItem(id) {
 
   const refetch = useCallback(() => refetchRef.current(), [])
 
-  return { item, signatories, certifications, population, images, loas, detail, gameContext, legendaryContext, legendaryImages, loading, error, refetch }
+  return { item, signatories, certifications, population, priceData, images, loas, detail, gameContext, legendaryContext, legendaryImages, loading, error, refetch }
 }
