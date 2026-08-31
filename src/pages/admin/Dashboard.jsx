@@ -780,13 +780,9 @@ export default function Dashboard() {
                         ? <img src={item.primary_image_url} alt={item.title} />
                         : <span className="material-symbols-outlined">image</span>}
                     </Thumb>
-                    {item.reference_link ? (
-                      <AssetName as="a" href={item.reference_link} target="_blank" rel="noreferrer" style={{ textDecoration: 'underline', textUnderlineOffset: '2px', cursor: 'pointer' }}>
-                        {item.title}
-                      </AssetName>
-                    ) : (
-                      <AssetName>{item.title}</AssetName>
-                    )}
+                    <AssetName as={Link} to={`/item/${item.id}`} style={{ textDecoration: 'underline', textUnderlineOffset: '2px', cursor: 'pointer' }}>
+                      {item.title}
+                    </AssetName>
                   </AssetCell>
                 </Td>
                 <Td>
@@ -823,9 +819,15 @@ export default function Dashboard() {
                   ) : <Muted>—</Muted>}
                 </Td>
                 <Td $right>
-                  <ActionBtn onClick={() => setSelectedItemId(item.id)}>
-                    <span className="material-symbols-outlined">open_in_new</span>
-                  </ActionBtn>
+                  {item.reference_link ? (
+                    <ActionBtn as="a" href={item.reference_link} target="_blank" rel="noreferrer">
+                      <span className="material-symbols-outlined">open_in_new</span>
+                    </ActionBtn>
+                  ) : (
+                    <ActionBtn as="a" aria-disabled="true" style={{ opacity: 0.4, pointerEvents: 'none' }}>
+                      <span className="material-symbols-outlined">open_in_new</span>
+                    </ActionBtn>
+                  )}
                 </Td>
               </Tr>
             ))}
