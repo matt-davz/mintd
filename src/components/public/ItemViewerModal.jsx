@@ -283,6 +283,9 @@ const Description = styled.p`
   font-size: 0.875rem;
   line-height: 1.6;
   color: var(--color-on-surface-variant);
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
 `
 
 const ActionsRow = styled.div`

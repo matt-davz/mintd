@@ -599,7 +599,7 @@ export default function ItemDetail() {
         {item.description && (
           <section>
             <SectionLabel>Description</SectionLabel>
-            <p style={{ fontFamily: 'var(--font-body)', color: 'var(--color-on-surface-variant)', lineHeight: 1.7, fontSize: '0.9375rem' }}>
+            <p style={{ fontFamily: 'var(--font-body)', color: 'var(--color-on-surface-variant)', lineHeight: 1.7, fontSize: '0.9375rem', overflowWrap: 'break-word', wordBreak: 'normal', hyphens: 'none' }}>
               {item.description}
             </p>
           </section>
