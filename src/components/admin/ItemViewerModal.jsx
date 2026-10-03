@@ -416,7 +416,7 @@ const PhotoWrap = styled.div`
   img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
   }
 
   .material-symbols-outlined {
@@ -654,7 +654,9 @@ const FieldValue = styled.p`
     $accent === 'gold' ? 'var(--color-secondary-fixed)' :
     $accent === 'blue' ? 'var(--color-primary)' :
     'var(--color-on-surface-variant)'};
-  word-break: break-all;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
 `
 
 const FieldLink = styled.a`
@@ -663,7 +665,9 @@ const FieldLink = styled.a`
   color: var(--color-primary);
   text-decoration: underline;
   text-underline-offset: 2px;
-  word-break: break-all;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
   &:hover { opacity: 0.7; }
 `
 
