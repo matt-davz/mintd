@@ -1731,7 +1731,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
                                 <Val
                                   value={`#${cert.cert_id}`}
                                   accent="blue"
-                                  href={`https://www.psacard.com/cert/${cert.cert_id}/psa`}
+                                  href={cert.cert_link || `https://www.psacard.com/cert/${cert.cert_id}/psa`}
                                 />
                               ) : (
                                 <Val value={`#${cert.cert_id}`} accent="blue" />
