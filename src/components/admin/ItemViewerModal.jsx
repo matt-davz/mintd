@@ -939,7 +939,7 @@ const EMPTY_FORM = {
   is_duplicate: false, is_legendary: false, purchase_date: '', season_year: '', notes: '',
 }
 
-export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
+export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = false }) {
   const isCreateMode = !itemId
   const { item, signatories, certifications, population, priceData, images, loas, detail, gameContext, legendaryContext, legendaryImages, loading, error, refetch } = useItem(isCreateMode ? null : itemId)
 
@@ -1052,6 +1052,15 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem }) {
     }
     setIsEditing(true)
   }
+
+  // Deep-link: start directly in edit mode once the item has loaded
+  const autoEditRef = useRef(false)
+  useEffect(() => {
+    if (startInEdit && !autoEditRef.current && item && !loading && !isCreateMode && !isEditing) {
+      autoEditRef.current = true
+      enterEditMode()
+    }
+  }, [startInEdit, item, loading, isCreateMode, isEditing])
 
   // Escape key
   useEffect(() => {

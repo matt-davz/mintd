@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useAuth } from '@clerk/react'
 import styled from 'styled-components'
 import { Carousel } from 'react-responsive-carousel'
 import 'react-responsive-carousel/lib/styles/carousel.min.css'
@@ -22,6 +23,33 @@ const Page = styled.div`
   padding: var(--space-16) var(--space-8) var(--space-24);
 `
 
+const TopBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-10);
+`
+
+const EditLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-on-primary-container);
+  background-color: var(--color-primary-container);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  transition: filter var(--transition-base);
+
+  &:hover { filter: brightness(1.1); }
+
+  .material-symbols-outlined { font-size: 0.875rem; }
+`
+
 const BackLink = styled(Link)`
   display: inline-flex;
   align-items: center;
@@ -31,7 +59,6 @@ const BackLink = styled(Link)`
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-outline);
-  margin-bottom: var(--space-10);
   transition: color var(--transition-base);
 
   &:hover { color: var(--color-primary); }
@@ -432,6 +459,7 @@ function gradeColorSource(cert) {
 
 export default function ItemDetail() {
   const { id } = useParams()
+  const { isSignedIn } = useAuth()
   const { item, signatories, certifications, population, images, detail, gameContext, loading, error } = useItem(id)
   const { items: allItems } = useItems()
 
@@ -457,10 +485,18 @@ export default function ItemDetail() {
 
   return (
     <Page>
-      <BackLink to="/">
-        <span className="material-symbols-outlined">arrow_back</span>
-        The Archive
-      </BackLink>
+      <TopBar>
+        <BackLink to="/">
+          <span className="material-symbols-outlined">arrow_back</span>
+          The Archive
+        </BackLink>
+        {isSignedIn && (
+          <EditLink to={`/admin/dashboard?item=${id}&edit=1`}>
+            <span className="material-symbols-outlined">edit</span>
+            Edit Item
+          </EditLink>
+        )}
+      </TopBar>
 
       <ContentWrap>
         {/* ── Title ── */}

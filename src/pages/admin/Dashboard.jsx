@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import styled from 'styled-components'
 import { supabase } from '../../lib/supabase'
 import { useItems } from '../../hooks/useItems'
@@ -474,6 +474,23 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState('')
   const [search, setSearch] = useState('')
   const [selectedItemId, setSelectedItemId] = useState(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Deep-link: /admin/dashboard?item=<id>&edit=1 opens the modal for that item
+  const deepLinkItemId = searchParams.get('item')
+  const deepLinkEdit = searchParams.get('edit') === '1'
+  // A click-selected item wins over the deep link; falls back to the URL param
+  const modalItemId = selectedItemId ?? deepLinkItemId ?? null
+
+  function closeModal() {
+    setSelectedItemId(null)
+    if (searchParams.has('item') || searchParams.has('edit')) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('item')
+      next.delete('edit')
+      setSearchParams(next, { replace: true })
+    }
+  }
 
   const { items, loading: itemsLoading } = useItems()
 
@@ -616,10 +633,11 @@ export default function Dashboard() {
 
   return (
     <>
-      {selectedItemId && (
+      {modalItemId && (
         <ItemViewerModal
-          itemId={selectedItemId}
-          onClose={() => setSelectedItemId(null)}
+          itemId={modalItemId}
+          startInEdit={deepLinkEdit && modalItemId === deepLinkItemId}
+          onClose={closeModal}
           onOpenItem={setSelectedItemId}
         />
       )}
