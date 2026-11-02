@@ -654,7 +654,6 @@ const FieldValue = styled.p`
     $accent === 'gold' ? 'var(--color-secondary-fixed)' :
     $accent === 'blue' ? 'var(--color-primary)' :
     'var(--color-on-surface-variant)'};
-  overflow-wrap: break-word;
   word-break: normal;
   hyphens: none;
 `
