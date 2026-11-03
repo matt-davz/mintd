@@ -300,6 +300,8 @@ On gallery cards: show the `is_featured = true` signatory name prominently. If t
 
 Always read from the `latest_population` view, not `population_snapshots` directly. Display Higher / Same / Lower as a minimal data table with monospace numbers. Only show population data if a PSA or PSA/DNA cert exists for the item.
 
+**Rarity badge:** The `RarityBadge` component (`src/components/badges/RarityBadge.jsx`) is the single source of truth for pop-based rarity badges. Import it — never define a local styled clone. It accepts `popHigher` and `popSame` props and returns `null` when no tier qualifies. Add new tiers by editing `TIERS` and `getRarityTier` in that file only.
+
 ## PSA market price (parse.bot)
 
 PSA price estimates and recent sales are fetched via [parse.bot](https://parse.bot/marketplace/e4bff78d-ff22-4603-b9d3-e3cbb455544e/psacard-com-api) — a third-party REST wrapper over PSA's public site. Two endpoints are called in parallel per cert:

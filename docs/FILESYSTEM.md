@@ -15,6 +15,8 @@ src/
 │   ├── ImageLightbox.jsx        # Shared fullscreen lightbox with rotate controls
 │   ├── BoxScoreDisplay.jsx      # Shared baseball linescore table (public + admin)
 │   ├── SetMembersAccordion.jsx  # Accordion + horizontal carousel for items in same set (public + admin)
+│   ├── badges/
+│   │   └── RarityBadge.jsx      # Shared rarity badge component — getRarityTier(popHigher, popSame) returns tier string or null; RarityBadge component renders nothing when no tier qualifies. Extend with styled() to add positioning (e.g. ItemCard uses CardRarityBadge = styled(RarityBadge) with position:absolute).
 │   ├── layout/
 │   │   ├── Header.jsx           # Fixed nav — public links (Gallery/Museum/Contact) + admin links (Overview/Table View/Gallery Order/PSA Sync) + Add Asset button + Sign Out when Clerk session is active. Mobile burger drawer mirrors same items.
 │   │   ├── Footer.jsx

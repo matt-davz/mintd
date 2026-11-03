@@ -13,6 +13,7 @@ import { SetMembersAccordion } from '../../components/SetMembersAccordion'
 import { SeriesTicketsAccordion } from '../../components/SeriesTicketsAccordion'
 import { DuplicateCopiesSection } from '../../components/public/DuplicateCopiesSection'
 import { gradeColors, displayGrade } from '../../utils/gradeColors'
+import { RarityBadge } from '../../components/badges/RarityBadge'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -194,18 +195,6 @@ const GradeBadge = styled.span`
   padding: 0.25rem 0.75rem;
 `
 
-const RarityBadge = styled.span`
-  display: inline-block;
-  background-color: #92400e;
-  color: #fbbf24;
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 0.625rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  padding: 0.25rem 0.75rem;
-  border: 1px solid rgba(251, 191, 36, 0.4);
-`
 
 const DataRow = styled.div`
   display: flex;
@@ -546,7 +535,6 @@ export default function ItemDetail() {
 
               {certifications.map(cert => {
                 const certPop = population.find(p => p.cert_id === cert.id)
-                const isFinest = certPop != null && certPop.higher === 0 && certPop.same <= 1
                 return (
                 <DataRow key={cert.id}>
                   <DataLabel>{cert.cert_service} Certification</DataLabel>
@@ -554,7 +542,7 @@ export default function ItemDetail() {
                     <GradeBadge {...gradeColors(gradeColorSource(cert), cert.cert_service)}>
                       {formatGradeLabel(cert) ?? 'Authenticated'}
                     </GradeBadge>
-                    {isFinest && <RarityBadge>1/1 Finest</RarityBadge>}
+                    <RarityBadge popHigher={certPop?.higher} popSame={certPop?.same} />
                   </BadgesRow>
                   {cert.cert_id && (
                     cert.cert_link ? (

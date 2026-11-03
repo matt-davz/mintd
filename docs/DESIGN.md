@@ -56,8 +56,35 @@ We reject the standard "drop shadow." Depth is a result of light and material, n
 *   **Expand, don't overlap:** an `expand_more` caret (rotates 180° when open) reveals the full wrapped set of pills and grows the row's height, pushing subsequent content down. Never let an expanded row float over content below it.
 *   Each pill row expands/collapses independently — expanding "Teams" should not affect "Grade Type".
 
-### Status Badges (The "Grade" Badge)
+### Status Badges
+
+#### Grade Badge (`GradeBadge`)
 *   **PSA/BGS Grades:** Use `secondary_container` (#8f7100) for the background and `secondary_fixed` (#ffe08d) for the text. This creates a "Muted Gold" effect that signifies value without looking "yellow."
+
+#### Rarity Badge (`RarityBadge` — `src/components/badges/RarityBadge.jsx`)
+Single shared component used across gallery cards, item detail page, and admin modal. Never redefine inline — always import from `badges/`.
+
+**Tiers** (only one tier currently; add new entries to `TIERS` and `getRarityTier` to expand):
+
+| Tier key | Label | Condition | Style |
+|---|---|---|---|
+| `finest` | `1/1 Finest` | `pop_higher = 0` and `pop_same ≤ 1` | Amber/brown `#92400e` bg, gold `#fbbf24` text, gold border at 40% opacity |
+
+**Usage:**
+```jsx
+import { RarityBadge } from '../badges/RarityBadge'
+
+// Inline (detail page, admin modal):
+<RarityBadge popHigher={certPop?.higher} popSame={certPop?.same} />
+
+// Absolute-positioned overlay (gallery card):
+const CardRarityBadge = styled(RarityBadge)`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+`
+```
+Returns `null` when no tier qualifies — no conditional wrapping needed at the call site.
 
 ### Input Fields
 *   **Form Style:** Use `surface_container_lowest` as the input background. On focus, do not use a thick border; instead, transition the background to `surface_container_high` and change the label color to `primary`.
