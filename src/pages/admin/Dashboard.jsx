@@ -555,34 +555,42 @@ export default function Dashboard() {
     })
 
     async function fetchWsProgress() {
-      const { data: wsTickets, error: wsError } = await supabase
-        .from('item_tickets')
-        .select('item_id, game_context!inner(season_year, game_type, series_game_number)')
-        .eq('game_context.game_type', 'world_series')
+      const GC_COLS = 'season_year, series_game_number, home_team, away_team'
+
+      const [ticketRes, sheetRes] = await Promise.all([
+        supabase
+          .from('item_tickets')
+          .select(`game_context!inner(${GC_COLS}, game_type)`)
+          .eq('game_context.game_type', 'world_series'),
+        supabase
+          .from('ticket_sheet_games')
+          .select(`is_phantom, game_context!inner(${GC_COLS}, game_type)`)
+          .eq('game_context.game_type', 'world_series')
+          .eq('is_phantom', false),
+      ])
 
       if (cancelled) return
-      if (wsError || !wsTickets) { setWsOwnedGames(new Map()); return }
+      if (ticketRes.error || sheetRes.error) {
+        console.error('Failed to load WS ticket progress', ticketRes.error ?? sheetRes.error)
+        setWsOwnedGames(new Map())
+        return
+      }
 
-      const wsItemIds = wsTickets.map(t => t.item_id)
-      if (wsItemIds.length === 0) { setWsOwnedGames(new Map()); return }
-
-      const { data: yankeeItems } = await supabase
-        .from('item_teams')
-        .select('item_id, teams!inner(slug)')
-        .in('item_id', wsItemIds)
-        .eq('teams.slug', 'yankees')
-
-      if (cancelled) return
-
-      const yankeeSet = new Set((yankeeItems ?? []).map(t => t.item_id))
+      const isYankees = name => name === 'New York Yankees' || name === 'NYY'
+      // owned: year -> Set(game number); a Set dedupes across tickets and sheets
       const owned = new Map()
-      wsTickets
-        .filter(t => yankeeSet.has(t.item_id) && t.game_context?.season_year && t.game_context?.series_game_number != null)
-        .forEach(t => {
-          const { season_year: year, series_game_number: game } = t.game_context
-          if (!owned.has(year)) owned.set(year, new Set())
-          owned.get(year).add(game)
-        })
+      const addGame = gc => {
+        if (!gc) return
+        const { season_year: year, series_game_number: game } = gc
+        const total = YANKEES_WS_GAMES[year]
+        if (!total || !Number.isInteger(game) || game < 1 || game > total) return
+        if (!isYankees(gc.home_team) && !isYankees(gc.away_team)) return
+        if (!owned.has(year)) owned.set(year, new Set())
+        owned.get(year).add(game)
+      }
+
+      ;(ticketRes.data ?? []).forEach(t => addGame(t.game_context))
+      ;(sheetRes.data ?? []).forEach(t => addGame(t.game_context))
       setWsOwnedGames(owned)
     }
 
