@@ -143,8 +143,8 @@ export function ItemCard({ item }) {
     auto_grade,
     cert_service,
     for_sale,
-    pop_higher,
-    pop_same,
+    is_one_of_one,
+    is_finest,
   } = item
 
   // Show both grades when an autograph grade exists alongside a cert grade,
@@ -188,7 +188,7 @@ export function ItemCard({ item }) {
           </ImagePlaceholder>
         )}
         {for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
-        <CardRarityBadge popHigher={pop_higher} popSame={pop_same} />
+        <CardRarityBadge isOneOfOne={is_one_of_one} isFinest={is_finest} />
         {gradeLabel && <GradeBadge {...gradeColors(gradeColorSource, cert_service)}>{gradeLabel}</GradeBadge>}
       </ImageWrapper>
 

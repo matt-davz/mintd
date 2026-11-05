@@ -533,16 +533,14 @@ export default function ItemDetail() {
                 <SignatoryList signatories={signatories} />
               )}
 
-              {certifications.map(cert => {
-                const certPop = population.find(p => p.cert_id === cert.id)
-                return (
+              {certifications.map(cert => (
                 <DataRow key={cert.id}>
                   <DataLabel>{cert.cert_service} Certification</DataLabel>
                   <BadgesRow>
                     <GradeBadge {...gradeColors(gradeColorSource(cert), cert.cert_service)}>
                       {formatGradeLabel(cert) ?? 'Authenticated'}
                     </GradeBadge>
-                    <RarityBadge popHigher={certPop?.higher} popSame={certPop?.same} />
+                    <RarityBadge isOneOfOne={item?.is_one_of_one} isFinest={item?.is_finest} />
                   </BadgesRow>
                   {cert.cert_id && (
                     cert.cert_link ? (
@@ -563,7 +561,7 @@ export default function ItemDetail() {
                     )
                   )}
                 </DataRow>
-              )})}
+              ))}
 
             </DataGrid>
 
