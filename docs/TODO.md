@@ -95,11 +95,7 @@
 - [x] `supabase/functions/psa-sync` — deployed Edge Function
 - [ ] PSA/DNA autograph cert population — map `DNACert` pop fields correctly
 - [ ] Configure `pg_cron` to call `psa-sync` weekly (Mondays 9am UTC)
-- [ ] **"1/1 FINEST" badge false positives** — badge condition is `pop_higher = 0 AND pop_same <= 1`. The `same=0` case covers PSA hand-cut cards where PSA excludes the item from its own grade bucket (e.g. 1919-21 W514 Babe Ruth Hand Cut). However, items with stale/un-synced population data also show `same=0` and will incorrectly get the badge (e.g. 1989 Upper Deck Griffey PSA 10). Fix: add `pop_lower` to `item_gallery` and require `pop_lower > 0` when `pop_same = 0`, so stale all-zero records don't qualify.
-- [ ] **Additional rarity badge tiers** — `RarityBadge` (`src/components/badges/RarityBadge.jsx`) is architected for multiple tiers; add new entries to `TIERS` and `getRarityTier` only. Proposed tiers (confirm thresholds before implementing):
-  - `finest_few` — `pop_higher = 0, pop_same 2–5` — label TBD (e.g. "Finest Few"), distinct colour from `finest`
-  - `low_pop` — `pop_higher = 0, pop_same 6–25` — label TBD (e.g. "Low Pop"), lower-key styling
-  - Attribute badges (separate from pop-based): `GAME USED` (`game-used` tag), `SIGNED` (`is_autographed`), `WORLD SERIES` (`world-series` tag), `ROOKIE` (`rookie-card` tag) — decide whether these belong on `RarityBadge` or a new `AttributeBadge` component
+- [x] **Rarity badges** — replaced pop-derived "1/1 FINEST" with two independent admin-curated flags (`is_one_of_one`, `is_finest`) on `items`. Badges rendered by `RarityBadge` via `isOneOfOne` / `isFinest` props. Toggled per item in admin modal Meta section. 17 items seeded from pop data on launch.
 
 ## 7. Deployment
 - [ ] Connect repo to Netlify

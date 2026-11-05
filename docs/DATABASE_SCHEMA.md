@@ -75,6 +75,8 @@ Core table — everything hangs off this.
 | `notes` | `text` | | |
 | `is_duplicate` | `boolean` | NOT NULL, default `false` | |
 | `is_legendary` | `boolean` | NOT NULL, default `false` | Marks item for special "legendary" display treatment on the Timeline |
+| `is_one_of_one` | `boolean` | NOT NULL, default `false` | Admin-curated flag — only one known copy of this item exists. Renders the amber **1/1** badge. |
+| `is_finest` | `boolean` | NOT NULL, default `false` | Admin-curated flag — no known copy has a higher grade. Renders the blue **Finest** badge. Independent of `is_one_of_one`; both can be true simultaneously. |
 | `museum_title` | `text` | nullable | Short tidbit-style title shown on the Museum/Timeline page. Falls back to `title` when NULL. Full title still shown on item detail page. Convention: `[tidbit] — Ticket Stub / Full Ticket / Program` (non-auto) or `[tidbit] — [type] — Signed by [Name(s)]` (auto). |
 | `season_year` | `integer` | nullable | Year of the game/event or card issue year. Backfilled from `game_context.season_year` for game-context items; from `item_cards.year_issued` for cards. Auto-synced from game context on save via `ItemViewerModal`. |
 | `created_at` | `timestamptz` | NOT NULL, default `now()` | |
@@ -517,9 +519,9 @@ Most recent price snapshot per cert. **Always query this instead of `psa_price_s
 ### `item_gallery`
 Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, team slugs array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
-**Columns:** `id`, `title`, `museum_title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `pop_higher integer`, `pop_same integer`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
+**Columns:** `id`, `title`, `museum_title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_one_of_one`, `is_finest`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `pop_higher integer`, `pop_same integer`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
 
-`pop_higher` and `pop_same` come from `latest_population` joined via the primary cert's UUID (`certifications.id`). Both are `NULL` when no population snapshot exists. Badge rendering is handled by the shared `RarityBadge` component (`src/components/badges/RarityBadge.jsx`) — the **"1/1 Finest"** amber badge shows when `pop_higher = 0 AND pop_same ≤ 1` (sole finest-known example at the highest graded level). Note: `pop_same = 0` is ambiguous — it can mean PSA-excluded hand-cut cards (legitimate finest) or stale/un-synced data (false positive). See TODO for the `pop_lower` fix.
+`pop_higher` and `pop_same` come from `latest_population` joined via the primary cert's UUID. Both are `NULL` when no population snapshot exists. Rarity badge rendering is handled by `RarityBadge` (`src/components/badges/RarityBadge.jsx`) — badges are driven by the admin-curated `is_one_of_one` and `is_finest` flags on `items`, not by pop data directly.
 
 **Grade display:** Use `displayGrade()` from `src/utils/gradeColors.js` when rendering `cert_grade` or `auto_grade` in the UI. PSA grade codes are kept as-is (e.g. `AA` stays `AA` — it is Authentic Altered). Only standalone `Authentic`/`Auth`/`AUTH` is shortened to `Auth`. When both `cert_grade` and `auto_grade` are present on an autographed item, display as `[cert_grade] / Auto [auto_grade]` (e.g. `AA / Auto NM-MT 8`). Use `auto_grade` for color-coding when both exist (it’s the numeric grade).
 
@@ -596,7 +598,8 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0034_populate_museum_titles.sql` | Data migration: populate `museum_title` for all 11 existing legendary items. Run after `0034_legendary_museum_title.sql`. |
 | `0035_populate_museum_titles.sql` | Rename of `0034_populate_museum_titles.sql` to resolve version conflict with the two `0034` files. |
 | `0036_psa_price_snapshots.sql` | Add `psa_price_snapshots` table (PSA estimate + recent sales per cert, sourced from parse.bot) and `latest_psa_price` view. |
-| `0037_gallery_pop_rarity.sql` | Extend `item_gallery` cert lateral to left-join `latest_population`, exposing `pop_higher integer` and `pop_same integer`. Powers the "1/1 FINEST" badge on public gallery cards. |
+| `0037_gallery_pop_rarity.sql` | Extend `item_gallery` cert lateral to left-join `latest_population`, exposing `pop_higher integer` and `pop_same integer`. |
+| `0038_rarity_flags.sql` | Add `is_one_of_one boolean` and `is_finest boolean` to `items` (default `false`); rebuild `item_gallery` to expose both. Powers the **1/1** (amber) and **Finest** (blue) rarity badges — admin-curated, not derived from pop data. |
 
 ---
 

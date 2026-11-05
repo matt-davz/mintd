@@ -300,7 +300,14 @@ On gallery cards: show the `is_featured = true` signatory name prominently. If t
 
 Always read from the `latest_population` view, not `population_snapshots` directly. Display Higher / Same / Lower as a minimal data table with monospace numbers. Only show population data if a PSA or PSA/DNA cert exists for the item.
 
-**Rarity badge:** The `RarityBadge` component (`src/components/badges/RarityBadge.jsx`) is the single source of truth for pop-based rarity badges. Import it — never define a local styled clone. It accepts `popHigher` and `popSame` props and returns `null` when no tier qualifies. Add new tiers by editing `TIERS` and `getRarityTier` in that file only.
+**Rarity badges:** The `RarityBadge` component (`src/components/badges/RarityBadge.jsx`) renders up to two independent badges per item. Import it — never define a local styled clone. Props: `isOneOfOne` and `isFinest` (both boolean). Both are driven by admin-curated flags on `items` (`is_one_of_one`, `is_finest`), not derived from pop data. Add new tiers by editing `TIERS` and `getRarityBadges` in that file only.
+
+| Badge | Colour | Meaning |
+|---|---|---|
+| **1/1** | Amber/gold | Only one known copy of this item exists |
+| **Finest** | Electric blue | No known copy has a higher grade |
+
+Both badges can show simultaneously (a 1/1 is also the finest by definition). Toggled per item in the admin modal Meta section.
 
 ## PSA market price (parse.bot)
 
