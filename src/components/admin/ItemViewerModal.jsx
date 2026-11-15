@@ -934,6 +934,7 @@ const EMPTY_FORM = {
   title: '', description: '', reference_link: '',
   price: '', auto_total: '', acquisition_type: 'unknown',
   item_type: '', is_autographed: false, for_sale: false,
+  is_sold: false, sale_price: '',
   is_visible: false, is_baseball: false, is_part_of_set: false,
   is_duplicate: false, is_legendary: false, purchase_date: '', season_year: '', notes: '',
 }
@@ -987,6 +988,8 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = fal
       item_type:           item.item_type ?? '',
       is_autographed:      item.is_autographed ?? false,
       for_sale:            item.for_sale ?? false,
+      is_sold:             item.is_sold ?? false,
+      sale_price:          item.sale_price ?? '',
       is_visible:          item.is_visible ?? false,
       is_baseball:         item.is_baseball ?? false,
       is_part_of_set:      item.is_part_of_set ?? false,
@@ -1080,7 +1083,14 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = fal
   }, [onClose, isEditing])
 
   function setField(key, value) {
-    setForm(prev => ({ ...prev, [key]: value }))
+    setForm(prev => {
+      const next = { ...prev, [key]: value }
+      // Sold and For Sale are mutually exclusive
+      if (key === 'is_sold' && value) next.for_sale = false
+      if (key === 'for_sale' && value) { next.is_sold = false; next.sale_price = '' }
+      if (key === 'is_sold' && !value) next.sale_price = ''
+      return next
+    })
   }
 
   function setDetailField(key, value) {
@@ -1176,7 +1186,9 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = fal
         acquisition_type: form.acquisition_type,
         item_type:        form.item_type || null,
         is_autographed:   form.is_autographed,
-        for_sale:         form.for_sale,
+        for_sale:         form.for_sale && !form.is_sold,
+        is_sold:          form.is_sold,
+        sale_price:       form.is_sold && form.sale_price !== '' ? Number(form.sale_price) : null,
         is_visible:       form.is_visible,
         is_baseball:      form.is_baseball,
         is_part_of_set:   form.is_part_of_set,
@@ -1641,7 +1653,9 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = fal
                             : displayGrade(certifications[0].item_grade ?? certifications[0].auto_grade ?? '')}
                         </GradeBadge>
                       )}
-                      {item.for_sale && <ForSaleTag>For Sale</ForSaleTag>}
+                      {item.is_sold
+                        ? <ForSaleTag>Sold{item.sale_price != null && ` · ${formatCurrency(item.sale_price)}`}</ForSaleTag>
+                        : item.for_sale && <ForSaleTag>For Sale</ForSaleTag>}
                       {item.is_autographed && <Tag>Signed</Tag>}
                     </BadgeRow>
                   )}
@@ -1938,6 +1952,38 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = fal
                       <Bool value={item.for_sale} />
                     )}
                   </Field>
+                  <Field>
+                    <FieldLabel>Sold</FieldLabel>
+                    {isEditing ? (
+                      <CheckboxLabel>
+                        <input
+                          type="checkbox"
+                          checked={form.is_sold}
+                          onChange={e => setField('is_sold', e.target.checked)}
+                        />
+                        Yes
+                      </CheckboxLabel>
+                    ) : (
+                      <Bool value={item.is_sold} />
+                    )}
+                  </Field>
+                  {(isEditing ? form.is_sold : item.is_sold) && (
+                    <Field>
+                      <FieldLabel>Sale Price</FieldLabel>
+                      {isEditing ? (
+                        <EditInput
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={form.sale_price}
+                          placeholder="0.00"
+                          onChange={e => setField('sale_price', e.target.value)}
+                        />
+                      ) : (
+                        <Val value={formatCurrency(item.sale_price)} />
+                      )}
+                    </Field>
+                  )}
                 </FieldGrid>
               </Section>
 

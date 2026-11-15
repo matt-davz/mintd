@@ -69,6 +69,8 @@ Core table — everything hangs off this.
 | `purchase_date` | `date` | | |
 | `is_baseball` | `boolean` | NOT NULL, default `true` | `false` hides from public site |
 | `for_sale` | `boolean` | NOT NULL, default `false` | |
+| `is_sold` | `boolean` | NOT NULL, default `false` | Sold items stay visible; public shows a Sold badge instead of For Sale. CHECK: not (`is_sold` and `for_sale`). Migration 0038 |
+| `sale_price` | `numeric(10,2)` | nullable, CHECK >= 0, CHECK `is_sold OR sale_price IS NULL` | Amount received. Admin-only; not exposed in `item_gallery`. Separate from `price` (acquisition cost); no P&L computed. No sold date stored (unknown for existing sales) |
 | `is_visible` | `boolean` | NOT NULL, default `true` | Draft flag — `false` hides from public |
 | `is_part_of_set` | `boolean` | NOT NULL, default `false` | |
 | `set_id` | `uuid` | FK → `sets(id)` ON DELETE SET NULL | |
@@ -517,7 +519,7 @@ Most recent price snapshot per cert. **Always query this instead of `psa_price_s
 ### `item_gallery`
 Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, team slugs array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
-**Columns:** `id`, `title`, `museum_title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
+**Columns:** `id`, `title`, `museum_title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_sold`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
 
 **Grade display:** Use `displayGrade()` from `src/utils/gradeColors.js` when rendering `cert_grade` or `auto_grade` in the UI. PSA grade codes are kept as-is (e.g. `AA` stays `AA` — it is Authentic Altered). Only standalone `Authentic`/`Auth`/`AUTH` is shortened to `Auth`. When both `cert_grade` and `auto_grade` are present on an autographed item, display as `[cert_grade] / Auto [auto_grade]` (e.g. `AA / Auto NM-MT 8`). Use `auto_grade` for color-coding when both exist (it’s the numeric grade).
 

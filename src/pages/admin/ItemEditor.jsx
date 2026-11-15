@@ -32,6 +32,8 @@ const EMPTY_FORM = {
   acquisition_type: 'unknown',
   is_autographed:   false,
   for_sale:         false,
+  is_sold:          false,
+  sale_price:       '',
   is_visible:       false,
   is_baseball:      false,
   is_part_of_set:   false,
@@ -59,7 +61,14 @@ export default function ItemEditor() {
   const [saveStatus, setSaveStatus] = useState('')
 
   function setField(key, value) {
-    setForm(prev => ({ ...prev, [key]: value }))
+    setForm(prev => {
+      const next = { ...prev, [key]: value }
+      // Sold and For Sale are mutually exclusive
+      if (key === 'is_sold' && value) next.for_sale = false
+      if (key === 'for_sale' && value) { next.is_sold = false; next.sale_price = '' }
+      if (key === 'is_sold' && !value) next.sale_price = ''
+      return next
+    })
   }
 
   function setDetailField(key, value) {
@@ -103,7 +112,9 @@ export default function ItemEditor() {
           auto_total:       form.auto_total === '' ? null : Number(form.auto_total),
           acquisition_type: form.acquisition_type,
           is_autographed:   form.is_autographed,
-          for_sale:         form.for_sale,
+          for_sale:         form.for_sale && !form.is_sold,
+          is_sold:          form.is_sold,
+          sale_price:       form.is_sold && form.sale_price !== '' ? Number(form.sale_price) : null,
           is_visible:       form.is_visible,
           is_baseball:      form.is_baseball,
           is_part_of_set:   form.is_part_of_set,
@@ -378,6 +389,30 @@ export default function ItemEditor() {
                 Yes
               </CheckboxLabel>
             </Field>
+            <Field>
+              <FieldLabel>Sold</FieldLabel>
+              <CheckboxLabel>
+                <input
+                  type="checkbox"
+                  checked={form.is_sold}
+                  onChange={e => setField('is_sold', e.target.checked)}
+                />
+                Yes
+              </CheckboxLabel>
+            </Field>
+            {form.is_sold && (
+              <Field>
+                <FieldLabel>Sale Price</FieldLabel>
+                <EditInput
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.sale_price}
+                  placeholder="0.00"
+                  onChange={e => setField('sale_price', e.target.value)}
+                />
+              </Field>
+            )}
             <Field>
               <FieldLabel>Visible (public)</FieldLabel>
               <CheckboxLabel>

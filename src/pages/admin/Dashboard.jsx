@@ -463,7 +463,7 @@ const StatusRow = styled.tr`
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ count: 0, totalCost: 0 })
+  const [stats, setStats] = useState({ count: 0, soldCount: 0, totalCost: 0 })
   const [statsLoading, setStatsLoading] = useState(true)
   const [wsOwnedGames, setWsOwnedGames] = useState(null)
   const [activeTypes, setActiveTypes] = useState([])
@@ -543,12 +543,15 @@ export default function Dashboard() {
   useEffect(() => {
     let cancelled = false
 
-    supabase.from('items').select('id, price').then(({ data, error }) => {
+    supabase.from('items').select('id, price, is_sold').then(({ data, error }) => {
       if (cancelled) return
       if (!error && data) {
+        // Active inventory only — sold items stay in the collection but are excluded here
+        const active = data.filter(i => !i.is_sold)
         setStats({
-          count: data.length,
-          totalCost: data.reduce((sum, i) => sum + (parseFloat(i.price) || 0), 0),
+          count: active.length,
+          soldCount: data.length - active.length,
+          totalCost: active.reduce((sum, i) => sum + (parseFloat(i.price) || 0), 0),
         })
       }
       setStatsLoading(false)
@@ -732,7 +735,7 @@ export default function Dashboard() {
           {!statsLoading && (
             <StatSub>
               <span className="material-symbols-outlined">check_circle</span>
-              All items in archive
+              Active inventory{stats.soldCount > 0 && ` · ${stats.soldCount} sold`}
             </StatSub>
           )}
         </StatCard>

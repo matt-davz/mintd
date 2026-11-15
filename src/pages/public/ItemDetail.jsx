@@ -501,7 +501,9 @@ export default function ItemDetail() {
       <ContentWrap>
         {/* ── Title ── */}
         <TitleSection>
-          {item.for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
+          {item.is_sold
+            ? <ForSaleBadge>Sold</ForSaleBadge>
+            : item.for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
           <PageLabel>Collection Asset</PageLabel>
           <Title>{item.title}</Title>
         </TitleSection>

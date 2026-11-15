@@ -367,6 +367,8 @@ const COLUMNS = [
   { key: 'auto_total',        label: 'Auto Cost',    sortable: true  },
   { key: 'price',             label: 'Ask Price',    sortable: true  },
   { key: 'for_sale',          label: 'For Sale',     sortable: true  },
+  { key: 'is_sold',           label: 'Sold',         sortable: true  },
+  { key: 'sale_price',        label: 'Sale Price',   sortable: true  },
   { key: 'acquisition_type',  label: 'Acq. Type',    sortable: true  },
   // Attributes
   { key: 'is_autographed',       label: 'Signed',       sortable: true },
@@ -688,6 +690,8 @@ export default function ItemList() {
       { label: 'Grade',            value: r => r.cert_grade ?? '' },
       { label: 'Cert ID',          value: r => r.cert_id ?? '' },
       { label: 'For Sale',         value: r => r.for_sale ? 'Yes' : 'No' },
+      { label: 'Sold',             value: r => r.is_sold ? 'Yes' : 'No' },
+      { label: 'Sale Price',       value: r => r.sale_price ?? '' },
       { label: 'Acquisition Cost', value: r => r.item_total ?? '' },
       { label: 'Pop Total',        value: r => r.pop_total ?? '' },
       { label: 'Pop Higher',       value: r => r.pop_higher ?? '' },
@@ -858,6 +862,8 @@ export default function ItemList() {
                   <Td $dim={!item.auto_total}>{formatCurrency(item.auto_total)}</Td>
                   <Td $dim={!item.price}>{item.for_sale ? formatCurrency(item.price) : '—'}</Td>
                   <Td><BoolBadge $on={item.for_sale}>{item.for_sale ? 'Yes' : 'No'}</BoolBadge></Td>
+                  <Td><BoolBadge $on={item.is_sold}>{item.is_sold ? 'Yes' : 'No'}</BoolBadge></Td>
+                  <Td $dim={item.sale_price == null}>{formatCurrency(item.sale_price)}</Td>
                   <Td $dim>{item.acquisition_type ?? '—'}</Td>
                   {/* Attributes */}
                   <Td><BoolBadge $on={item.is_autographed}>{item.is_autographed ? 'Yes' : 'No'}</BoolBadge></Td>

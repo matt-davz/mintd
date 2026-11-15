@@ -49,6 +49,7 @@ Tables with game context (tickets, baseballs, bats, jerseys, photos, programs, b
 - `is_visible` — draft flag; false hides from public
 - `is_baseball` — false hides from public (non-baseball items stored but not shown)
 - `for_sale` — drives "For Sale" badge
+- `is_sold` / `sale_price` — sold items show only a "Sold" badge (replaces For Sale) on public gallery cards and item detail; `sale_price` is admin/DB only (never shown publicly, not in `item_gallery`). Sold and `for_sale` are mutually exclusive (CHECK `items_sold_not_for_sale`; admin forms enforce it, Sold wins on save). `sale_price` requires `is_sold` (CHECK `items_sale_price_requires_sold`). Sold items are excluded from admin dashboard active-inventory stats. `price` stays acquisition cost.
 - `is_legendary` — flags item for special display treatment on the Yankees Museum Timeline; triggers the Legendary Context section in the admin editor
 - `acquisition_type` — `purchased` | `gifted` | `inherited` | `consignment` | `unknown`
 - `item_total` / `auto_total` — cost breakdown fields

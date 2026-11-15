@@ -134,6 +134,7 @@ export function ItemCard({ item }) {
     auto_grade,
     cert_service,
     for_sale,
+    is_sold,
   } = item
 
   // Show both grades when an autograph grade exists alongside a cert grade,
@@ -176,7 +177,9 @@ export function ItemCard({ item }) {
             <span className="material-symbols-outlined">image_not_supported</span>
           </ImagePlaceholder>
         )}
-        {for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
+        {is_sold
+          ? <ForSaleBadge>Sold</ForSaleBadge>
+          : for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
         {gradeLabel && <GradeBadge {...gradeColors(gradeColorSource, cert_service)}>{gradeLabel}</GradeBadge>}
       </ImageWrapper>
 
