@@ -5,6 +5,10 @@ import { useTimelineGameContexts } from '../../hooks/useTimelineGameContexts'
 import { withAutoOrient } from '../../lib/cloudinary'
 import { gradeColors } from '../../utils/gradeColors'
 import { ItemViewerModal } from '../../components/public/ItemViewerModal'
+import { WorldSeriesStop, WorldSeriesMobileCard } from '../../components/public/WorldSeriesStop'
+import { WorldSeriesModal } from '../../components/public/WorldSeriesModal'
+import { useWorldSeriesTicketLinks } from '../../hooks/useWorldSeriesTicketLinks'
+import { buildYankeesWsSeries, resolveSeriesItems } from '../../lib/worldSeries'
 
 const STOP_WIDTH = 320
 const CARD_WIDTH = 200
@@ -784,7 +788,10 @@ function useMobile() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Timeline() {
-  const { items, loading, error } = useItems()
+  const { items, loading: itemsLoading, error } = useItems()
+  const { links: wsLinks, loading: wsLoading } = useWorldSeriesTicketLinks()
+  // Wait for WS links too so completed series don't pop in after individual stops render
+  const loading = itemsLoading || wsLoading
   const gameContextsByItemId = useTimelineGameContexts(items ?? [])
   const isMobile = useMobile()
   const scrollRef = useRef(null)
@@ -794,25 +801,62 @@ export default function Timeline() {
   const [activeDecade, setActiveDecade] = useState(null)
   const [centeredIdx, setCenteredIdx] = useState(0)
   const [selectedItemId, setSelectedItemId] = useState(null)
+  const [selectedSeriesYear, setSelectedSeriesYear] = useState(null)
   const timelineItemsRef = useRef([])
 
-  const timelineItems = useMemo(() => {
-    const sortKey = (item) =>
-      item.game_date ?? `${item.season_year}-06-15`
+  const yankeesItems = useMemo(() => items.filter(i =>
+    i.season_year != null &&
+    Array.isArray(i.team_slugs) &&
+    i.team_slugs.includes('yankees')
+  ), [items])
 
-    return items
-      .filter(i =>
-        i.season_year != null &&
-        Array.isArray(i.team_slugs) &&
-        i.team_slugs.includes('yankees')
-      )
-      .sort((a, b) => {
-        const diff = sortKey(a).localeCompare(sortKey(b))
-        if (diff !== 0) return diff
-        // Same date: break ties by series game number (e.g. WS game 1 before game 8)
-        return (a.series_game_number ?? 0) - (b.series_game_number ?? 0)
-      })
-  }, [items])
+  // Complete Yankees World Series, counting only publicly visible items
+  // (item_gallery rows) so every game in the series can actually be shown.
+  const completeSeries = useMemo(() => {
+    const itemsById = new Map(items.map(i => [i.id, i]))
+    return buildYankeesWsSeries(wsLinks, { includeItem: id => itemsById.has(id) })
+      .filter(s => s.isComplete)
+      .map(s => resolveSeriesItems(s, itemsById))
+  }, [items, wsLinks])
+
+  // Timeline entries: individual items plus one stop per complete series.
+  // Tickets/sheets belonging to a complete series fold into its series stop
+  // (legendary ones keep their own stop so their special display isn't lost).
+  const timelineItems = useMemo(() => {
+    const absorbed = new Set()
+    for (const series of completeSeries) {
+      for (const id of series.itemGames.keys()) absorbed.add(id)
+    }
+
+    const entries = [
+      ...yankeesItems
+        .filter(item => item.is_legendary || !absorbed.has(item.id))
+        .map(item => ({
+          key: item.id,
+          kind: 'item',
+          item,
+          season_year: item.season_year,
+          sortDate: item.game_date ?? `${item.season_year}-06-15`,
+          // Same date: break ties by series game number (e.g. WS game 1 before game 8)
+          tiebreak: item.series_game_number ?? 0,
+        })),
+      ...completeSeries.map(series => ({
+        key: `ws-${series.year}`,
+        kind: 'series',
+        series,
+        season_year: series.year,
+        sortDate: series.startDate ?? `${series.year}-10-01`,
+        tiebreak: 0,
+      })),
+    ]
+
+    return entries.sort((a, b) =>
+      a.sortDate.localeCompare(b.sortDate) || a.tiebreak - b.tiebreak
+    )
+  }, [yankeesItems, completeSeries])
+
+  const selectedSeries = completeSeries.find(s => s.year === selectedSeriesYear) ?? null
+  const closeSeries = useCallback(() => setSelectedSeriesYear(null), [])
 
   // Keep a ref so the scroll handler always sees the latest items without re-binding
   useEffect(() => {
@@ -911,7 +955,17 @@ export default function Timeline() {
 
       {hasItems && isMobile && (
         <MobileTrack>
-          {timelineItems.map((item) => {
+          {timelineItems.map((entry) => {
+            if (entry.kind === 'series') {
+              return (
+                <WorldSeriesMobileCard
+                  key={entry.key}
+                  series={entry.series}
+                  onOpen={() => setSelectedSeriesYear(entry.series.year)}
+                />
+              )
+            }
+            const { item } = entry
             const gradeLabel = item.cert_grade
               ? `${item.cert_grader ?? ''} ${item.cert_grade}`.trim()
               : null
@@ -969,9 +1023,10 @@ export default function Timeline() {
             <ScrollTrack ref={scrollRef}>
               <TrackInner>
                 <CenterLine />
-                {timelineItems.map((item, i) => {
+                {timelineItems.map((entry, i) => {
                   const isTop = i % 2 === 0
-                  const centeredIsLegendary = timelineItems[centeredIdx]?.is_legendary
+                  const centered = timelineItems[centeredIdx]
+                  const centeredIsLegendary = centered?.kind === 'series' || centered?.item?.is_legendary
 
                   // Neighbors of a centred legendary item drift outward.
                   let pushX = 0
@@ -981,6 +1036,19 @@ export default function Timeline() {
                   }
                   const pushStyle = { transform: `translateX(${pushX}px)` }
 
+                  if (entry.kind === 'series') {
+                    return (
+                      <WorldSeriesStop
+                        key={entry.key}
+                        series={entry.series}
+                        stopRef={el => { stopRefs.current[i] = el }}
+                        style={pushStyle}
+                        onOpen={() => setSelectedSeriesYear(entry.series.year)}
+                      />
+                    )
+                  }
+
+                  const { item } = entry
                   if (item.is_legendary) {
                     return (
                       <LegendaryStop
@@ -1081,7 +1149,7 @@ export default function Timeline() {
           </TrackOuter>
 
           <ScrubberSection>
-            <ItemCount>{timelineItems.length} Items</ItemCount>
+            <ItemCount>{yankeesItems.length} Items</ItemCount>
             <ScrubberTrack
               ref={scrubberRef}
               onPointerDown={handleScrubPointerDown}
@@ -1091,6 +1159,15 @@ export default function Timeline() {
             </ScrubberTrack>
           </ScrubberSection>
         </>
+      )}
+
+      {selectedSeries && (
+        <WorldSeriesModal
+          series={selectedSeries}
+          onClose={closeSeries}
+          onOpenItem={setSelectedItemId}
+          suspended={!!selectedItemId}
+        />
       )}
 
       {selectedItemId && (

@@ -26,6 +26,9 @@ src/
 │   │   ├── FilterBar.jsx       # Advanced search: keyword + multi-select type/team/certService/grade pills in a collapsible accordion (each pill section expands/collapses independently)
 │   │   ├── SignatoryList.jsx
 │   │   ├── DuplicateCopiesSection.jsx # Accordion listing an item's linked duplicates (public item detail)
+│   │   ├── WorldSeriesStop.jsx  # Museum timeline stop (desktop) + mobile card for a COMPLETE Yankees World Series — gold card with ticket fan
+│   │   ├── WorldSeriesFan.jsx   # Fanned collage of real ticket images (one tile per game; a multi-game sheet appears once)
+│   │   ├── WorldSeriesModal.jsx # Accessible dialog: each game of a complete series with its ticket/sheet items → opens ItemViewerModal
 │   │   └── EmberEffect.jsx     # Particle ember effect for legendary timeline cards — props: height, intensity, zIndex, spread
 │   ├── itemDetail/             # Public item detail display components
 │   │   ├── styles.js           # Shared styled components + formatters
@@ -78,12 +81,14 @@ src/
 │   ├── supabase.js             # Supabase client (anon key)
 │   ├── cloudinary.js           # Cloudinary helpers
 │   ├── itemTypeConfig.js       # Item type metadata, empty forms, serialization
+│   ├── worldSeries.js          # Yankees WS completion: YANKEES_WS_GAMES, fetch ticket/sheet links, buildYankeesWsSeries (shared by Museum + admin Dashboard)
 │   └── mlbApi.js               # MLB Stats API client — team data, fetch, game parsing
 ├── hooks/
 │   ├── useItems.js             # Queries item_gallery view + item_order; merges into pinned-first sort
 │   ├── useItem.js              # Single item with certs, sigs, images, type detail, game context, legendary context + images
 │   ├── useSetMembers.js        # Fetches sibling items by set_id from item_gallery + set name from sets table
 │   ├── useSeriesTickets.js     # Fetches other tickets from the same World Series year (item_type=ticket, same season_year, non-null series_game_number)
+│   ├── useWorldSeriesTicketLinks.js # Loads WS ticket + non-phantom sheet game links (feed into buildYankeesWsSeries)
 │   ├── useItemDuplicates.js    # Fetches item_duplicates links (both directions) + add/remove/notes mutations
 │   ├── useTags.js
 │   └── useTeams.js             # Fetches all teams from the teams table

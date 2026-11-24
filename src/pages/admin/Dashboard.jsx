@@ -6,6 +6,8 @@ import { useItems } from '../../hooks/useItems'
 import { ItemViewerModal } from '../../components/admin/ItemViewerModal'
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar'
 import { gradeColors, gradeToNumber, gradeBucket } from '../../utils/gradeColors'
+import { useWorldSeriesTicketLinks } from '../../hooks/useWorldSeriesTicketLinks'
+import { buildYankeesWsSeries } from '../../lib/worldSeries'
 
 // ─── Page heading ─────────────────────────────────────────────────────────────
 
@@ -30,15 +32,6 @@ const PageSub = styled.p`
 `
 
 // ─── Yankees WS progress ──────────────────────────────────────────────────────
-
-const YANKEES_WS_GAMES = {
-  1921: 8, 1922: 5, 1923: 6, 1926: 7, 1927: 4, 1928: 4, 1932: 4,
-  1936: 6, 1937: 5, 1938: 4, 1939: 4, 1941: 5, 1942: 5, 1943: 5,
-  1947: 7, 1949: 5, 1950: 4, 1951: 6, 1952: 7, 1953: 6, 1955: 7,
-  1956: 7, 1957: 7, 1958: 7, 1960: 7, 1961: 5, 1962: 7, 1963: 4,
-  1964: 7, 1976: 4, 1977: 6, 1978: 6, 1981: 6, 1996: 6, 1998: 4,
-  1999: 4, 2000: 5, 2001: 7, 2003: 6, 2009: 6, 2024: 5,
-}
 
 const WsProgressCard = styled.div`
   background-color: var(--color-surface-low);
@@ -126,6 +119,15 @@ const WsYearBarCol = styled.div`
   cursor: default;
 `
 
+// Complete-series marker: small gold diamond above the bar (spacer keeps rows aligned)
+const WsCompleteMark = styled.span`
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  background: ${({ $on }) => $on ? 'var(--color-secondary)' : 'transparent'};
+  box-shadow: ${({ $on }) => $on ? '0 0 6px rgba(232, 195, 87, 0.7)' : 'none'};
+`
+
 const WsYearBarTrack = styled.div`
   width: 100%;
   height: 32px;
@@ -134,20 +136,35 @@ const WsYearBarTrack = styled.div`
   overflow: hidden;
   display: flex;
   align-items: flex-end;
+  box-shadow: ${({ $complete }) => $complete
+    ? 'inset 0 0 0 1px rgba(232, 195, 87, 0.45), 0 0 10px rgba(232, 195, 87, 0.25)'
+    : 'none'};
 `
 
 const WsYearBarFill = styled.div`
   width: 100%;
   height: ${({ $pct }) => $pct}%;
-  background: linear-gradient(180deg, rgba(173, 198, 255, 0.55), var(--color-primary));
+  background: ${({ $complete }) => $complete
+    ? 'linear-gradient(180deg, var(--color-secondary-fixed), var(--color-secondary-container))'
+    : 'linear-gradient(180deg, rgba(173, 198, 255, 0.55), var(--color-primary))'};
   transition: height 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 `
 
 const WsYearBarLabel = styled.span`
   font-family: var(--font-mono);
   font-size: 0.4375rem;
-  color: rgba(229, 226, 225, 0.35);
+  color: ${({ $complete }) => $complete ? 'var(--color-secondary)' : 'rgba(229, 226, 225, 0.35)'};
+  font-weight: ${({ $complete }) => $complete ? 700 : 400};
   white-space: nowrap;
+`
+
+const WsCompleteCount = styled.span`
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-secondary);
+  margin-left: var(--space-4);
 `
 
 // Tier 1 (bottom) — individual game slots, grouped by series year
@@ -177,7 +194,7 @@ const WsYearGroupLabel = styled.span`
   font-family: var(--font-mono);
   font-size: 0.5rem;
   letter-spacing: 0.05em;
-  color: rgba(229, 226, 225, 0.35);
+  color: ${({ $complete }) => $complete ? 'var(--color-secondary)' : 'rgba(229, 226, 225, 0.35)'};
 `
 
 const WsGameSlotsGrid = styled.div`
@@ -189,8 +206,10 @@ const WsGameSlot = styled.div`
   width: 8px;
   height: 8px;
   border-radius: 2px;
-  background-color: ${({ $owned }) => $owned ? 'var(--color-primary)' : 'rgba(140, 144, 159, 0.15)'};
-  box-shadow: ${({ $owned }) => $owned ? '0 0 4px rgba(173, 198, 255, 0.5)' : 'none'};
+  background-color: ${({ $owned, $complete }) =>
+    $complete ? 'var(--color-secondary-fixed-dim)' : $owned ? 'var(--color-primary)' : 'rgba(140, 144, 159, 0.15)'};
+  box-shadow: ${({ $owned, $complete }) =>
+    $complete ? '0 0 4px rgba(232, 195, 87, 0.45)' : $owned ? '0 0 4px rgba(173, 198, 255, 0.5)' : 'none'};
   cursor: default;
 `
 
@@ -465,7 +484,6 @@ const StatusRow = styled.tr`
 export default function Dashboard() {
   const [stats, setStats] = useState({ count: 0, soldCount: 0, totalCost: 0 })
   const [statsLoading, setStatsLoading] = useState(true)
-  const [wsOwnedGames, setWsOwnedGames] = useState(null)
   const [activeTypes, setActiveTypes] = useState([])
   const [activeTeams, setActiveTeams] = useState([])
   const [activeCertServices, setActiveCertServices] = useState([])
@@ -557,64 +575,18 @@ export default function Dashboard() {
       setStatsLoading(false)
     })
 
-    async function fetchWsProgress() {
-      const GC_COLS = 'season_year, series_game_number, home_team, away_team'
-
-      const [ticketRes, sheetRes] = await Promise.all([
-        supabase
-          .from('item_tickets')
-          .select(`game_context!inner(${GC_COLS}, game_type)`)
-          .eq('game_context.game_type', 'world_series'),
-        supabase
-          .from('ticket_sheet_games')
-          .select(`is_phantom, game_context!inner(${GC_COLS}, game_type)`)
-          .eq('game_context.game_type', 'world_series')
-          .eq('is_phantom', false),
-      ])
-
-      if (cancelled) return
-      if (ticketRes.error || sheetRes.error) {
-        console.error('Failed to load WS ticket progress', ticketRes.error ?? sheetRes.error)
-        setWsOwnedGames(new Map())
-        return
-      }
-
-      const isYankees = name => name === 'New York Yankees' || name === 'NYY'
-      // owned: year -> Set(game number); a Set dedupes across tickets and sheets
-      const owned = new Map()
-      const addGame = gc => {
-        if (!gc) return
-        const { season_year: year, series_game_number: game } = gc
-        const total = YANKEES_WS_GAMES[year]
-        if (!total || !Number.isInteger(game) || game < 1 || game > total) return
-        if (!isYankees(gc.home_team) && !isYankees(gc.away_team)) return
-        if (!owned.has(year)) owned.set(year, new Set())
-        owned.get(year).add(game)
-      }
-
-      ;(ticketRes.data ?? []).forEach(t => addGame(t.game_context))
-      ;(sheetRes.data ?? []).forEach(t => addGame(t.game_context))
-      setWsOwnedGames(owned)
-    }
-
-    fetchWsProgress()
-
     return () => { cancelled = true }
   }, [])
 
-  const wsYearStats = useMemo(() => {
-    if (!wsOwnedGames) return []
-    return Object.entries(YANKEES_WS_GAMES).map(([yearStr, totalGames]) => {
-      const year = Number(yearStr)
-      const ownedSet = wsOwnedGames.get(year) ?? new Set()
-      return { year, totalGames, ownedCount: ownedSet.size, ownedSet }
-    })
-  }, [wsOwnedGames])
+  // Admin counts every linked ticket (including hidden items) — same rules as the public Museum
+  const { links: wsLinks, loading: wsLoading } = useWorldSeriesTicketLinks()
+  const wsYearStats = useMemo(() => buildYankeesWsSeries(wsLinks), [wsLinks])
 
   const wsTotals = useMemo(() => {
     const totalGames = wsYearStats.reduce((sum, y) => sum + y.totalGames, 0)
     const ownedGames = wsYearStats.reduce((sum, y) => sum + y.ownedCount, 0)
-    return { totalGames, ownedGames }
+    const completeSeries = wsYearStats.filter(y => y.isComplete).length
+    return { totalGames, ownedGames, completeSeries }
   }, [wsYearStats])
 
   const filtered = useMemo(() => items.filter(item => {
@@ -662,7 +634,7 @@ export default function Dashboard() {
         </PageSub>
       </PageHeading>
 
-      {wsOwnedGames !== null && (
+      {!wsLoading && (
         <WsProgressCard>
           {/* Tier 3 (top) — overall progress */}
           <WsTier>
@@ -675,6 +647,11 @@ export default function Dashboard() {
                 <WsProgressPct>
                   {Math.round((wsTotals.ownedGames / wsTotals.totalGames) * 100)}%
                 </WsProgressPct>
+                {wsTotals.completeSeries > 0 && (
+                  <WsCompleteCount title="World Series years with a ticket for every game">
+                    {wsTotals.completeSeries} complete series
+                  </WsCompleteCount>
+                )}
               </div>
             </WsTierHeader>
             <WsOverallTrack>
@@ -686,15 +663,18 @@ export default function Dashboard() {
           <WsTier>
             <WsTierLabel>By Series</WsTierLabel>
             <WsYearBarsGrid>
-              {wsYearStats.map(({ year, totalGames, ownedCount }) => (
+              {wsYearStats.map(({ year, totalGames, ownedCount, isComplete }) => (
                 <WsYearBarCol
                   key={year}
-                  title={`${year} WS — ${ownedCount}/${totalGames} games (${Math.round((ownedCount / totalGames) * 100)}%)`}
+                  title={isComplete
+                    ? `${year} World Series — Complete series: all ${totalGames} games collected`
+                    : `${year} WS — ${ownedCount}/${totalGames} games (${Math.round((ownedCount / totalGames) * 100)}%)`}
                 >
-                  <WsYearBarTrack>
-                    <WsYearBarFill $pct={(ownedCount / totalGames) * 100} />
+                  <WsCompleteMark $on={isComplete} aria-hidden="true" />
+                  <WsYearBarTrack $complete={isComplete}>
+                    <WsYearBarFill $pct={(ownedCount / totalGames) * 100} $complete={isComplete} />
                   </WsYearBarTrack>
-                  <WsYearBarLabel>{String(year).slice(2)}</WsYearBarLabel>
+                  <WsYearBarLabel $complete={isComplete}>{String(year).slice(2)}</WsYearBarLabel>
                 </WsYearBarCol>
               ))}
             </WsYearBarsGrid>
@@ -705,18 +685,22 @@ export default function Dashboard() {
             <WsTierLabel>By Game</WsTierLabel>
             <WsGameSlotsScroll>
               <WsGameSlotsRow>
-                {wsYearStats.map(({ year, totalGames, ownedSet }) => (
-                  <WsYearGroup key={year}>
+                {wsYearStats.map(({ year, totalGames, ownedSet, isComplete }) => (
+                  <WsYearGroup
+                    key={year}
+                    title={isComplete ? `${year} World Series — Complete series: all ${totalGames} games collected` : undefined}
+                  >
                     <WsGameSlotsGrid>
                       {Array.from({ length: totalGames }, (_, i) => i + 1).map(gameNum => (
                         <WsGameSlot
                           key={gameNum}
                           $owned={ownedSet.has(gameNum)}
-                          title={`${year} WS Game ${gameNum} ${ownedSet.has(gameNum) ? '✓' : '✗'}`}
+                          $complete={isComplete}
+                          title={`${year} WS Game ${gameNum} ${ownedSet.has(gameNum) ? '✓' : '✗'}${isComplete ? ' · Complete series' : ''}`}
                         />
                       ))}
                     </WsGameSlotsGrid>
-                    <WsYearGroupLabel>{year}</WsYearGroupLabel>
+                    <WsYearGroupLabel $complete={isComplete}>{year}</WsYearGroupLabel>
                   </WsYearGroup>
                 ))}
               </WsGameSlotsRow>
