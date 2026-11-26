@@ -14,6 +14,7 @@ import ItemList from './pages/admin/ItemList'
 import PsaSync from './pages/admin/PsaSync'
 import GalleryOrder from './pages/admin/GalleryOrder'
 import AuctionWatchlist from './pages/admin/AuctionWatchlist'
+import WantList from './pages/admin/WantList'
 import { AdminGuard } from './components/admin/AdminGuard'
 import { AdminLayout } from './components/admin/AdminLayout'
 import { Layout } from './components/layout/Layout'
@@ -45,6 +46,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="psa-sync" element={<PsaSync />} />
               <Route path="gallery-order" element={<GalleryOrder />} />
               <Route path="auction-watchlist" element={<AuctionWatchlist />} />
+              <Route path="want-list" element={<WantList />} />
             </Route>
           </Route>
         </Routes>

@@ -6,6 +6,7 @@ import { ErrorBanner, PageHeading, PageSub, PageTitle } from '../../components/a
 import { AddLotForm } from '../../components/admin/watchlist/AddLotForm'
 import { WatchlistToolbar } from '../../components/admin/watchlist/WatchlistToolbar'
 import { AuctionGroup } from '../../components/admin/watchlist/AuctionGroup'
+import { WsOpportunitiesPanel } from '../../components/admin/watchlist/WsOpportunitiesPanel'
 import { GhostBtn, StateBox } from '../../components/admin/watchlist/styles'
 
 const HeaderRow = styled.div`
@@ -161,6 +162,7 @@ export default function AuctionWatchlist() {
         <StateBox><span className="material-symbols-outlined">gavel</span>No lots yet. Use “Add lot” to paste a lot URL.</StateBox>
       ) : (
         <>
+          <WsOpportunitiesPanel lots={lots} now={now} />
           <WatchlistToolbar
             search={search}
             onSearchChange={setSearch}

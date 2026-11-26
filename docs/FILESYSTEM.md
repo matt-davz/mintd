@@ -64,7 +64,7 @@ src/
 │       ├── GameLookupToolbar.jsx # MLB game lookup — inline search toolbar
 │       ├── GameLookupResults.jsx # MLB lookup results list with clickable game cards
 │       ├── TeamSelect.jsx       # Searchable MLB team dropdown (current + historical)
-│       ├── watchlist/          # Auction watchlist UI: AuctionGroup, WatchlistLotCard, LotPrice, LotClosing, ManualPriceForm, AddLotForm, WatchlistToolbar, styles.js
+│       ├── watchlist/          # Auction watchlist UI: AuctionGroup, WatchlistLotCard, LotPrice, LotClosing, ManualPriceForm, AddLotForm, WatchlistToolbar, WsOpportunitiesPanel + WsOpportunityGame (missing WS ticket matches), styles.js
 │       └── itemTypes/          # Type-specific field components
 │           ├── index.js        # Registry mapping type → component
 │           ├── TicketFields.jsx
@@ -85,6 +85,7 @@ src/
 │   ├── cloudinary.js           # Cloudinary helpers
 │   ├── itemTypeConfig.js       # Item type metadata, empty forms, serialization
 │   ├── auctionWatchlist.js     # Watchlist house registry, strict lot-URL allow-list validation, time-zone/countdown/price formatting
+│   ├── wsTicketOpportunities.js # Pure lot-title → World Series year/game matcher + cross-reference with sheet "Don't Have" games
 │   ├── worldSeries.js          # Yankees WS completion: YANKEES_WS_GAMES, fetch ticket/sheet links, buildYankeesWsSeries (shared by Museum + admin Dashboard)
 │   └── mlbApi.js               # MLB Stats API client — team data, fetch, game parsing
 ├── hooks/
@@ -97,6 +98,7 @@ src/
 │   ├── useSupabaseClient.js    # Supabase client that sends the Clerk session JWT (RLS role = authenticated)
 │   ├── useItemPrivateNotes.js  # Load/save item_private_notes (Clerk-authenticated client, updated_at conflict guard)
 │   ├── useAuctionWatchlist.js  # Watchlist CRUD + manual price + Edge Function refresh (Clerk-authenticated client)
+│   ├── useWsTicketTracker.js   # Reads WS Ticket Tracker "Don't Have" games via the ws-ticket-tracker Edge Function
 │   ├── useTags.js
 │   └── useTeams.js             # Fetches all teams from the teams table
 ├── utils/
@@ -116,6 +118,10 @@ Outside `src/` (watchlist-related):
 supabase/functions/auction-watchlist-refresh/
 ├── index.ts     # Edge Function: auth, per-house adapters (direct REA/H&S, Firecrawl Grey Flannel/Love of the Game/Leland's/Heritage), rate limits, DB writes
 └── parsers.ts   # Pure Firecrawl-markdown parsers (shared CreateAuction parser for Grey Flannel/Love of the Game/Leland's) + Heritage URL validation (no Deno APIs; also run under Node)
+supabase/functions/ws-ticket-tracker/
+├── index.ts     # Edge Function: caller-JWT check via PostgREST, Google service-account token, bounded Sheet1!A1:C1000 read, returns only Don't Have {year, game, row}
+└── sheet.ts     # Pure sheet-values parser (no Deno APIs; also run under Node)
 scripts/
 └── check-watchlist-parsers.mjs  # node scripts/check-watchlist-parsers.mjs — parser checks: inline fixtures (Grey Flannel, Love of the Game, Leland's, Heritage) + client URL parsing + optional saved Firecrawl JSON samples (not committed)
+└── check-ws-ticket-matcher.mjs  # node scripts/check-ws-ticket-matcher.mjs — sheet parser + lot-title matcher + cross-reference checks (inline fixtures)
 ```

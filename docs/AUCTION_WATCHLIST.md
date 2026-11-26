@@ -104,3 +104,100 @@ Nothing here has been applied or deployed yet.
 ## Adding lots
 
 Use **Add lot**, then paste a lot URL from one of the six supported hosts. For REA and H&S, only the URL and auction name are needed. Title, lot number, close time, and image come from the first refresh. For Grey Flannel, Love of the Game, Leland's, and Heritage, the first refresh fills these in too, but only when `FIRECRAWL_API_KEY` is set. Without it, enter a title and close time (with time zone) yourself. For Grey Flannel, Love of the Game, and Leland's, entering the lot number also lets the refresh check it against the page. The lot is saved to Supabase, so it syncs across devices.
+
+## Missing-ticket opportunities (WS Ticket Tracker × watchlist)
+
+A private panel at the top of `/admin/auction-watchlist`. It lists watchlist lots that may still be up for auction and explicitly name a World Series game that Zane's **WS Ticket Tracker** Google Sheet marks **Don't Have**. Each row shows the sheet year/game and sheet row (linked to that exact row of the sheet, `gid=0`), the lot link, house and lot number, current bid (`LotPrice`, with Checked/Manual/Stale flags), and time left (`LotClosing`, which keeps the extended-bidding caveat after the scheduled close).
+
+| Piece | Path |
+|---|---|
+| Edge Function (reads the sheet) | `supabase/functions/ws-ticket-tracker/index.ts` |
+| Sheet parser (pure) | `supabase/functions/ws-ticket-tracker/sheet.ts` |
+| Lot-title matcher + cross-reference (pure) | `src/lib/wsTicketOpportunities.js` |
+| Hook | `src/hooks/useWsTicketTracker.js` |
+| Components | `src/components/admin/watchlist/WsOpportunitiesPanel.jsx`, `WsOpportunityGame.jsx` |
+| Checks | `node scripts/check-ws-ticket-matcher.mjs` (Node ≥ 22.18, inline fixtures only) |
+
+### Data source
+
+- Spreadsheet `120JePbptof1PYYnld1HPsNnMzAoyxGBrf0GWBq7EuSU`, tab `Sheet1`, fixed bounded range `A1:C1000`. Column A holds the label, B the Have check, and C the Don't Have check. These values are constants in the function. Nothing in the request can change them.
+- Row 1 must read `Game | Have | Don't Have`. If it doesn't, the function returns an error ("Sheet layout changed") instead of guessing.
+- A section header must look like `YEAR Team vs Team — …`. Headers that mention a tour, Japan, an exhibition, an All-Star game, spring training, or barnstorming are skipped, along with every game row under them. Game rows start with `GM N` (or `Game N`).
+- A game counts as missing only when C is checked and B is not. Accepted check values are `✓ ✔ ☑ ✅ x TRUE yes`; blank, `FALSE` and `no` count as unchecked. A row with both boxes checked, or with an unrecognised value, is skipped. So is a year that appears twice, or a game number that repeats within its year.
+- The function returns only `{ year, game, row }` for Don't Have games, plus `games_parsed`, `read_at` and `source`. Labels, scores, Have rows and totals are never returned.
+- The sheet is read when the page loads and again on **Re-read sheet**. Nothing is cached apart from the Google access token, which lasts about an hour.
+
+### Matching rules (`parseWsTicketLotTitle`)
+
+A lot matches only when its **title** has all of these:
+- exactly one distinct year (a range such as `1952–1961`, or two different years, is rejected)
+- "World Series", followed directly by `Game N`, or a list such as `Games 1 and 2`, `Games 2 & 6` or `Games 1, 2 and 3` (1–9)
+- a ticket term (`ticket(s)` or `stub(s)`)
+
+A title is rejected when any of these apply:
+- It names a game range (`Games 3-5`, `3 through 5`).
+- It mentions a game number outside the explicit list (for example "Game 7 … Game 6 rain check"). "Games 1 and 2 … in Game 1" is allowed.
+- It names a non-ticket or multi-item piece: program, scorecard, photo, pin, pennant, baseball, bat, jersey, uniform, card, album, poster, magazine, lithograph, press, pass, ring, trophy, letter, collection, archive, group, or "lot of".
+- It names a non-genuine ticket: reprint, replica, facsimile, phantom, proof.
+- It names a different "World Series": Little League, College, Negro League, Junior, Women's, Amateur, Caribbean, Softball, Youth, Senior.
+
+A lot that covers several explicit games appears under each of those games that is missing, with a "Covers Games 1 & 2" badge. A single game can list several lots, nearest scheduled close first. A lot never marks a game as owned or missing; only the sheet does.
+
+### Which lots count as possibly open (`isLotPossiblyOpen`)
+
+`buildWsOpportunities(missing, lots, now)` takes the page clock (`now`, epoch ms, refreshed every minute) and keeps a lot only when:
+- `lot_status` is not `'closed'` (a confirmed close hides it immediately, even before the scheduled time), **and**
+- it has a parseable `scheduled_close_at`, **and**
+- `now` is before `scheduled_close_at + 24 h` (`EXTENDED_BIDDING_GRACE_MS`).
+
+So a lot shows normally before its scheduled close. For up to 24 hours after, it still shows, with the `LotClosing` "May still be in extended bidding" caveat, because extended/soft-close bidding can run past the scheduled time. After 24 hours it is hidden even if no refresh has confirmed it closed. A lot with no known close time is hidden: `lot_status = 'live'` comes from the last refresh and may be stale, so it isn't treated as a reliable sign the lot is up now. Such lots still appear in the main watchlist below.
+
+On 2026-11-26 the sheet had 283 rows (41 series sections, from 1919 to 2009). There are 239 game rows: 153 are checked Have and 86 are checked Don't Have. The TOTALS row says 141 / 98, which disagrees with the checkmarks. The panel counts the checkmarks and ignores TOTALS. Run against the 31 seeded lots, the panel matches 8 missing games with 9 lots:
+- 1941 G4: Leland's 1017
+- 1947 G4: REA 3686
+- 1956 G6: H&S 1419
+- 1960 G1: H&S 1446
+- 1963 G1: REA 3722, plus REA 3731 (the Games 1 & 2 pair)
+- 1963 G2: H&S 1473, plus REA 3731
+- 1996 G1: REA 5087
+- 2000 G5: REA 3763
+
+### Panel states
+
+| State | Shown when |
+|---|---|
+| Reading the sheet… | The request is in flight |
+| **Sheet not connected** | The function returned 503 `{ configured: false }` because the `GOOGLE_SERVICE_ACCOUNT` secret is missing or invalid JSON. The panel says the sheet connection needs Matt to finish setup (no secret names or doc paths in the UI). No matches are shown. |
+| **Sheet unavailable** | Auth failed, Google returned an error, sharing is missing, the layout changed, or the request timed out. The error is shown and no matches are listed. |
+| **Sheet read Xm ago** | A successful read. Only this state shows matches. |
+
+### Security
+
+- **Auth:** this works the same way as `auction-watchlist-refresh`. The function requires a non-expired `role: authenticated` bearer token. It then proves the token with a one-row read of `auction_watchlist_lots` through PostgREST, as the caller under RLS. Signature failures return 401 before Google is contacted. The service role key is not used.
+- **Google credential:** `GOOGLE_SERVICE_ACCOUNT` is the full service-account JSON. It is stored only as an Edge Function secret and is never in the repo, the client, a `VITE_*` variable, or `.env.local`. It is used to mint a read-only token (`spreadsheets.readonly` scope) and is never logged or returned. Only messages the function writes itself reach the client.
+- Google requests time out after 10 s, don't follow redirects, and the sheet response is capped at 1 MB.
+
+### Deploy (Matt, after review)
+
+1. Share the sheet (Viewer) with the service account's `client_email`, if it isn't shared already. The service account in `~/.openclaw/secrets.json` was independently confirmed to read it on 2026-11-26.
+2. Set the secret from the existing value in `~/.openclaw/secrets.json` (key `GOOGLE_SERVICE_ACCOUNT`). Pipe it straight from the file so it never shows up in shell history or docs:
+   ```bash
+   supabase secrets set GOOGLE_SERVICE_ACCOUNT="$(jq -c '.GOOGLE_SERVICE_ACCOUNT | if type == "string" then fromjson else . end' ~/.openclaw/secrets.json)"
+   supabase secrets list   # names only
+   ```
+   Alternatively, paste the JSON into Supabase dashboard → Edge Functions → Secrets.
+3. Deploy with gateway JWT verification off. The function verifies the token itself, as `auction-watchlist-refresh` does:
+   ```bash
+   supabase functions deploy ws-ticket-tracker --no-verify-jwt
+   ```
+4. Open `/admin/auction-watchlist`. The panel header should read "Sheet read just now · 86 Don't Have games …", or whatever counts the sheet has by then.
+
+`WATCHLIST_ALLOWED_ORIGINS`, if set, restricts CORS for this function too.
+
+### Current limits
+
+- Only Sheet1 World Series sections are used. Sheet1 A1:C1000 currently has no Japan Tours rows, and tour or exhibition sections would be skipped anyway.
+- Matching uses lot titles only. A real ticket lot whose title leaves out the year, the game number, or "ticket"/"stub" won't show up, and neither will one whose description says it's a ticket while the title doesn't. To get it matched, edit the title in the DB.
+- Exclusion words are blunt. A title like "World Series Game 4 ticket stub, Mantle card back" would be dropped.
+- The sheet is read with `FORMATTED_VALUE`. Checkbox cells read as `TRUE`/`FALSE`, and both are handled.
+- No data is cached. Each page load and each **Re-read sheet** makes one Sheets API call.
