@@ -224,7 +224,7 @@ const Muted = styled.span`
 `
 
 const AmountText = styled.span`
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   line-height: 1.2;
   white-space: nowrap;
 `
