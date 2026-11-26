@@ -158,7 +158,7 @@ create policy "authenticated_delete_auction_watchlist" on public.auction_watchli
 create policy "service_manage_auction_watchlist" on public.auction_watchlist_lots
   for all to service_role using (true) with check (true);
 
--- ── Seed: Zane's 27 tracked lots (from mintdassist/tracked-auction-lots.json) ─
+-- ── Seed: Zane's 29 tracked lots (from mintdassist/tracked-auction-lots.json) ─
 -- Deadlines converted from the listed local time to UTC:
 --   Huggins & Scott  2026-12-03 21:00 America/New_York (EST) = 2026-12-04 02:00 UTC
 --   REA              2026-12-06 21:00 America/New_York (EST) = 2026-12-07 02:00 UTC
@@ -263,6 +263,12 @@ from (values
   ('lelands', '2026 Fall Classic', '138859', '4', 'Lou Gehrig''s 1934 Tour of Japan album with All-American team signatures and original photographs (PSA)', 'normal',
    'https://auction.lelands.com/bids/bidplace?itemid=138859', 'https://auction.lelands.com/bids/bidplace?itemid=138859', '2026-12-06 03:00:00+00',
    'Lot page (checked 2026-11-26) lists auction end as Dec 5, 2026 at 10:00 PM EST. Check the live lot page for any extended bidding or changed closing time.'),
+  ('lelands', '2026 Fall Classic', '138815', '636', '1934 Tour of Japan All-American and Japan teams original photograph featuring Babe Ruth and Lou Gehrig (PSA Type I)', 'normal',
+   'https://auction.lelands.com/bids/bidplace?itemid=138815', 'https://auction.lelands.com/bids/bidplace?itemid=138815', '2026-12-06 03:00:00+00',
+   'Lot page lists auction end as Dec 5, 2026 at 10:00 PM EST. Check the live lot page for any extended bidding or changed closing time.'),
+  ('lelands', '2026 Fall Classic', '138843', '663', '1934 Lou and Eleanor Gehrig Christmas card from Japan during the Tour of Japan', 'normal',
+   'https://auction.lelands.com/bids/bidplace?itemid=138843', 'https://auction.lelands.com/bids/bidplace?itemid=138843', '2026-12-06 03:00:00+00',
+   'Lot page lists auction end as Dec 5, 2026 at 10:00 PM EST. Check the live lot page for any extended bidding or changed closing time.'),
 
   -- Heritage — Winter Sports Catalog #50089
   ('heritage', 'Winter Sports Catalog #50089', '50089-81460', '81460', '1937 Yankees team-signed baseball, Gehrig sweet spot', 'normal',

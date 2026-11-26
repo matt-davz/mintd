@@ -644,7 +644,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0034_populate_museum_titles.sql` | Data migration: populate `museum_title` for all 11 existing legendary items. Run after `0034_legendary_museum_title.sql`. |
 | `0035_populate_museum_titles.sql` | Rename of `0034_populate_museum_titles.sql` to resolve version conflict with the two `0034` files. |
 | `0036_psa_price_snapshots.sql` | Add `psa_price_snapshots` table (PSA estimate + recent sales per cert, sourced from parse.bot) and `latest_psa_price` view. |
-| `0039_auction_watchlist.sql` | Add private `auction_watchlist_lots` table (authenticated/service_role RLS only, anon revoked, host-pinning CHECKs) and seed Zane's 27 tracked lots (REA 18, H&S 3, Grey Flannel 2, Love of the Game 2, Leland's 1, Heritage 1) with UTC close times and priority. `opening_bid` for no-bid lots; per-house `image_url` CHECK. No prices seeded. Idempotent. |
+| `0039_auction_watchlist.sql` | Add private `auction_watchlist_lots` table (authenticated/service_role RLS only, anon revoked, host-pinning CHECKs) and seed Zane's 29 tracked lots (REA 18, H&S 3, Grey Flannel 2, Love of the Game 2, Leland's 3, Heritage 1) with UTC close times and priority. `opening_bid` for no-bid lots; per-house `image_url` CHECK. No prices seeded. Idempotent. |
 
 ---
 
