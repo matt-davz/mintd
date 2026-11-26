@@ -53,6 +53,7 @@ src/
 │       ├── AdminLayout.jsx     # Sidebar nav + top bar + create modal
 │       ├── AdminFilterBar.jsx  # Admin advanced search: keyword + multi-select type/team/certService/grade pills in a collapsible accordion (each pill section expands/collapses independently)
 │       ├── ItemViewerModal.jsx # Modal: view/edit existing items + create new items
+│       ├── WsGameSlotsByYear.jsx # Dashboard WS Ticket Quest "By Game" tier — wrapping year groups with Have/Missing game-number panel (hover/focus/tap, portalled)
 │       ├── PrivateNotesSection.jsx # Admin-only Private notes (item_private_notes) — own load/save via Clerk-authenticated client
 │       ├── DuplicatesSection.jsx # Collapsible section — link/unlink duplicate items, edit notes, auto-syncs is_duplicate
 │       ├── ImageUploader.jsx   # Cloudinary image upload widget (product shots)

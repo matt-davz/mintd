@@ -8,6 +8,7 @@ import { AdminFilterBar } from '../../components/admin/AdminFilterBar'
 import { gradeColors, gradeToNumber, gradeBucket } from '../../utils/gradeColors'
 import { useWorldSeriesTicketLinks } from '../../hooks/useWorldSeriesTicketLinks'
 import { buildYankeesWsSeries } from '../../lib/worldSeries'
+import { WsGameSlotsByYear } from '../../components/admin/WsGameSlotsByYear'
 
 // ─── Page heading ─────────────────────────────────────────────────────────────
 
@@ -53,12 +54,14 @@ const WsTierHeader = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
   margin-bottom: var(--space-3);
 `
 
 const WsProgressLabel = styled.p`
   font-family: var(--font-mono);
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: rgba(229, 226, 225, 0.4);
@@ -67,22 +70,23 @@ const WsProgressLabel = styled.p`
 
 const WsTierLabel = styled.p`
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: rgba(229, 226, 225, 0.28);
+  color: rgba(229, 226, 225, 0.4);
   font-weight: 700;
+  margin-bottom: var(--space-2);
 `
 
 const WsProgressCount = styled.span`
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--color-on-surface);
 `
 
 const WsProgressPct = styled.span`
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--color-primary);
   margin-left: var(--space-3);
 `
@@ -107,7 +111,7 @@ const WsOverallFill = styled.div`
 // Tier 2 (middle) — one proportional bar per series year
 const WsYearBarsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(22px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(26px, 1fr));
   gap: 4px;
 `
 
@@ -152,65 +156,19 @@ const WsYearBarFill = styled.div`
 
 const WsYearBarLabel = styled.span`
   font-family: var(--font-mono);
-  font-size: 0.4375rem;
-  color: ${({ $complete }) => $complete ? 'var(--color-secondary)' : 'rgba(229, 226, 225, 0.35)'};
+  font-size: 0.625rem;
+  color: ${({ $complete }) => $complete ? 'var(--color-secondary)' : 'rgba(229, 226, 225, 0.5)'};
   font-weight: ${({ $complete }) => $complete ? 700 : 400};
   white-space: nowrap;
 `
 
 const WsCompleteCount = styled.span`
   font-family: var(--font-mono);
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-secondary);
   margin-left: var(--space-4);
-`
-
-// Tier 1 (bottom) — individual game slots, grouped by series year
-const WsGameSlotsScroll = styled.div`
-  overflow-x: auto;
-  padding-bottom: var(--space-2);
-
-  &::-webkit-scrollbar { height: 4px; }
-  &::-webkit-scrollbar-thumb { background: rgba(140, 144, 159, 0.2); border-radius: 2px; }
-`
-
-const WsGameSlotsRow = styled.div`
-  display: flex;
-  gap: var(--space-4);
-  min-width: min-content;
-`
-
-const WsYearGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-`
-
-const WsYearGroupLabel = styled.span`
-  font-family: var(--font-mono);
-  font-size: 0.5rem;
-  letter-spacing: 0.05em;
-  color: ${({ $complete }) => $complete ? 'var(--color-secondary)' : 'rgba(229, 226, 225, 0.35)'};
-`
-
-const WsGameSlotsGrid = styled.div`
-  display: flex;
-  gap: 2px;
-`
-
-const WsGameSlot = styled.div`
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  background-color: ${({ $owned, $complete }) =>
-    $complete ? 'var(--color-secondary-fixed-dim)' : $owned ? 'var(--color-primary)' : 'rgba(140, 144, 159, 0.15)'};
-  box-shadow: ${({ $owned, $complete }) =>
-    $complete ? '0 0 4px rgba(232, 195, 87, 0.45)' : $owned ? '0 0 4px rgba(173, 198, 255, 0.5)' : 'none'};
-  cursor: default;
 `
 
 // ─── Stat cards ───────────────────────────────────────────────────────────────
@@ -683,28 +641,7 @@ export default function Dashboard() {
           {/* Tier 1 (bottom) — individual game slots grouped by year */}
           <WsTier>
             <WsTierLabel>By Game</WsTierLabel>
-            <WsGameSlotsScroll>
-              <WsGameSlotsRow>
-                {wsYearStats.map(({ year, totalGames, ownedSet, isComplete }) => (
-                  <WsYearGroup
-                    key={year}
-                    title={isComplete ? `${year} World Series — Complete series: all ${totalGames} games collected` : undefined}
-                  >
-                    <WsGameSlotsGrid>
-                      {Array.from({ length: totalGames }, (_, i) => i + 1).map(gameNum => (
-                        <WsGameSlot
-                          key={gameNum}
-                          $owned={ownedSet.has(gameNum)}
-                          $complete={isComplete}
-                          title={`${year} WS Game ${gameNum} ${ownedSet.has(gameNum) ? '✓' : '✗'}${isComplete ? ' · Complete series' : ''}`}
-                        />
-                      ))}
-                    </WsGameSlotsGrid>
-                    <WsYearGroupLabel $complete={isComplete}>{year}</WsYearGroupLabel>
-                  </WsYearGroup>
-                ))}
-              </WsGameSlotsRow>
-            </WsGameSlotsScroll>
+            <WsGameSlotsByYear series={wsYearStats} />
           </WsTier>
         </WsProgressCard>
       )}
