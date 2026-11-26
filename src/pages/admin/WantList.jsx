@@ -223,10 +223,15 @@ const Muted = styled.span`
   color: var(--color-outline);
 `
 
-const EstimateText = styled.span`
+const AmountText = styled.span`
+  font-size: 1.5rem;
+  line-height: 1.2;
+  white-space: nowrap;
+`
+
+const EstimateText = styled(AmountText)`
   color: var(--color-on-surface-variant);
   font-style: italic;
-  white-space: nowrap;
 `
 
 const NotesText = styled.span`
@@ -378,6 +383,7 @@ function SortableTh({ col, sort, onSort }) {
 function LotRow({ lot }) {
   const must = isMust(lot)
   const estimate = cleanEstimate(lot.expected_price)
+  const bid = formatBid(lot.current_bid)
   return (
     <Tr $must={must}>
       <Td $dim={!must}>{must ? <MustBadge>🔴 Must Have</MustBadge> : DASH}</Td>
@@ -385,7 +391,9 @@ function LotRow({ lot }) {
         <TitleLink href={lot.url} target="_blank" rel="noopener noreferrer">{lot.title}</TitleLink>
       </Td>
       <Td>{lot.auction_house}</Td>
-      <Td $dim={lot.current_bid == null}>{formatBid(lot.current_bid)}</Td>
+      <Td $dim={lot.current_bid == null}>
+        {bid === DASH ? DASH : <AmountText>{bid}</AmountText>}
+      </Td>
       <Td>
         {formatClose(lot.auction_close_date)}
         <Muted>{daysRemaining(lot.auction_close_date)}</Muted>
