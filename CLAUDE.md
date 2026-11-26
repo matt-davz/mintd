@@ -30,7 +30,7 @@ A private baseball memorabilia collection showcase website for a single client. 
     - **Overview (`/admin/dashboard`)** - Yankees WS Ticket Quest (overall / By Series / By Game; complete series get a gold marker + tooltip), stats cards (total items, total cost) + item grid with advanced filter.
     - **Table View (`/admin/items`)** - no images, raw data table. Sortable columns, advanced filter bar, CSV exports.
     - **Auction Watchlist (`/admin/auction-watchlist`)** - private watchlist of lots across upcoming auctions (REA, Huggins & Scott, Grey Flannel, Love of the Game, Leland's, Heritage) grouped by auction: current bid (live via `auction-watchlist-refresh` Edge Function: direct fetch for REA/H&S, Firecrawl scrape for Grey Flannel/Love of the Game/Leland's/Heritage when `FIRECRAWL_API_KEY` is set (hourly cap); explicitly-labelled manual entry otherwise, never invented; no-bid lots show "No bids yet" + opening bid, never the opening bid as current), stale flags, countdown to *scheduled* close with extended-bidding caveat, must-win badges, add (allow-listed URLs only) / remove. Table `auction_watchlist_lots` is authenticated/service_role-only (never anon). Full details: `docs/AUCTION_WATCHLIST.md`.
-    - **Item Modal** - unified `<ItemViewerModal>` for viewing, editing, and creating items. Opened from dashboard, table view (existing items), or "Add New Asset" button (create mode). Supports type-specific detail fields, game context, and LOA management (upload images/PDFs per item via `LoaUploader`).
+    - **Item Modal** - unified `<ItemViewerModal>` for viewing, editing, and creating items. Opened from dashboard, table view (existing items), or "Add New Asset" button (create mode). Supports type-specific detail fields, game context, and LOA management (upload images/PDFs per item via `LoaUploader`). Has a **Private notes** section (`PrivateNotesSection`) backed by the admin-only `item_private_notes` table (migration 0040), saved independently of the item form. `items.notes` is **not** private (anon-readable via `items`/`item_gallery`) - never put sensitive data there.
 
 `mintd` is a high-end memorabilia collector app. Design system: see `docs/DESIGN.md`.
 
@@ -87,7 +87,7 @@ Item viewing/editing/creating is handled by `<ItemViewerModal>` (modal), not pag
 - A single `<AdminGuard>` component wraps the admin router - if not signed in, redirect to Clerk hosted login
 - The public site has absolutely zero authentication - no login, no tokens, nothing
 - Never use the Supabase service role key on the public site - anon key only
-- Private admin data that must not be anon-readable (e.g. `auction_watchlist_lots`) uses `useSupabaseClient()` (Clerk JWT → RLS role `authenticated`) instead of the shared anon client
+- Private admin data that must not be anon-readable (e.g. `auction_watchlist_lots`, `item_private_notes`) uses `useSupabaseClient()` (Clerk JWT → RLS role `authenticated`) instead of the shared anon client
 - The admin site may use the service role key server-side via Edge Functions only - never expose it in the browser
 
 ## Database

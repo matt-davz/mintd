@@ -21,6 +21,7 @@ import { SetMembersAccordion } from '../SetMembersAccordion'
 import { SeriesTicketsAccordion } from '../SeriesTicketsAccordion'
 import { DuplicatesSection } from './DuplicatesSection'
 import { TicketSheetGamesSection } from './TicketSheetGamesSection'
+import { PrivateNotesSection } from './PrivateNotesSection'
 
 // ─── Reconcile helpers ────────────────────────────────────────────────────────
 
@@ -2193,11 +2194,11 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = fal
                 </FieldGrid>
 
                 <Field style={{ marginTop: 'var(--space-4)' }}>
-                  <FieldLabel>Notes</FieldLabel>
+                  <FieldLabel>Notes (readable via public API)</FieldLabel>
                   {isEditing ? (
                     <EditTextarea
                       value={form.notes}
-                      placeholder="Internal notes..."
+                      placeholder="Not private: readable via the public API. Use Private notes below for anything sensitive."
                       onChange={e => setField('notes', e.target.value)}
                     />
                   ) : item?.notes ? (
@@ -2209,6 +2210,13 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = fal
                   )}
                 </Field>
               </Section>
+
+              {/* ── Private notes (admin-only table, Clerk-authenticated client) ── */}
+              {!isCreateMode && (
+                <Section>
+                  <PrivateNotesSection key={itemId} itemId={itemId} />
+                </Section>
+              )}
 
               {/* ── Set members ── */}
               {!isEditing && item?.set_id && (

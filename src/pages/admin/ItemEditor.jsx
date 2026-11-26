@@ -429,10 +429,10 @@ export default function ItemEditor() {
 
         {/* ── Notes ── */}
         <Section>
-          <SectionLabel>Notes</SectionLabel>
+          <SectionLabel>Notes (public — readable via public API)</SectionLabel>
           <EditTextarea
             value={form.notes}
-            placeholder="Internal notes..."
+            placeholder="Public notes — readable via the public API. Add sensitive notes in Private notes after the item is created."
             onChange={e => setField('notes', e.target.value)}
           />
         </Section>

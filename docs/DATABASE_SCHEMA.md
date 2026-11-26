@@ -74,7 +74,7 @@ Core table — everything hangs off this.
 | `is_visible` | `boolean` | NOT NULL, default `true` | Draft flag — `false` hides from public |
 | `is_part_of_set` | `boolean` | NOT NULL, default `false` | |
 | `set_id` | `uuid` | FK → `sets(id)` ON DELETE SET NULL | |
-| `notes` | `text` | | |
+| `notes` | `text` | | **Not private** — anon-readable via `items` and `item_gallery`. Put sensitive notes in `item_private_notes` |
 | `is_duplicate` | `boolean` | NOT NULL, default `false` | |
 | `is_legendary` | `boolean` | NOT NULL, default `false` | Marks item for special "legendary" display treatment on the Timeline |
 | `museum_title` | `text` | nullable | Short tidbit-style title shown on the Museum/Timeline page. Falls back to `title` when NULL. Full title still shown on item detail page. Convention: `[tidbit] — Ticket Stub / Full Ticket / Program` (non-auto) or `[tidbit] — [type] — Signed by [Name(s)]` (auto). |
@@ -219,6 +219,18 @@ PSA price estimate + recent sales per cert. Append-only — never overwrite. Sou
 | `created_at` / `updated_at` | `timestamptz` | NOT NULL | `updated_at` via `set_updated_at()` trigger |
 
 **Indexes:** `idx_auction_watchlist_close (scheduled_close_at)`
+
+---
+
+### `item_private_notes`
+
+**Private** admin-only notes, one row per item (migration 0040). Authenticated + service_role only: no anon policy, privileges revoked from anon/PUBLIC, not in `item_gallery` or any public view. Read/written only through `useSupabaseClient()` (Clerk JWT) by `PrivateNotesSection` in the admin `ItemViewerModal`.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `item_id` | `uuid` | PK, FK → `items(id)` ON DELETE CASCADE | |
+| `body` | `text` | NOT NULL, default `''` | Free text (comps, pricing notes, contacts) |
+| `created_at` / `updated_at` | `timestamptz` | NOT NULL | `updated_at` via `set_updated_at()` trigger; the UI uses it as an optimistic-concurrency guard on save |
 
 ---
 
