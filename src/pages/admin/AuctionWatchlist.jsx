@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import styled from 'styled-components'
 import { useAuctionWatchlist } from '../../hooks/useAuctionWatchlist'
-import { HOUSES, REFRESH_INTERVAL_MIN, SCRAPED_REFRESH_INTERVAL_MIN, isRefreshDue } from '../../lib/auctionWatchlist'
+import { HOUSES, REFRESH_INTERVAL_MIN, houseNames, SCRAPED_REFRESH_INTERVAL_MIN, isRefreshDue } from '../../lib/auctionWatchlist'
 import { ErrorBanner, PageHeading, PageSub, PageTitle } from '../../components/admin/FormFields'
 import { AddLotForm } from '../../components/admin/watchlist/AddLotForm'
 import { WatchlistToolbar } from '../../components/admin/watchlist/WatchlistToolbar'
@@ -50,10 +50,11 @@ function summarize(r) {
 }
 
 function refreshNote(r) {
+  const scrapedHouses = houseNames(h => h.liveRefresh && h.scraped)
   const scraped = r.firecrawl_configured
-    ? `Grey Flannel & Heritage every ${SCRAPED_REFRESH_INTERVAL_MIN} min (server-side scrape)`
-    : 'Grey Flannel & Heritage: manual entry (server-side scraping not configured)'
-  return `Each lot is checked at most: REA & Huggins & Scott every ${REFRESH_INTERVAL_MIN} min; ${scraped}.`
+    ? `${scrapedHouses} every ${SCRAPED_REFRESH_INTERVAL_MIN} min (server-side scrape)`
+    : `${scrapedHouses}: manual entry (server-side scraping not configured)`
+  return `Each lot is checked at most: ${houseNames(h => h.liveRefresh && !h.scraped)} every ${REFRESH_INTERVAL_MIN} min; ${scraped}.`
 }
 
 export default function AuctionWatchlist() {

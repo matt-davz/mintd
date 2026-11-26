@@ -5,7 +5,7 @@
 // fixed-host adapters in supabase/functions/auction-watchlist-refresh.
 
 // Per-lot refresh caps, mirrored from the Edge Function. Direct fetches
-// (REA, H&S) are cheap; Grey Flannel / Heritage go through Firecrawl, which
+// (REA, H&S) are cheap; Grey Flannel / Love of the Game / Heritage go through Firecrawl, which
 // costs credits, so they are checked at most hourly.
 export const REFRESH_INTERVAL_MIN = 10
 export const SCRAPED_REFRESH_INTERVAL_MIN = 60
@@ -41,6 +41,14 @@ export const HOUSES = {
     refreshIntervalMin: SCRAPED_REFRESH_INTERVAL_MIN,
     closeCaveat: 'Extended bidding may apply',
   },
+  love_of_the_game: {
+    label: 'Love of the Game Auctions',
+    short: 'Love of the Game',
+    liveRefresh: true,
+    scraped: true,
+    refreshIntervalMin: SCRAPED_REFRESH_INTERVAL_MIN,
+    closeCaveat: 'Extended bidding may apply',
+  },
   heritage: {
     label: 'Heritage Auctions',
     short: 'Heritage',
@@ -63,6 +71,12 @@ export function isRefreshDue(lot, nowMs) {
 
 export const HOUSE_KEYS = Object.keys(HOUSES)
 
+/** "Grey Flannel, Love of the Game and Heritage" — short names of houses matching `pred`. */
+export function houseNames(pred) {
+  const names = Object.values(HOUSES).filter(pred).map(h => h.short)
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names.join('')
+}
+
 export const CLOSE_TIMEZONES = [
   { value: 'America/New_York', label: 'Eastern (ET)' },
   { value: 'America/Chicago', label: 'Central (CT)' },
@@ -72,6 +86,11 @@ export const CLOSE_TIMEZONES = [
 ]
 
 const MAX_URL_LENGTH = 1000
+
+const CREATE_AUCTION_HOSTS = {
+  'bid.greyflannelauctions.com': 'grey_flannel',
+  'bid.loveofthegameauctions.com': 'love_of_the_game',
+}
 
 /**
  * Validate a pasted lot URL against the allow-listed auction hosts.
@@ -104,13 +123,15 @@ export function parseLotUrl(input) {
     return { house, lotId: m[1], canonicalUrl, sourceUrl: canonicalUrl }
   }
 
-  if (host === 'bid.greyflannelauctions.com') {
+  // Grey Flannel and Love of the Game share CreateAuction's bidplace page.
+  const createAuction = CREATE_AUCTION_HOSTS[host]
+  if (createAuction) {
     const itemId = url.searchParams.get('itemid') ?? url.searchParams.get('itemId')
     if (!/^\/bids\/bidplace\/?$/i.test(path) || !itemId || !/^[0-9]{1,10}$/.test(itemId)) {
-      return { error: 'Expected a Grey Flannel bidplace?itemid=… link.' }
+      return { error: `Expected a ${HOUSES[createAuction].short} bidplace?itemid=… link.` }
     }
-    const canonicalUrl = `https://bid.greyflannelauctions.com/bids/bidplace?itemid=${itemId}`
-    return { house: 'grey_flannel', lotId: itemId, canonicalUrl, sourceUrl: canonicalUrl }
+    const canonicalUrl = `https://${host}/bids/bidplace?itemid=${itemId}`
+    return { house: createAuction, lotId: itemId, canonicalUrl, sourceUrl: canonicalUrl }
   }
 
   if (host === 'sports.ha.com' || host === 'www.ha.com') {
@@ -120,7 +141,7 @@ export function parseLotUrl(input) {
     return { house: 'heritage', lotId: m[1], canonicalUrl, sourceUrl: url.href }
   }
 
-  return { error: 'Supported sites: REA, Huggins & Scott, Grey Flannel, Heritage.' }
+  return { error: `Supported sites: ${Object.values(HOUSES).map(h => h.short).join(', ')}.` }
 }
 
 /** Lot number guess from the lot id when the site doesn't tell us. */

@@ -26,7 +26,8 @@ const Err = styled.span`
 `
 
 /**
- * Manual current-bid entry for sites we can't fetch (Grey Flannel, Heritage)
+ * Manual current-bid entry for sites we can't fetch (Firecrawl houses without
+ * FIRECRAWL_API_KEY)
  * or to correct a reading. Saved with bid_source = 'manual' and shown as such.
  */
 export function ManualPriceForm({ initial, onSave, onCancel }) {

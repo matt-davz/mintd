@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Parser checks for the auction-watchlist Firecrawl adapters.
 //
-//   node scripts/check-watchlist-parsers.mjs [greyJson] [heritageNoBidJson] [heritageActiveJson]
+//   node scripts/check-watchlist-parsers.mjs [greyJson] [heritageNoBidJson] [heritageActiveJson] [lotg49085Json] [lotg49605Json]
 //
 // Every check runs against the small inline fixtures below, so a clean checkout
 // always runs (and must pass) the full set of assertions. The fixtures are
@@ -11,17 +11,18 @@
 //
 // Optional: saved full Firecrawl responses (CLI JSON or REST v2 JSON, never
 // committed) are also run through the same lot checks when present. Defaults
-// are /tmp/mintd-*-firecrawl.json; a default that doesn't exist is reported and
+// are /tmp/mintd-*-firecrawl.json and /tmp/lotg-<itemid>.json; a default that doesn't exist is reported and
 // left out, but a path passed explicitly on the command line must exist.
 // Requires Node >= 22.18 (built-in TypeScript type stripping).
 
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import {
-  buildGreyFlannelUrl, extractFirecrawlDoc, parseGreyFlannel, parseHeritage, validateHeritageUrl,
+  buildGreyFlannelUrl, buildLoveOfTheGameUrl, extractFirecrawlDoc, parseGreyFlannel, parseHeritage, parseLoveOfTheGame,
+  validateHeritageUrl,
 } from '../supabase/functions/auction-watchlist-refresh/parsers.ts'
 
-const MIN_FIXTURE_CHECKS = 10
+const MIN_FIXTURE_CHECKS = 15
 
 // ── Inline fixtures ──────────────────────────────────────────────────────────
 
@@ -63,6 +64,62 @@ const GREY_FIXTURE = {
   ].join('\n'),
   metadata: { url: GREY_URL, sourceURL: GREY_URL, statusCode: 200 },
 }
+
+// Love of the Game (same CreateAuction page as Grey Flannel). No-bid lots echo
+// "CURRENT BID: $0.00", and the auction header prints EDT even in December.
+const LOTG_HOST = 'https://bid.loveofthegameauctions.com'
+function lotgFixture({ itemId, lotNo, title, starting, imgId, prev, next }) {
+  const url = `${LOTG_HOST}/bids/bidplace?itemid=${itemId}`
+  const img = (n, id) => `${LOTG_HOST}/images_items/item_${itemId}_${n}_${id}.jpg`
+  return {
+    markdown: [
+      `- [Auction](${url}#_)`,
+      '',
+      '##### •  Fall, 2026 Premier Auction - Closes December 12',
+      '',
+      'Start:',
+      '11/8/2026 12:00 PM EDT',
+      '',
+      '',
+      'End:',
+      '12/12/2026 9:00 PM EDT',
+      '',
+      '##LOC\\[OK\\]##',
+      '',
+      `[Prev](${LOTG_HOST}/bids/bidplace.aspx?itemid=${prev} "Previous Lot") [Next](${LOTG_HOST}/bids/bidplace.aspx?itemid=${next} "Next Lot")`,
+      '',
+      `## Lot \\#  ${lotNo}:  ${title}`,
+      '',
+      'Category:',
+      'Featured Items',
+      '',
+      `Starting Bid: **${starting}**`,
+      '',
+      'Bids: **0**(Bid History)',
+      '',
+      'Time Left: **16 days 15:32:27**',
+      '',
+      `[**I have one to sell!**](${LOTG_HOST}//makeoffer/haveonetosell.aspx?itemid=${itemId})`,
+      '',
+      '### CURRENT BID:  $0.00',
+      '',
+      `[![](${img(1, imgId)})\\\\`,
+      '',
+      `Zoom](${img(1, imgId)} "")`,
+      '',
+      `![](${img(1, imgId)})![](${img(2, imgId + 1)})`,
+    ].join('\n'),
+    metadata: { url, sourceURL: url, statusCode: 200, title: '\n\tLove of the Game Auctions\n' },
+  }
+}
+const LOTG_49085_FIXTURE = lotgFixture({
+  itemId: '49085', lotNo: '17', title: 'Stunning 1921 W551 Complete 10-Card Set Strip w/Ruth/Cobb/Speaker/Johnson (HOF)',
+  starting: '$2,500.00', imgId: 168812, prev: '49784', next: '49792',
+})
+const LOTG_49605_FIXTURE = lotgFixture({
+  itemId: '49605', lotNo: '41', title: '1923 Fleer \\#47 Babe Ruth (HOF) - SGC AUTHENTIC',
+  starting: '$1,000.00', imgId: 170325, prev: '49816', next: '47672',
+})
 
 const HERITAGE_NOBID_URL = 'https://sports.ha.com/itm/baseball-collectibles/balls/1937-new-york-yankees-team-signed-baseball-with-lou-gehrig-sweet-spot/a/50089-81460.s'
 const HERITAGE_SESSION = [
@@ -159,6 +216,8 @@ const samplePaths = [
   args[0] ?? '/tmp/mintd-grey-firecrawl.json',
   args[1] ?? '/tmp/mintd-heritage-firecrawl.json',
   args[2] ?? '/tmp/mintd-heritage-active-firecrawl.json',
+  args[3] ?? '/tmp/lotg-49085.json',
+  args[4] ?? '/tmp/lotg-49605.json',
 ]
 
 let fixtureChecks = 0
@@ -225,6 +284,56 @@ lotCheck('Grey Flannel: rejects wrong lot number / item id', GREY_FIXTURE, 0, (d
   assert.equal(parseGreyFlannel(bare, { lotId: '59792', lotNumber: null }).ok, false)
 })
 
+const LOTG_LOTS = [
+  { fixture: LOTG_49085_FIXTURE, sample: 3, lotId: '49085', lotNumber: '17', opening: 2500,
+    title: /^Stunning 1921 W551 Complete 10-Card Set Strip/, image: 'item_49085_1_168812.jpg' },
+  { fixture: LOTG_49605_FIXTURE, sample: 4, lotId: '49605', lotNumber: '41', opening: 1000,
+    title: /^1923 Fleer #47 Babe Ruth \(HOF\) - SGC AUTHENTIC$/, image: 'item_49605_1_170325.jpg' },
+]
+for (const lot of LOTG_LOTS) {
+  lotCheck(`Love of the Game ${lot.lotId}: 0 bids → no current bid (never $0), opening bid, close, image`, lot.fixture, lot.sample, (doc) => {
+    const r = parseLoveOfTheGame(doc, { lotId: lot.lotId, lotNumber: lot.lotNumber })
+    assert.equal(r.ok, true, r.reason)
+    assert.equal(r.currentBid, null) // page says "CURRENT BID: $0.00" — not a live price
+    assert.equal(r.noBids, true)
+    assert.equal(r.openingBid, lot.opening)
+    assert.equal(r.lotNumber, lot.lotNumber)
+    assert.match(r.title, lot.title)
+    assert.equal(r.imageUrl, `https://bid.loveofthegameauctions.com/images_items/${lot.image}`)
+    assert.equal(r.endTime, '2026-12-13T02:00:00.000Z') // "12/12/2026 9:00 PM EDT" read as New York wall time (EST)
+    assert.equal(r.status, 'live')
+  })
+
+  lotCheck(`Love of the Game ${lot.lotId}: rejects other lot / item id / house`, lot.fixture, lot.sample, (doc) => {
+    const other = LOTG_LOTS.find((l) => l !== lot)
+    assert.equal(parseLoveOfTheGame(doc, { lotId: lot.lotId, lotNumber: other.lotNumber }).ok, false)
+    assert.equal(parseLoveOfTheGame(doc, { lotId: other.lotId, lotNumber: null }).ok, false)
+    assert.equal(parseLoveOfTheGame(doc, { lotId: other.lotId, lotNumber: other.lotNumber }).ok, false)
+    // A Love of the Game page must never satisfy the Grey Flannel adapter (host pinned per site).
+    assert.equal(parseGreyFlannel(doc, { lotId: lot.lotId, lotNumber: lot.lotNumber }).ok, false)
+    const bare = { markdown: doc.markdown, metadata: {} }
+    assert.equal(parseLoveOfTheGame(bare, { lotId: lot.lotId, lotNumber: lot.lotNumber }).ok, true)
+    assert.equal(parseLoveOfTheGame(bare, { lotId: other.lotId, lotNumber: null }).ok, false)
+  })
+}
+
+check('Love of the Game: $0.00 current bid without a bid count is refused', () => {
+  const md = LOTG_49085_FIXTURE.markdown.replace('Bids: **0**(Bid History)', '')
+  const r = parseLoveOfTheGame({ markdown: md, metadata: LOTG_49085_FIXTURE.metadata }, { lotId: '49085', lotNumber: '17' })
+  assert.equal(r.ok, false)
+})
+
+check('Love of the Game: labelled CURRENT BID used once bids exist', () => {
+  const md = LOTG_49605_FIXTURE.markdown
+    .replace('Bids: **0**', 'Bids: **3**')
+    .replace('### CURRENT BID:  $0.00', '### CURRENT BID:  $1,200.00')
+  const r = parseLoveOfTheGame({ markdown: md, metadata: LOTG_49605_FIXTURE.metadata }, { lotId: '49605', lotNumber: '41' })
+  assert.equal(r.ok, true, r.reason)
+  assert.equal(r.currentBid, 1200)
+  assert.equal(r.openingBid, 1000)
+  assert.equal(r.noBids, false)
+})
+
 lotCheck('Heritage no-bid: no current bid, opening bid captured separately', HERITAGE_NOBID_FIXTURE, 1, (doc) => {
   const r = parseHeritage(doc, { lotId: '50089-81460' })
   assert.equal(r.ok, true, r.reason)
@@ -263,6 +372,18 @@ lotCheck('Heritage active: Current Bid parsed, Bid Next Minimum ignored', HERITA
 check('Grey Flannel URL rebuilt from numeric id only', () => {
   assert.equal(buildGreyFlannelUrl('59791'), 'https://bid.greyflannelauctions.com/bids/bidplace?itemid=59791')
   for (const bad of ['', '59791&x=1', '../1', '1'.repeat(11), '59791 ']) assert.equal(buildGreyFlannelUrl(bad), null, bad)
+})
+
+check('Love of the Game URL rebuilt from numeric id only', () => {
+  assert.equal(buildLoveOfTheGameUrl('49085'), 'https://bid.loveofthegameauctions.com/bids/bidplace?itemid=49085')
+  for (const bad of ['', '49085&x=1', '../1', '1'.repeat(11), '49085 ', 'https://evil.test/?itemid=1']) {
+    assert.equal(buildLoveOfTheGameUrl(bad), null, bad)
+  }
+})
+
+check('Grey Flannel page never satisfies the Love of the Game adapter', () => {
+  const doc = toDoc(GREY_FIXTURE, 'fixture')
+  assert.equal(parseLoveOfTheGame(doc, { lotId: '59791', lotNumber: '150' }).ok, false)
 })
 
 check('Heritage canonical URL validation', () => {

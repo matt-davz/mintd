@@ -1,4 +1,5 @@
-// Pure parsers for the Firecrawl-backed adapters (Grey Flannel, Heritage).
+// Pure parsers for the Firecrawl-backed adapters (Grey Flannel, Love of the
+// Game, Heritage).
 //
 // No Deno/Node APIs here: the Edge Function imports this module, and
 // scripts/check-watchlist-parsers.mjs runs the same functions under Node
@@ -8,8 +9,9 @@
 // - A lot is only accepted when the scraped page identifies the expected lot.
 // - current bid is read only from a line explicitly labelled "Current Bid".
 //   "Starting Bid" / "Bid Next Minimum" / "Minimum Next Bid" are never used
-//   as the current bid. A no-bid lot returns currentBid = null with the
-//   opening bid captured separately.
+//   as the current bid, and a $0.00 "current bid" is never a live price.
+//   A no-bid lot returns currentBid = null with the opening bid captured
+//   separately.
 
 export type LotStatus = 'live' | 'extended' | 'closed' | 'unknown'
 
@@ -33,6 +35,7 @@ const NUMERIC_ID = /^[0-9]{1,10}$/
 const HERITAGE_LOT_ID = /^([0-9]{1,8})-([0-9]{1,10})$/
 const HERITAGE_HOSTS = new Set(['sports.ha.com', 'www.ha.com'])
 const GREY_HOST = 'bid.greyflannelauctions.com'
+const LOTG_HOST = 'bid.loveofthegameauctions.com'
 const MONEY = String.raw`\$\s*([0-9][0-9,]{0,12}(?:\.[0-9]{1,2})?)`
 
 // ── URL builders / validators ────────────────────────────────────────────────
@@ -40,6 +43,11 @@ const MONEY = String.raw`\$\s*([0-9][0-9,]{0,12}(?:\.[0-9]{1,2})?)`
 /** Grey Flannel fetch URL, rebuilt from the numeric item id only. */
 export function buildGreyFlannelUrl(lotId: string): string | null {
   return NUMERIC_ID.test(lotId) ? `https://${GREY_HOST}/bids/bidplace?itemid=${lotId}` : null
+}
+
+/** Love of the Game fetch URL, rebuilt from the numeric item id only. */
+export function buildLoveOfTheGameUrl(lotId: string): string | null {
+  return NUMERIC_ID.test(lotId) ? `https://${LOTG_HOST}/bids/bidplace?itemid=${lotId}` : null
 }
 
 /**
@@ -159,23 +167,37 @@ function to24h(h: number, ampm: string): number {
   return (h % 12) + (pm ? 12 : 0)
 }
 
-// ── Grey Flannel ─────────────────────────────────────────────────────────────
+// ── CreateAuction sites (Grey Flannel, Love of the Game) ────────────────────
+//
+// Grey Flannel and Love of the Game both run CreateAuction's bidplace page, so
+// one parser handles both; each site is pinned to its own exact host, and the
+// item id / lot number / image host are checked against that site only.
 
-export function parseGreyFlannel(
+type CreateAuctionSite = { host: string; name: string }
+
+const GREY_FLANNEL_SITE: CreateAuctionSite = { host: GREY_HOST, name: 'Grey Flannel' }
+const LOTG_SITE: CreateAuctionSite = { host: LOTG_HOST, name: 'Love of the Game' }
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function parseCreateAuction(
   doc: FirecrawlDoc,
   expected: { lotId: string; lotNumber?: string | null },
+  site: CreateAuctionSite,
 ): ParsedLot | ParseFailure {
   const md = doc.markdown
   const { lotId } = expected
-  if (!NUMERIC_ID.test(lotId)) return { ok: false, reason: 'Invalid Grey Flannel item id' }
+  if (!NUMERIC_ID.test(lotId)) return { ok: false, reason: `Invalid ${site.name} item id` }
 
-  // 1) Page URL Firecrawl ended up on must be this item.
+  // 1) Page URL Firecrawl ended up on must be this item on this site's exact host.
   const pageUrl = metaString(doc.metadata, 'url', 'sourceURL')
   if (pageUrl) {
     try {
       const u = new URL(pageUrl)
       const itemId = u.searchParams.get('itemid') ?? u.searchParams.get('itemId')
-      if (u.hostname !== GREY_HOST || itemId !== lotId) return { ok: false, reason: 'Scraped page is not the expected Grey Flannel lot' }
+      if (u.hostname !== site.host || itemId !== lotId) return { ok: false, reason: `Scraped page is not the expected ${site.name} lot` }
     } catch {
       return { ok: false, reason: 'Scraped page URL is invalid' }
     }
@@ -189,7 +211,8 @@ export function parseGreyFlannel(
   if (expected.lotNumber && expected.lotNumber !== lotNumber) {
     return { ok: false, reason: `Page shows lot ${lotNumber}, expected lot ${expected.lotNumber}` }
   }
-  // 3) Item id must appear on the page itself (image paths are item_<id>_N_…).
+  // 3) Item id must appear on the page itself (image paths are item_<id>_N_…)
+  //    when there is no page URL to check it against.
   if (!md.includes(`/images_items/item_${lotId}_`) && !pageUrl) {
     return { ok: false, reason: 'Lot page did not reference the expected item id' }
   }
@@ -204,14 +227,20 @@ export function parseGreyFlannel(
   let currentBid: number | null = null
   let noBids = false
   if (bidCount === 0) {
-    noBids = true // the site may echo the opening bid as "current"; with 0 bids there is none
+    // With 0 bids there is no current bid, whatever the page echoes as
+    // "CURRENT BID" (Grey Flannel shows the opening bid, Love of the Game $0.00).
+    noBids = true
+  } else if (current === 0) {
+    // $0.00 is a placeholder, never a live price; without a "Bids: 0" line we can't tell why.
+    return { ok: false, reason: 'Lot page shows a $0 current bid without a bid count' }
   } else if (current !== null) {
     currentBid = current
   } else {
     return { ok: false, reason: 'Could not find a labelled Current Bid on the lot page' }
   }
 
-  // Auction end: "End:\n12/13/2026 8:00 PM EST"
+  // Auction end: "End:\n12/13/2026 8:00 PM EST". The zone label is ignored:
+  // sites print EDT year-round, so the wall time is read in America/New_York.
   let endTime: string | null = null
   const endM = md.match(/^End:[ \t]*\n(?:[ \t]*\n)*[ \t]*([0-9]{1,2})\/([0-9]{1,2})\/([0-9]{4})[ \t]+([0-9]{1,2}):([0-9]{2})[ \t]*(AM|PM)[ \t]*(EST|EDT|ET)\b/im)
   if (endM) {
@@ -226,11 +255,25 @@ export function parseGreyFlannel(
     else if (/\d/.test(left)) status = 'live'
   }
 
-  const imgRe = new RegExp(String.raw`https://bid\.greyflannelauctions\.com/images_items/item_${lotId}_([0-9]{1,3})_[0-9]{1,12}\.(?:jpg|jpeg|png)`, 'g')
+  const imgRe = new RegExp(String.raw`https://${escapeRe(site.host)}/images_items/item_${lotId}_([0-9]{1,3})_[0-9]{1,12}\.(?:jpg|jpeg|png)`, 'g')
   const imgs = [...md.matchAll(imgRe)]
   const imageUrl = (imgs.find((m) => m[1] === '1') ?? imgs[0])?.[0] ?? null
 
   return { ok: true, currentBid, openingBid: opening, noBids, endTime, status, imageUrl, title, lotNumber }
+}
+
+export function parseGreyFlannel(
+  doc: FirecrawlDoc,
+  expected: { lotId: string; lotNumber?: string | null },
+): ParsedLot | ParseFailure {
+  return parseCreateAuction(doc, expected, GREY_FLANNEL_SITE)
+}
+
+export function parseLoveOfTheGame(
+  doc: FirecrawlDoc,
+  expected: { lotId: string; lotNumber?: string | null },
+): ParsedLot | ParseFailure {
+  return parseCreateAuction(doc, expected, LOTG_SITE)
 }
 
 // ── Heritage ─────────────────────────────────────────────────────────────────

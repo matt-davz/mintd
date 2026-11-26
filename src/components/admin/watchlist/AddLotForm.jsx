@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import styled from 'styled-components'
 import {
-  CLOSE_TIMEZONES, HOUSES, defaultLotNumber, parseLotUrl, zonedLocalToUtcIso,
+  CLOSE_TIMEZONES, HOUSES, defaultLotNumber, houseNames, parseLotUrl, zonedLocalToUtcIso,
 } from '../../../lib/auctionWatchlist'
 import { CheckboxLabel, EditInput, EditSelect, ErrorBanner, Field, FieldLabel, SaveBtn } from '../FormFields'
 import { Badge, GhostBtn, Hint } from './styles'
@@ -142,7 +142,7 @@ export function AddLotForm({ auctionsByHouse, onAdd, onClose }) {
       <Footer>
         <SaveBtn type="submit" disabled={saving || !house}>{saving ? 'Adding…' : 'Add to watchlist'}</SaveBtn>
         <GhostBtn type="button" onClick={onClose}>Close</GhostBtn>
-        <Hint>Supported: REA, Huggins &amp; Scott (live), Grey Flannel, Heritage (live via server-side scrape, hourly; manual fallback).</Hint>
+        <Hint>Supported: {houseNames(h => h.liveRefresh && !h.scraped)} (live), {houseNames(h => h.liveRefresh && h.scraped)} (live via server-side scrape, hourly; manual fallback).</Hint>
       </Footer>
     </Form>
   )

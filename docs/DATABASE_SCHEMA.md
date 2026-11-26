@@ -196,9 +196,9 @@ PSA price estimate + recent sales per cert. Append-only — never overwrite. Sou
 | `id` | `uuid` | PK, default `gen_random_uuid()` | |
 | `canonical_url` | `text` | NOT NULL, UNIQUE | Normalised lot URL. CHECK pins host/shape per `house` |
 | `source_url` | `text` | NOT NULL | Link opened in the UI (Heritage keeps its query string). Must be https on an allowed host |
-| `house` | `text` | NOT NULL, CHECK in `rea`, `huggins_scott`, `grey_flannel`, `heritage` | |
+| `house` | `text` | NOT NULL, CHECK in `rea`, `huggins_scott`, `grey_flannel`, `love_of_the_game`, `heritage` | |
 | `auction_name` | `text` | NOT NULL | e.g. `Fall 2026` |
-| `lot_id` | `text` | NOT NULL, UNIQUE with `house` | Numeric id from the URL; Heritage = `<saleNo>-<lotNo>`. REA/H&S/Grey Flannel fetch URLs are rebuilt from this; Heritage's `canonical_url` is re-validated against it. `source_url` is never fetched |
+| `lot_id` | `text` | NOT NULL, UNIQUE with `house` | Numeric id from the URL; Heritage = `<saleNo>-<lotNo>`. REA/H&S/Grey Flannel/Love of the Game fetch URLs are rebuilt from this; Heritage's `canonical_url` is re-validated against it. `source_url` is never fetched |
 | `lot_number` | `text` | | Catalog lot number |
 | `title` | `text` | | Filled from the lot page on first refresh when NULL |
 | `owner` | `text` | | Who asked to track it (seed: `Zane`) |
@@ -206,14 +206,14 @@ PSA price estimate + recent sales per cert. Append-only — never overwrite. Sou
 | `scheduled_close_at` | `timestamptz` | | Scheduled close (UTC). For REA/H&S this is when extended bidding starts, not a guaranteed final close |
 | `closing_note` | `text` | | Deadline caveats |
 | `current_bid` | `numeric(12,2)` | ≥ 0; requires `bid_checked_at` + `bid_source` | Last verified bid, never estimated. Only from an explicit "Current Bid" label. NULL with `bid_source = 'live'` + `bid_checked_at` set means the last live check found **no bids** |
-| `opening_bid` | `numeric(12,2)` | ≥ 0 | Opening/starting bid read from the lot page (Grey Flannel, Heritage). Shown as "Opening bid" next to "No bids yet"; never shown as the current bid |
+| `opening_bid` | `numeric(12,2)` | ≥ 0 | Opening/starting bid read from the lot page (Grey Flannel, Love of the Game, Heritage). Shown as "Opening bid" next to "No bids yet"; never shown as the current bid |
 | `currency` | `text` | NOT NULL, default `USD`, ISO-4217 | |
 | `bid_checked_at` | `timestamptz` | | When the bid reading (including a no-bid reading) was verified/entered |
 | `bid_source` | `text` | CHECK in `live`, `manual` | `manual` is shown with a Manual badge |
-| `image_url` | `text` | CHECK per house: REA/H&S own Cloudinary account; Grey Flannel `bid.greyflannelauctions.com/images_items/item_<lot_id>_N_M.jpg`; Heritage `dyn1.heritagestatic.com/ha?p=<digits/dashes>&it=product` | Primary lot image |
+| `image_url` | `text` | CHECK per house: REA/H&S own Cloudinary account; Grey Flannel `bid.greyflannelauctions.com/images_items/item_<lot_id>_N_M.jpg`; Love of the Game `bid.loveofthegameauctions.com/images_items/item_<lot_id>_N_M.jpg`; Heritage `dyn1.heritagestatic.com/ha?p=<digits/dashes>&it=product` | Primary lot image |
 | `lot_status` | `text` | NOT NULL, default `unknown`, CHECK in `unknown`, `live`, `extended`, `closed` | From last live refresh |
 | `refresh_status` | `text` | NOT NULL, default `never`, CHECK in `never`, `ok`, `manual`, `blocked`, `error`, `unsupported` | |
-| `refresh_attempted_at` | `timestamptz` | | Enforces the per-lot refresh cap: 10 min (REA/H&S), 60 min (Grey Flannel/Heritage via Firecrawl) |
+| `refresh_attempted_at` | `timestamptz` | | Enforces the per-lot refresh cap: 10 min (REA/H&S), 60 min (Grey Flannel/Love of the Game/Heritage via Firecrawl) |
 | `last_error` | `text` | | Last refresh failure reason |
 | `created_by` | `text` | default `auth.jwt() ->> 'sub'` | Clerk user id of whoever added it (NULL for seeded rows) |
 | `created_at` / `updated_at` | `timestamptz` | NOT NULL | `updated_at` via `set_updated_at()` trigger |
@@ -632,7 +632,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0034_populate_museum_titles.sql` | Data migration: populate `museum_title` for all 11 existing legendary items. Run after `0034_legendary_museum_title.sql`. |
 | `0035_populate_museum_titles.sql` | Rename of `0034_populate_museum_titles.sql` to resolve version conflict with the two `0034` files. |
 | `0036_psa_price_snapshots.sql` | Add `psa_price_snapshots` table (PSA estimate + recent sales per cert, sourced from parse.bot) and `latest_psa_price` view. |
-| `0039_auction_watchlist.sql` | Add private `auction_watchlist_lots` table (authenticated/service_role RLS only, anon revoked, host-pinning CHECKs) and seed Zane's 24 tracked lots (REA 18, H&S 3, Grey Flannel 2, Heritage 1) with UTC close times and priority. `opening_bid` for no-bid lots; per-house `image_url` CHECK. No prices seeded. Idempotent. |
+| `0039_auction_watchlist.sql` | Add private `auction_watchlist_lots` table (authenticated/service_role RLS only, anon revoked, host-pinning CHECKs) and seed Zane's 26 tracked lots (REA 18, H&S 3, Grey Flannel 2, Love of the Game 2, Heritage 1) with UTC close times and priority. `opening_bid` for no-bid lots; per-house `image_url` CHECK. No prices seeded. Idempotent. |
 
 ---
 
@@ -641,6 +641,6 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | Function | Purpose | Trigger |
 |---|---|---|
 | `psa-sync` | Fetches PSA population data for all PSA/PSA-DNA certs, inserts `population_snapshots` rows | `pg_cron` weekly (Mondays 9am UTC) + manual from admin panel |
-| `auction-watchlist-refresh` | Refreshes current bid / opening bid / close time / status / image for registered lots in `auction_watchlist_lots`. REA + H&S fetched directly (10-min per-lot cap, 12 s timeout, concurrency 3); Grey Flannel + Heritage via Firecrawl when the `FIRECRAWL_API_KEY` secret is set (60-min per-lot cap, concurrency 2, ≤ 6 scrapes per call), otherwise manual. Runs as the calling user (Clerk JWT → RLS); no service role. Deploy with `--no-verify-jwt`. | Manual / page load from `/admin/auction-watchlist` |
+| `auction-watchlist-refresh` | Refreshes current bid / opening bid / close time / status / image for registered lots in `auction_watchlist_lots`. REA + H&S fetched directly (10-min per-lot cap, 12 s timeout, concurrency 3); Grey Flannel + Love of the Game + Heritage via Firecrawl when the `FIRECRAWL_API_KEY` secret is set (60-min per-lot cap, concurrency 2, ≤ 6 scrapes per call), otherwise manual. Runs as the calling user (Clerk JWT → RLS); no service role. Deploy with `--no-verify-jwt`. | Manual / page load from `/admin/auction-watchlist` |
 | *(none — browser call)* | Price sync calls parse.bot (`get_cert_details` + `get_cert_sales`) directly from the admin browser using `VITE_PARSE_BOT_API_KEY`, then inserts into `psa_price_snapshots`. Triggered per-item from the `sell` icon in `ItemViewerModal`. | Manual only |
 

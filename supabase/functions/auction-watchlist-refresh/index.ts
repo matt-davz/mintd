@@ -13,21 +13,22 @@
 //   Deploy with --no-verify-jwt: the Edge gateway's legacy JWT check doesn't
 //   understand Clerk tokens; verification happens at PostgREST instead.
 // - SSRF: we never fetch a URL supplied by the client, and never use
-//   source_url. REA / H&S / Grey Flannel URLs are rebuilt from (house, lot_id)
-//   with a fixed https host; lot_id must be all digits. Heritage URLs carry a
-//   slug, so the stored canonical_url is validated with the URL parser (exact
-//   host, https, default port, no credentials/query, path ends in the stored
-//   lot_id) — see parsers.ts. Direct fetches don't follow redirects, are
-//   size-capped and time out. Grey Flannel / Heritage are fetched through
-//   Firecrawl (they bot-block direct server requests); the scraped page must
-//   identify the expected lot before anything is written.
+//   source_url. REA / H&S / Grey Flannel / Love of the Game URLs are rebuilt
+//   from (house, lot_id) with a fixed https host; lot_id must be all digits.
+//   Heritage URLs carry a slug, so the stored canonical_url is validated with
+//   the URL parser (exact host, https, default port, no credentials/query,
+//   path ends in the stored lot_id) — see parsers.ts. Direct fetches don't
+//   follow redirects, are size-capped and time out. Grey Flannel / Love of the
+//   Game / Heritage are fetched through Firecrawl (they bot-block direct
+//   server requests); the scraped page must identify the expected lot before
+//   anything is written.
 // - Credits / rate limit: each lot is fetched at most once per its house's
 //   interval (10 min direct, 60 min Firecrawl), tracked in
 //   refresh_attempted_at and claimed BEFORE the fetch so failures also wait.
 //   Concurrency is bounded (3 direct, 2 Firecrawl) and at most
 //   MAX_FIRECRAWL_PER_CALL Firecrawl scrapes run per call.
 // - Secrets: FIRECRAWL_API_KEY is read from Edge Function secrets only and is
-//   never returned or logged. Without it, Grey Flannel / Heritage stay manual.
+//   never returned or logged. Without it, the Firecrawl houses stay manual.
 // - Honesty: prices are only written when parsed from a fresh, verified page.
 //   current_bid comes only from a "Current Bid" label; a no-bid lot gets
 //   current_bid = NULL with opening_bid stored separately. On failure the
@@ -36,7 +37,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   type FirecrawlDoc, type ParseFailure, type ParsedLot,
-  buildGreyFlannelUrl, extractFirecrawlDoc, parseGreyFlannel, parseHeritage, targetStatusCode, validateHeritageUrl,
+  buildGreyFlannelUrl, buildLoveOfTheGameUrl, extractFirecrawlDoc, parseGreyFlannel, parseHeritage, parseLoveOfTheGame,
+  targetStatusCode, validateHeritageUrl,
 } from './parsers.ts'
 
 const DIRECT_INTERVAL_MS = 10 * 60 * 1000
@@ -122,6 +124,14 @@ const ADAPTERS: Record<string, DirectAdapter | FirecrawlAdapter> = {
     intervalMs: FIRECRAWL_INTERVAL_MS,
     buildUrl: (lot) => buildGreyFlannelUrl(lot.lot_id),
     parse: (doc, lot) => parseGreyFlannel(doc, { lotId: lot.lot_id, lotNumber: lot.lot_number }),
+  },
+  // Same CreateAuction platform as Grey Flannel; direct server fetches get HTTP 403 → Firecrawl.
+  // URL rebuilt from the numeric item id on the fixed host; page must show the stored lot number.
+  love_of_the_game: {
+    kind: 'firecrawl',
+    intervalMs: FIRECRAWL_INTERVAL_MS,
+    buildUrl: (lot) => buildLoveOfTheGameUrl(lot.lot_id),
+    parse: (doc, lot) => parseLoveOfTheGame(doc, { lotId: lot.lot_id, lotNumber: lot.lot_number }),
   },
   // DataDome blocks direct server fetches → Firecrawl. Stored canonical_url validated (never source_url).
   heritage: {
