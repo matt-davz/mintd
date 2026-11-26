@@ -53,7 +53,9 @@ src/
 │       ├── AdminLayout.jsx     # Sidebar nav + top bar + create modal
 │       ├── AdminFilterBar.jsx  # Admin advanced search: keyword + multi-select type/team/certService/grade pills in a collapsible accordion (each pill section expands/collapses independently)
 │       ├── ItemViewerModal.jsx # Modal: view/edit existing items + create new items
-│       ├── WsGameSlotsByYear.jsx # Dashboard WS Ticket Quest "By Game" tier — wrapping year groups with Have/Missing game-number panel (hover/focus/tap, portalled)
+│       ├── WsGameSlotsByYear.jsx # Dashboard WS Ticket Quest "By Game" tier — wrapping year groups; hover/focus/tap opens WsYearDetailPanel (hover bridge, click pin, Esc/outside/close button)
+│       ├── WsYearDetailPanel.jsx # Portalled, viewport-clamped, scrollable year panel — owned games with ticket/sheet images + Missing games
+│       ├── WsQuestItemCard.jsx   # Item card in the year panel (primary image via withAutoOrient, no-image/lookup-failure fallbacks, opens ItemViewerModal)
 │       ├── PrivateNotesSection.jsx # Admin-only Private notes (item_private_notes) — own load/save via Clerk-authenticated client
 │       ├── DuplicatesSection.jsx # Collapsible section — link/unlink duplicate items, edit notes, auto-syncs is_duplicate
 │       ├── ImageUploader.jsx   # Cloudinary image upload widget (product shots)
@@ -99,6 +101,7 @@ src/
 │   ├── useSupabaseClient.js    # Supabase client that sends the Clerk session JWT (RLS role = authenticated)
 │   ├── useItemPrivateNotes.js  # Load/save item_private_notes (Clerk-authenticated client, updated_at conflict guard)
 │   ├── useAuctionWatchlist.js  # Watchlist CRUD + manual price + Edge Function refresh (Clerk-authenticated client)
+│   ├── useWsQuestItems.js      # WS Ticket Quest item titles/images: reuses gallery items, fetches only non-gallery (hidden) linked IDs via the Clerk-auth client
 │   ├── useWsTicketTracker.js   # Reads WS Ticket Tracker "Don't Have" games via the ws-ticket-tracker Edge Function
 │   ├── useTags.js
 │   └── useTeams.js             # Fetches all teams from the teams table

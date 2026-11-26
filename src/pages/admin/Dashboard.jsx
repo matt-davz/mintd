@@ -641,7 +641,12 @@ export default function Dashboard() {
           {/* Tier 1 (bottom) — individual game slots grouped by year */}
           <WsTier>
             <WsTierLabel>By Game</WsTierLabel>
-            <WsGameSlotsByYear series={wsYearStats} />
+            <WsGameSlotsByYear
+              series={wsYearStats}
+              galleryItems={items}
+              galleryLoading={itemsLoading}
+              onItemClick={setSelectedItemId}
+            />
           </WsTier>
         </WsProgressCard>
       )}

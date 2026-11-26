@@ -1,17 +1,27 @@
-import { useState, useRef, useEffect, useLayoutEffect, useCallback, useId } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useRef, useEffect, useCallback, useId } from 'react'
 import styled from 'styled-components'
+import { useWsQuestItems } from '../../hooks/useWsQuestItems'
+import { WsYearDetailPanel } from './WsYearDetailPanel'
 
 // "By Game" tier of the admin Yankees WS Ticket Quest: one group of game slots
-// per World Series year, wrapping across rows. Each year opens a Have / Missing
-// detail panel on hover, keyboard focus, or tap. The panel is portalled to
-// <body> with fixed positioning so card edges can't clip it.
+// per World Series year, wrapping across rows. Each year opens a large,
+// scrollable detail panel (owned games with ticket / ticket-sheet images,
+// plus the missing games) on hover, keyboard focus, or tap/click.
 //
-// `series` is the output of buildYankeesWsSeries — only game numbers are known
-// here (no item names), so the panel lists game numbers only.
+// - Hover opens; a short close delay lets the pointer travel from the year to
+//   the panel, and the panel stays open while hovered / scrolled.
+// - Click / tap pins the panel; a second click on the same year unpins+closes.
+// - Escape, the close button, or a pointerdown outside closes it.
+// - Tab from an open year moves into the panel; tabbing past its end continues
+//   to the next element after the year.
+//
+// `series` is the output of buildYankeesWsSeries; counts and Have/Missing come
+// only from it. `galleryItems` (Dashboard's item_gallery rows) supply titles +
+// images; linked items missing from the gallery are looked up by
+// useWsQuestItems with the authenticated admin client.
 
-const VIEWPORT_MARGIN = 8
-const PANEL_GAP = 8
+const HOVER_CLOSE_DELAY = 200
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 const Wrap = styled.div`
   display: flex;
@@ -62,173 +72,81 @@ const Slot = styled.span`
     $complete ? '0 0 4px rgba(232, 195, 87, 0.45)' : $owned ? '0 0 4px rgba(173, 198, 255, 0.5)' : 'none'};
 `
 
-const Panel = styled.div`
-  position: fixed;
-  z-index: 1000;
-  width: max-content;
-  max-width: min(18rem, calc(100vw - ${VIEWPORT_MARGIN * 2}px));
-  max-height: calc(100vh - ${VIEWPORT_MARGIN * 2}px);
-  overflow-y: auto;
-  padding: var(--space-4);
-  background-color: var(--color-surface-highest);
-  border: 1px solid rgba(140, 144, 159, 0.2);
-  border-radius: var(--radius-md);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
-  pointer-events: none;
-`
-
-const PanelTitle = styled.p`
-  font-family: var(--font-headline);
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: ${({ $complete }) => $complete ? 'var(--color-secondary)' : 'var(--color-on-surface)'};
-`
-
-const PanelSub = styled.p`
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: rgba(229, 226, 225, 0.55);
-  margin-top: 2px;
-  margin-bottom: var(--space-3);
-`
-
-const Section = styled.div`
-  & + & { margin-top: var(--space-3); }
-`
-
-const SectionHeading = styled.p`
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: ${({ $tone }) => $tone === 'have' ? 'var(--color-primary)' : 'rgba(229, 226, 225, 0.5)'};
-  margin-bottom: var(--space-2);
-`
-
-const Chips = styled.ul`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-`
-
-const Chip = styled.li`
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  background-color: ${({ $tone }) => $tone === 'have' ? 'rgba(173, 198, 255, 0.14)' : 'rgba(140, 144, 159, 0.12)'};
-  color: ${({ $tone }) => $tone === 'have' ? 'var(--color-primary)' : 'rgba(229, 226, 225, 0.7)'};
-`
-
-const Empty = styled.p`
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  font-style: italic;
-  color: rgba(229, 226, 225, 0.45);
-`
-
-function GameChips({ numbers, tone, emptyText }) {
-  if (numbers.length === 0) return <Empty>{emptyText}</Empty>
-  return (
-    <Chips>
-      {numbers.map(n => <Chip key={n} $tone={tone}>Game {n}</Chip>)}
-    </Chips>
-  )
-}
-
-function YearDetailPanel({ id, series, anchorEl }) {
-  const panelRef = useRef(null)
-  const [pos, setPos] = useState(null)
-
-  const place = useCallback(() => {
-    const panel = panelRef.current
-    if (!panel || !anchorEl) return
-    const a = anchorEl.getBoundingClientRect()
-    const p = panel.getBoundingClientRect()
-    const vw = window.innerWidth
-    const vh = window.innerHeight
-
-    let left = a.left + a.width / 2 - p.width / 2
-    left = Math.max(VIEWPORT_MARGIN, Math.min(left, vw - p.width - VIEWPORT_MARGIN))
-
-    // Prefer below the year; flip above when it would run off the viewport.
-    let top = a.bottom + PANEL_GAP
-    if (top + p.height > vh - VIEWPORT_MARGIN && a.top - PANEL_GAP - p.height >= VIEWPORT_MARGIN) {
-      top = a.top - PANEL_GAP - p.height
-    }
-    // Neither side fits (e.g. a short screen): clamp inside the viewport so the
-    // panel stays visible, even if it overlaps the anchor. Panel max-height
-    // guarantees p.height fits within the margins.
-    top = Math.max(VIEWPORT_MARGIN, Math.min(top, vh - p.height - VIEWPORT_MARGIN))
-    setPos({ top, left })
-  }, [anchorEl])
-
-  useLayoutEffect(() => { place() }, [place, series])
-
-  useEffect(() => {
-    window.addEventListener('scroll', place, true)
-    window.addEventListener('resize', place)
-    return () => {
-      window.removeEventListener('scroll', place, true)
-      window.removeEventListener('resize', place)
-    }
-  }, [place])
-
-  const { year, totalGames, games, ownedSet, ownedCount, isComplete } = series
-  const have = games.map(g => g.number).filter(n => ownedSet.has(n))
-  const missing = games.map(g => g.number).filter(n => !ownedSet.has(n))
-
-  return createPortal(
-    <Panel
-      ref={panelRef}
-      id={id}
-      role="tooltip"
-      style={pos ?? { top: 0, left: 0, visibility: 'hidden' }}
-    >
-      <PanelTitle $complete={isComplete}>{year} World Series</PanelTitle>
-      <PanelSub>
-        {ownedCount} of {totalGames} games{isComplete ? ' · Complete series' : ''}
-      </PanelSub>
-      <Section>
-        <SectionHeading $tone="have">Have ({have.length})</SectionHeading>
-        <GameChips numbers={have} tone="have" emptyText="No tickets for this series yet" />
-      </Section>
-      <Section>
-        <SectionHeading $tone="missing">Missing ({missing.length})</SectionHeading>
-        <GameChips numbers={missing} tone="missing" emptyText="None — every game collected" />
-      </Section>
-    </Panel>,
-    document.body,
-  )
-}
-
-export function WsGameSlotsByYear({ series }) {
+export function WsGameSlotsByYear({ series, galleryItems, galleryLoading, onItemClick }) {
   const baseId = useId()
   const wrapRef = useRef(null)
-  // { year, anchorEl, pinned } — pinned = opened by click/tap, survives mouseleave
+  const panelRef = useRef(null)
+  const closeTimer = useRef(null)
+  const pointerInPanel = useRef(false)
+  const suppressFocusOpen = useRef(false)
+  // { year, anchorEl, pinned } — pinned = opened by click/tap, survives mouseleave/blur
   const [open, setOpen] = useState(null)
 
-  const show = (year, anchorEl) =>
+  const { itemsById, pending, failed } = useWsQuestItems(series, galleryItems, galleryLoading)
+
+  const cancelClose = useCallback(() => {
+    clearTimeout(closeTimer.current)
+    closeTimer.current = null
+  }, [])
+
+  const close = useCallback(() => {
+    cancelClose()
+    pointerInPanel.current = false
+    setOpen(null)
+  }, [cancelClose])
+
+  const closeUnpinned = useCallback(() => {
+    setOpen(prev => (prev && !prev.pinned ? null : prev))
+  }, [])
+
+  const scheduleClose = useCallback(() => {
+    cancelClose()
+    closeTimer.current = setTimeout(closeUnpinned, HOVER_CLOSE_DELAY)
+  }, [cancelClose, closeUnpinned])
+
+  useEffect(() => cancelClose, [cancelClose])
+
+  // Hover never replaces a pinned panel for another year.
+  const hoverShow = (year, anchorEl) => {
+    cancelClose()
+    setOpen(prev => (prev?.year === year || prev?.pinned ? prev : { year, anchorEl, pinned: false }))
+  }
+  const focusShow = (year, anchorEl) => {
+    cancelClose()
     setOpen(prev => (prev?.year === year ? prev : { year, anchorEl, pinned: false }))
-  const hideUnpinned = year => setOpen(prev => (prev?.year === year && !prev.pinned ? null : prev))
+  }
 
-  const handleClick = (year, anchorEl) => setOpen(prev => {
-    // A tap fires mouseenter/focus first, so an unpinned panel for this year
-    // is already showing — pin it. A second click on a pinned year closes it.
-    if (prev?.year === year) return prev.pinned ? null : { ...prev, pinned: true }
-    return { year, anchorEl, pinned: true }
-  })
+  const handleClick = (year, anchorEl) => {
+    cancelClose()
+    setOpen(prev => {
+      // A tap fires mouseenter/focus first, so an unpinned panel for this year
+      // is already showing — pin it. A second click on a pinned year closes it.
+      if (prev?.year === year) return prev.pinned ? null : { ...prev, pinned: true }
+      return { year, anchorEl, pinned: true }
+    })
+  }
 
-  // Close on Escape or on a click/tap outside the year groups.
+  // Return focus to a year button without re-opening its panel via onFocus.
+  const refocus = useCallback(el => {
+    if (!el) return
+    suppressFocusOpen.current = true
+    el.focus()
+    suppressFocusOpen.current = false
+  }, [])
+  const focusAnchor = () => open?.anchorEl?.focus()
+
+  // Escape + outside pointerdown dismissal. The panel is portalled, so check it separately.
   useEffect(() => {
     if (!open) return
-    function onKey(e) { if (e.key === 'Escape') setOpen(null) }
+    function onKey(e) {
+      if (e.key !== 'Escape') return
+      const hadFocus = panelRef.current?.contains(document.activeElement) || document.activeElement === open.anchorEl
+      close()
+      if (hadFocus) refocus(open.anchorEl)
+    }
     function onPointerDown(e) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(null)
+      if (wrapRef.current?.contains(e.target) || panelRef.current?.contains(e.target)) return
+      close()
     }
     document.addEventListener('keydown', onKey)
     document.addEventListener('pointerdown', onPointerDown)
@@ -236,7 +154,44 @@ export function WsGameSlotsByYear({ series }) {
       document.removeEventListener('keydown', onKey)
       document.removeEventListener('pointerdown', onPointerDown)
     }
-  }, [open])
+  }, [open, close, refocus])
+
+  const focusIntoPanel = () => {
+    const first = panelRef.current?.querySelector(FOCUSABLE)
+    first?.focus()
+  }
+
+  // Leaving the panel by keyboard: Tab past the end → element after the year;
+  // Shift+Tab before the start → the year button.
+  const handlePanelKeyDown = e => {
+    if (e.key !== 'Tab' || !panelRef.current) return
+    const focusables = [...panelRef.current.querySelectorAll(FOCUSABLE)]
+    if (focusables.length === 0) return
+    const first = focusables[0]
+    const last = focusables[focusables.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      focusAnchor()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      const all = [...document.querySelectorAll(FOCUSABLE)]
+        .filter(el => !panelRef.current.contains(el) && el.getClientRects().length > 0)
+      const next = all[all.indexOf(open?.anchorEl) + 1]
+      close()
+      ;(next ?? open?.anchorEl)?.focus()
+    }
+  }
+
+  const handlePanelBlur = e => {
+    const to = e.relatedTarget
+    if (to && (panelRef.current?.contains(to) || to === open?.anchorEl)) return
+    if (to) closeUnpinned()
+  }
+
+  const handleItemClick = itemId => {
+    close()
+    onItemClick?.(itemId)
+  }
 
   const openSeries = open ? series.find(s => s.year === open.year) : null
 
@@ -251,13 +206,24 @@ export function WsGameSlotsByYear({ series }) {
             key={year}
             type="button"
             $active={isOpen}
-            aria-label={`${year} World Series: ${ownedCount} of ${totalGames} games collected${isComplete ? ', complete series' : ''}. Show have and missing games.`}
+            aria-label={`${year} World Series: ${ownedCount} of ${totalGames} games collected${isComplete ? ', complete series' : ''}. Show owned tickets and missing games.`}
+            aria-haspopup="dialog"
             aria-expanded={isOpen}
-            aria-describedby={isOpen ? panelId : undefined}
-            onMouseEnter={e => show(year, e.currentTarget)}
-            onMouseLeave={() => hideUnpinned(year)}
-            onFocus={e => show(year, e.currentTarget)}
-            onBlur={() => setOpen(prev => (prev?.year === year ? null : prev))}
+            aria-controls={isOpen ? panelId : undefined}
+            onMouseEnter={e => hoverShow(year, e.currentTarget)}
+            onMouseLeave={scheduleClose}
+            onFocus={e => { if (!suppressFocusOpen.current) focusShow(year, e.currentTarget) }}
+            onBlur={e => {
+              const to = e.relatedTarget
+              if (panelRef.current?.contains(to) || pointerInPanel.current) return
+              if (open?.year === year && !open.pinned) closeUnpinned()
+            }}
+            onKeyDown={e => {
+              if (isOpen && e.key === 'Tab' && !e.shiftKey && panelRef.current) {
+                e.preventDefault()
+                focusIntoPanel()
+              }
+            }}
             onClick={e => handleClick(year, e.currentTarget)}
           >
             <SlotsRow aria-hidden="true">
@@ -271,10 +237,20 @@ export function WsGameSlotsByYear({ series }) {
       })}
 
       {openSeries && (
-        <YearDetailPanel
+        <WsYearDetailPanel
+          ref={panelRef}
           id={`${baseId}-ws-${openSeries.year}`}
           series={openSeries}
           anchorEl={open.anchorEl}
+          itemsById={itemsById}
+          itemsPending={pending}
+          itemsFailed={failed}
+          onClose={() => { const a = open.anchorEl; close(); refocus(a) }}
+          onItemClick={handleItemClick}
+          onMouseEnter={() => { pointerInPanel.current = true; cancelClose() }}
+          onMouseLeave={() => { pointerInPanel.current = false; scheduleClose() }}
+          onKeyDown={handlePanelKeyDown}
+          onBlur={handlePanelBlur}
         />
       )}
     </Wrap>
