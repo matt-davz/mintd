@@ -117,6 +117,7 @@ To add a new service, add an entry to `CERT_LINK_BUILDERS` in `src/components/ad
 - Public: can INSERT `inquiries` but cannot read them
 - Admin: full access via anon key (Clerk guards `/admin/*` routes — security boundary is at the route layer)
 - Never expose service role key in the browser; use it in Edge Functions only
+- Exception to the anon-admin model: `auction_watchlist_lots` (private bidding intent) is readable/writable **only** by `authenticated` (Clerk JWT via `useSupabaseClient`) and `service_role`; anon has no policy and no table privileges
 
 ### Cloudinary — folder structure
 
@@ -202,4 +203,5 @@ mintd/loas/af557e5a/steiner_loa.pdf
 
 ### Edge Functions (`supabase/functions/`)
 
+- `auction-watchlist-refresh` — server-side bid refresh for the private admin auction watchlist (`auction_watchlist_lots`). Called from `/admin/auction-watchlist` with the user's Clerk JWT; all DB access goes through RLS as `authenticated` (no service role). Fetches only REA / Huggins & Scott lot pages rebuilt from `(house, lot_id)`. Deploy with `supabase functions deploy auction-watchlist-refresh --no-verify-jwt`. See `docs/AUCTION_WATCHLIST.md`.
 - `psa-sync` — fetches PSA population data for PSA/PSA-DNA certs, inserts `population_snapshots` rows. Called by `pg_cron` weekly (Mondays 9am UTC), manually from admin panel (full batch), or per-item from the `ItemViewerModal` sync button. Accepts optional `{ cert_ids: string[] }` body to sync specific certs instead of the full batch.

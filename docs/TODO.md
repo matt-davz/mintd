@@ -96,6 +96,13 @@
 - [ ] PSA/DNA autograph cert population — map `DNACert` pop fields correctly
 - [ ] Configure `pg_cron` to call `psa-sync` weekly (Mondays 9am UTC)
 
+### Auction Watchlist (`/admin/auction-watchlist`)
+- [x] `auction_watchlist_lots` table + RLS + seed (migration `0039`)
+- [x] `<AuctionWatchlist>` page — grouped by auction, countdowns, stale/manual flags, add/remove, house filter + search
+- [x] `supabase/functions/auction-watchlist-refresh` — REA + Huggins & Scott live refresh
+- [ ] Apply migration `0039` and deploy `auction-watchlist-refresh --no-verify-jwt` (see `docs/AUCTION_WATCHLIST.md`)
+- [ ] Confirm Clerk → Supabase third-party auth / `supabase` JWT template works for `useSupabaseClient`
+
 ## 7. Deployment
 - [ ] Connect repo to Netlify
 - [ ] Set env vars in Netlify dashboard (VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY, VITE_CLERK_PUBLISHABLE_KEY, VITE_CLOUDINARY_CLOUD_NAME, VITE_CLOUDINARY_UPLOAD_PRESET — required after .env was removed from git)

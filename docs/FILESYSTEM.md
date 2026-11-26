@@ -10,7 +10,8 @@ src/
 │       ├── Dashboard.jsx
 │       ├── ItemList.jsx
 │       ├── PsaSync.jsx         # Manual PSA refresh trigger
-│       └── GalleryOrder.jsx    # Drag-and-drop gallery curation — pin + reorder items
+│       ├── GalleryOrder.jsx    # Drag-and-drop gallery curation — pin + reorder items
+│       └── AuctionWatchlist.jsx # Private auction watchlist (/admin/auction-watchlist) — lots grouped by auction, live/manual bids, countdowns, add/remove (see docs/AUCTION_WATCHLIST.md)
 ├── components/
 │   ├── ImageLightbox.jsx        # Shared fullscreen lightbox with rotate controls
 │   ├── BoxScoreDisplay.jsx      # Shared baseball linescore table (public + admin)
@@ -62,6 +63,7 @@ src/
 │       ├── GameLookupToolbar.jsx # MLB game lookup — inline search toolbar
 │       ├── GameLookupResults.jsx # MLB lookup results list with clickable game cards
 │       ├── TeamSelect.jsx       # Searchable MLB team dropdown (current + historical)
+│       ├── watchlist/          # Auction watchlist UI: AuctionGroup, WatchlistLotCard, LotPrice, LotClosing, ManualPriceForm, AddLotForm, WatchlistToolbar, styles.js
 │       └── itemTypes/          # Type-specific field components
 │           ├── index.js        # Registry mapping type → component
 │           ├── TicketFields.jsx
@@ -81,6 +83,7 @@ src/
 │   ├── supabase.js             # Supabase client (anon key)
 │   ├── cloudinary.js           # Cloudinary helpers
 │   ├── itemTypeConfig.js       # Item type metadata, empty forms, serialization
+│   ├── auctionWatchlist.js     # Watchlist house registry, strict lot-URL allow-list validation, time-zone/countdown/price formatting
 │   ├── worldSeries.js          # Yankees WS completion: YANKEES_WS_GAMES, fetch ticket/sheet links, buildYankeesWsSeries (shared by Museum + admin Dashboard)
 │   └── mlbApi.js               # MLB Stats API client — team data, fetch, game parsing
 ├── hooks/
@@ -90,6 +93,8 @@ src/
 │   ├── useSeriesTickets.js     # Fetches other tickets from the same World Series year (item_type=ticket, same season_year, non-null series_game_number)
 │   ├── useWorldSeriesTicketLinks.js # Loads WS ticket + non-phantom sheet game links (feed into buildYankeesWsSeries)
 │   ├── useItemDuplicates.js    # Fetches item_duplicates links (both directions) + add/remove/notes mutations
+│   ├── useSupabaseClient.js    # Supabase client that sends the Clerk session JWT (RLS role = authenticated)
+│   ├── useAuctionWatchlist.js  # Watchlist CRUD + manual price + Edge Function refresh (Clerk-authenticated client)
 │   ├── useTags.js
 │   └── useTeams.js             # Fetches all teams from the teams table
 ├── utils/

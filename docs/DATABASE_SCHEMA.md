@@ -187,6 +187,40 @@ PSA price estimate + recent sales per cert. Append-only — never overwrite. Sou
 
 ---
 
+### `auction_watchlist_lots`
+
+**Private** admin auction watchlist (Zane's bidding intent). Authenticated + service_role only. No anon policy, privileges revoked from anon, not in any public view. See `docs/AUCTION_WATCHLIST.md`.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | `uuid` | PK, default `gen_random_uuid()` | |
+| `canonical_url` | `text` | NOT NULL, UNIQUE | Normalised lot URL. CHECK pins host/shape per `house` |
+| `source_url` | `text` | NOT NULL | Link opened in the UI (Heritage keeps its query string). Must be https on an allowed host |
+| `house` | `text` | NOT NULL, CHECK in `rea`, `huggins_scott`, `grey_flannel`, `heritage` | |
+| `auction_name` | `text` | NOT NULL | e.g. `Fall 2026` |
+| `lot_id` | `text` | NOT NULL, UNIQUE with `house` | Numeric id from the URL; Heritage = `<saleNo>-<lotNo>`. The refresh function builds fetch URLs from this, never from stored URLs |
+| `lot_number` | `text` | | Catalog lot number |
+| `title` | `text` | | Filled from the lot page on first refresh when NULL (REA/H&S) |
+| `owner` | `text` | | Who asked to track it (seed: `Zane`) |
+| `priority` | `text` | NOT NULL, default `normal`, CHECK in `normal`, `must_win` | |
+| `scheduled_close_at` | `timestamptz` | | Scheduled close (UTC). For REA/H&S this is when extended bidding starts, not a guaranteed final close |
+| `closing_note` | `text` | | Deadline caveats |
+| `current_bid` | `numeric(12,2)` | ≥ 0; requires `bid_checked_at` + `bid_source` | Last verified bid, never estimated |
+| `currency` | `text` | NOT NULL, default `USD`, ISO-4217 | |
+| `bid_checked_at` | `timestamptz` | | When `current_bid` was verified/entered |
+| `bid_source` | `text` | CHECK in `live`, `manual` | `manual` is shown with a Manual badge |
+| `image_url` | `text` | CHECK: house Cloudinary URL only | First lot image (REA/H&S) |
+| `lot_status` | `text` | NOT NULL, default `unknown`, CHECK in `unknown`, `live`, `extended`, `closed` | From last live refresh |
+| `refresh_status` | `text` | NOT NULL, default `never`, CHECK in `never`, `ok`, `manual`, `blocked`, `error`, `unsupported` | |
+| `refresh_attempted_at` | `timestamptz` | | Enforces the 10-min per-lot refresh cap |
+| `last_error` | `text` | | Last refresh failure reason |
+| `created_by` | `text` | default `auth.jwt() ->> 'sub'` | Clerk user id of whoever added it (NULL for seeded rows) |
+| `created_at` / `updated_at` | `timestamptz` | NOT NULL | `updated_at` via `set_updated_at()` trigger |
+
+**Indexes:** `idx_auction_watchlist_close (scheduled_close_at)`
+
+---
+
 ### `tags` + `item_tags`
 
 Flexible many-to-many tag system.
@@ -552,6 +586,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `item_tickets` … `item_gloves`, `item_miscellaneous`, `item_stadium_giveaways` | SELECT for visible items | SELECT all, INSERT, UPDATE, DELETE |
 | `item_ticket_sheets` | SELECT all | INSERT, UPDATE, DELETE |
 | `ticket_sheet_games` | SELECT all | INSERT, UPDATE, DELETE |
+| `auction_watchlist_lots` | **none** (privileges revoked) | `authenticated` (Clerk JWT) SELECT, INSERT, UPDATE, DELETE; `service_role` all |
 
 ---
 
@@ -596,6 +631,7 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0034_populate_museum_titles.sql` | Data migration: populate `museum_title` for all 11 existing legendary items. Run after `0034_legendary_museum_title.sql`. |
 | `0035_populate_museum_titles.sql` | Rename of `0034_populate_museum_titles.sql` to resolve version conflict with the two `0034` files. |
 | `0036_psa_price_snapshots.sql` | Add `psa_price_snapshots` table (PSA estimate + recent sales per cert, sourced from parse.bot) and `latest_psa_price` view. |
+| `0039_auction_watchlist.sql` | Add private `auction_watchlist_lots` table (authenticated/service_role RLS only, anon revoked, host-pinning CHECKs) and seed Zane's 24 tracked lots (REA 18, H&S 3, Grey Flannel 2, Heritage 1) with UTC close times and priority. No prices seeded. Idempotent. |
 
 ---
 
@@ -604,5 +640,6 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | Function | Purpose | Trigger |
 |---|---|---|
 | `psa-sync` | Fetches PSA population data for all PSA/PSA-DNA certs, inserts `population_snapshots` rows | `pg_cron` weekly (Mondays 9am UTC) + manual from admin panel |
+| `auction-watchlist-refresh` | Refreshes current bid / close time / status / image for registered REA + H&S lots in `auction_watchlist_lots`. Runs as the calling user (Clerk JWT → RLS); no service role. Fixed hosts, 10-min per-lot cap, 12 s timeout, concurrency 3. Deploy with `--no-verify-jwt`. | Manual / page load from `/admin/auction-watchlist` |
 | *(none — browser call)* | Price sync calls parse.bot (`get_cert_details` + `get_cert_sales`) directly from the admin browser using `VITE_PARSE_BOT_API_KEY`, then inserts into `psa_price_snapshots`. Triggered per-item from the `sell` icon in `ItemViewerModal`. | Manual only |
 

@@ -339,6 +339,10 @@ export function AdminLayout() {
             <span className="material-symbols-outlined">sync</span>
             <NavLabel $collapsed={collapsed}>PSA Sync</NavLabel>
           </NavItem>
+          <NavItem to="/admin/auction-watchlist" $collapsed={collapsed} title="Auction Watchlist" onClick={closeMobile}>
+            <span className="material-symbols-outlined">gavel</span>
+            <NavLabel $collapsed={collapsed}>Auction Watchlist</NavLabel>
+          </NavItem>
         </Nav>
 
         <SidebarBottom>
