@@ -2,7 +2,7 @@
 -- 0039_auction_watchlist.sql
 -- Private admin auction watchlist: lots Zane is tracking across
 -- upcoming auctions (REA, Huggins & Scott, Grey Flannel,
--- Love of the Game, Heritage).
+-- Love of the Game, Leland's, Heritage).
 --
 -- PRIVATE BIDDING INTENT. This table is never readable by anon:
 --   * RLS: only `authenticated` (Clerk JWT via third-party auth) and
@@ -19,8 +19,8 @@
 -- NULL and records the opening bid separately in opening_bid.
 --
 -- SSRF defence: the refresh function never fetches source_url. For
--- REA / H&S / Grey Flannel / Love of the Game it rebuilds the fetch URL from
--- (house, lot_id) with a fixed host. For Heritage it re-validates the
+-- REA / H&S / Grey Flannel / Love of the Game / Leland's it rebuilds the
+-- fetch URL from (house, lot_id) with a fixed host. For Heritage it re-validates the
 -- stored canonical_url with a URL parser (exact host, path ending in
 -- lot_id). The CHECK constraints below additionally pin canonical_url
 -- (and image_url) to the allowed host/shape for each house so rows
@@ -62,7 +62,7 @@ create table if not exists public.auction_watchlist_lots (
   constraint auction_watchlist_lots_house_lot_key     unique (house, lot_id),
 
   constraint auction_watchlist_house_check
-    check (house in ('rea', 'huggins_scott', 'grey_flannel', 'love_of_the_game', 'heritage')),
+    check (house in ('rea', 'huggins_scott', 'grey_flannel', 'love_of_the_game', 'lelands', 'heritage')),
   constraint auction_watchlist_priority_check
     check (priority in ('normal', 'must_win')),
   constraint auction_watchlist_bid_source_check
@@ -88,6 +88,8 @@ create table if not exists public.auction_watchlist_lots (
         and image_url ~ ('^https://bid\.greyflannelauctions\.com/images_items/item_' || lot_id || '_[0-9]{1,3}_[0-9]{1,12}\.(jpg|jpeg|png)$'))
     or (house = 'love_of_the_game' and lot_id ~ '^[0-9]{1,10}$'
         and image_url ~ ('^https://bid\.loveofthegameauctions\.com/images_items/item_' || lot_id || '_[0-9]{1,3}_[0-9]{1,12}\.(jpg|jpeg|png)$'))
+    or (house = 'lelands'       and lot_id ~ '^[0-9]{1,10}$'
+        and image_url ~ ('^https://auction\.lelands\.com/images_items/item_' || lot_id || '_[0-9]{1,3}_[0-9]{1,12}\.(jpg|jpeg|png)$'))
     or (house = 'heritage'      and image_url ~ '^https://dyn1\.heritagestatic\.com/ha\?p=[0-9-]{1,40}&it=product$')
   ),
   -- lot_id shape + canonical URL host pinned per house
@@ -100,26 +102,28 @@ create table if not exists public.auction_watchlist_lots (
        and canonical_url = 'https://bid.greyflannelauctions.com/bids/bidplace?itemid=' || lot_id)
     or (house = 'love_of_the_game' and lot_id ~ '^[0-9]{1,10}$'
        and canonical_url = 'https://bid.loveofthegameauctions.com/bids/bidplace?itemid=' || lot_id)
+    or (house = 'lelands'       and lot_id ~ '^[0-9]{1,10}$'
+       and canonical_url = 'https://auction.lelands.com/bids/bidplace?itemid=' || lot_id)
     or (house = 'heritage'      and lot_id ~ '^[0-9]{1,8}-[0-9]{1,10}$'
        and canonical_url ~ '^https://(sports|www)\.ha\.com/itm/[A-Za-z0-9/_-]+/a/[0-9]{1,8}-[0-9]{1,10}\.s$'
        and canonical_url like '%/a/' || lot_id || '.s')
   ),
   constraint auction_watchlist_source_url_check
-    check (source_url ~ '^https://(bid\.collectrea\.com|bid\.hugginsandscott\.com|bid\.greyflannelauctions\.com|bid\.loveofthegameauctions\.com|sports\.ha\.com|www\.ha\.com)/')
+    check (source_url ~ '^https://(bid\.collectrea\.com|bid\.hugginsandscott\.com|bid\.greyflannelauctions\.com|bid\.loveofthegameauctions\.com|auction\.lelands\.com|sports\.ha\.com|www\.ha\.com)/')
 );
 
 comment on table public.auction_watchlist_lots is
   'PRIVATE admin auction watchlist (bidding intent). Authenticated + service_role only; never exposed publicly.';
 comment on column public.auction_watchlist_lots.lot_id is
-  'Auction-house lot identifier used to rebuild the fetch URL. REA/H&S/Grey Flannel/Love of the Game: numeric id from the URL. Heritage: "<saleNo>-<lotNo>" e.g. 50089-81460.';
+  'Auction-house lot identifier used to rebuild the fetch URL. REA/H&S/Grey Flannel/Love of the Game/Leland''s: numeric id from the URL. Heritage: "<saleNo>-<lotNo>" e.g. 50089-81460.';
 comment on column public.auction_watchlist_lots.scheduled_close_at is
   'Scheduled close in UTC. For REA/H&S this is when extended bidding begins, not a guaranteed final close.';
 comment on column public.auction_watchlist_lots.current_bid is
   'Last verified current bid. Only written after a fresh fetch (bid_source=live) or explicit manual entry (bid_source=manual). Never estimated.';
 comment on column public.auction_watchlist_lots.opening_bid is
-  'Opening / starting bid as shown on the lot page (Grey Flannel, Love of the Game, Heritage). Never used as current_bid. With bid_source=live and current_bid NULL it means the last check found no bids.';
+  'Opening / starting bid as shown on the lot page (Grey Flannel, Love of the Game, Leland''s, Heritage). Never used as current_bid. With bid_source=live and current_bid NULL it means the last check found no bids.';
 comment on column public.auction_watchlist_lots.refresh_attempted_at is
-  'Last time the refresh function tried this lot. Caps refresh frequency: 10 min for REA/H&S, 60 min for Firecrawl-scraped houses (Grey Flannel, Love of the Game, Heritage).';
+  'Last time the refresh function tried this lot. Caps refresh frequency: 10 min for REA/H&S, 60 min for Firecrawl-scraped houses (Grey Flannel, Love of the Game, Leland''s, Heritage).';
 
 create index if not exists idx_auction_watchlist_close
   on public.auction_watchlist_lots (scheduled_close_at);
@@ -154,7 +158,7 @@ create policy "authenticated_delete_auction_watchlist" on public.auction_watchli
 create policy "service_manage_auction_watchlist" on public.auction_watchlist_lots
   for all to service_role using (true) with check (true);
 
--- ── Seed: Zane's 26 tracked lots (from mintdassist/tracked-auction-lots.json) ─
+-- ── Seed: Zane's 27 tracked lots (from mintdassist/tracked-auction-lots.json) ─
 -- Deadlines converted from the listed local time to UTC:
 --   Huggins & Scott  2026-12-03 21:00 America/New_York (EST) = 2026-12-04 02:00 UTC
 --   REA              2026-12-06 21:00 America/New_York (EST) = 2026-12-07 02:00 UTC
@@ -162,6 +166,7 @@ create policy "service_manage_auction_watchlist" on public.auction_watchlist_lot
 --   Love of the Game 2026-12-12 21:00 America/New_York (EST) = 2026-12-13 02:00 UTC
 --                    (lot pages print "9:00 PM EDT"; December is EST, so the
 --                    wall time is read as America/New_York local time)
+--   Leland's         2026-12-05 22:00 America/New_York (EST) = 2026-12-06 03:00 UTC
 --   Heritage         2026-12-19 22:00 America/Chicago  (CST) = 2026-12-20 04:00 UTC
 -- No prices, images, or statuses are seeded — those arrive only via refresh.
 
@@ -253,6 +258,11 @@ from (values
   ('love_of_the_game', 'Fall 2026 Premier Auction', '49605', '41', '1923 Fleer #47 Babe Ruth, SGC Authentic', 'normal',
    'https://bid.loveofthegameauctions.com/bids/bidplace?itemid=49605', 'https://bid.loveofthegameauctions.com/bids/bidplace?itemid=49605', '2026-12-13 02:00:00+00',
    'Both lot pages list Dec 12, 2026 at 9:00 PM Eastern. Auction rules require a bid on each lot before 9 PM Eastern to enter extended bidding, which may continue afterward under a 15-minute auction-wide rule.'),
+
+  -- Leland's — 2026 Fall Classic
+  ('lelands', '2026 Fall Classic', '138859', '4', 'Lou Gehrig''s 1934 Tour of Japan album with All-American team signatures and original photographs (PSA)', 'normal',
+   'https://auction.lelands.com/bids/bidplace?itemid=138859', 'https://auction.lelands.com/bids/bidplace?itemid=138859', '2026-12-06 03:00:00+00',
+   'Lot page (checked 2026-11-26) lists auction end as Dec 5, 2026 at 10:00 PM EST. Check the live lot page for any extended bidding or changed closing time.'),
 
   -- Heritage — Winter Sports Catalog #50089
   ('heritage', 'Winter Sports Catalog #50089', '50089-81460', '81460', '1937 Yankees team-signed baseball, Gehrig sweet spot', 'normal',

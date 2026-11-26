@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Parser checks for the auction-watchlist Firecrawl adapters.
 //
-//   node scripts/check-watchlist-parsers.mjs [greyJson] [heritageNoBidJson] [heritageActiveJson] [lotg49085Json] [lotg49605Json]
+//   node scripts/check-watchlist-parsers.mjs [greyJson] [heritageNoBidJson] [heritageActiveJson] [lotg49085Json] [lotg49605Json] [lelands138859Json]
 //
 // Every check runs against the small inline fixtures below, so a clean checkout
 // always runs (and must pass) the full set of assertions. The fixtures are
@@ -11,18 +11,19 @@
 //
 // Optional: saved full Firecrawl responses (CLI JSON or REST v2 JSON, never
 // committed) are also run through the same lot checks when present. Defaults
-// are /tmp/mintd-*-firecrawl.json and /tmp/lotg-<itemid>.json; a default that doesn't exist is reported and
+// are /tmp/mintd-*-firecrawl.json, /tmp/lotg-<itemid>.json and /tmp/lelands-<itemid>.json; a default that doesn't exist is reported and
 // left out, but a path passed explicitly on the command line must exist.
 // Requires Node >= 22.18 (built-in TypeScript type stripping).
 
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import {
-  buildGreyFlannelUrl, buildLoveOfTheGameUrl, extractFirecrawlDoc, parseGreyFlannel, parseHeritage, parseLoveOfTheGame,
-  validateHeritageUrl,
+  buildGreyFlannelUrl, buildLelandsUrl, buildLoveOfTheGameUrl, extractFirecrawlDoc, parseGreyFlannel, parseHeritage,
+  parseLelands, parseLoveOfTheGame, validateHeritageUrl,
 } from '../supabase/functions/auction-watchlist-refresh/parsers.ts'
+import { parseLotUrl } from '../src/lib/auctionWatchlist.js'
 
-const MIN_FIXTURE_CHECKS = 15
+const MIN_FIXTURE_CHECKS = 24
 
 // ── Inline fixtures ──────────────────────────────────────────────────────────
 
@@ -121,6 +122,55 @@ const LOTG_49605_FIXTURE = lotgFixture({
   starting: '$1,000.00', imgId: 170325, prev: '49816', next: '47672',
 })
 
+// Leland's (same CreateAuction page). Mirrors the lot 4 / item 138859 page as
+// scraped 2026-11-26: 17 bids, CURRENT BID $32,744.00 over a $15,000 start.
+// Prev/Next links point at other item ids via the .aspx form.
+const LELANDS_HOST = 'https://auction.lelands.com'
+const LELANDS_URL = `${LELANDS_HOST}/bids/bidplace?itemid=138859`
+const LELANDS_IMG = (n, id) => `${LELANDS_HOST}/images_items/item_138859_${n}_${id}.jpg`
+const LELANDS_FIXTURE = {
+  markdown: [
+    `- [Current Auction](${LELANDS_HOST}/Lots/Gallery)`,
+    '',
+    '##### •  2026 Fall Classic',
+    '',
+    'Start:',
+    '11/15/2026 12:00 PM EST',
+    '',
+    '',
+    'End:',
+    '12/5/2026 10:00 PM EST',
+    '',
+    '##LOC\\[OK\\]##',
+    '',
+    `[Prev](${LELANDS_HOST}/bids/bidplace.aspx?itemid=138725 "Previous Lot") [Next](${LELANDS_HOST}/bids/bidplace.aspx?itemid=138477 "Next Lot")`,
+    '',
+    "## Lot \\#  4:  Lou Gehrig's 1934 Tour of Japan Album with All-American Team Signatures and Original Photographs (PSA)",
+    '',
+    'Category:',
+    'The Lost Gehrig Archive',
+    '',
+    'Starting Bid: **$15,000.00**',
+    '',
+    'Bids: **17**(Bid History)',
+    '',
+    'Time Left: **09 days 16:20:54**',
+    '',
+    'Add To Watchlist',
+    '',
+    '### CURRENT BID:  $32,744.00',
+    '',
+    `[Lot Description](${LELANDS_URL}#lot-desc)`,
+    '',
+    `[![](${LELANDS_IMG(1, 517672)})\\\\`,
+    '',
+    `Zoom](${LELANDS_IMG(1, 517672)} "")`,
+    '',
+    `![](${LELANDS_IMG(1, 517672)})![](${LELANDS_IMG(2, 517673)})`,
+  ].join('\n'),
+  metadata: { url: LELANDS_URL, sourceURL: LELANDS_URL, statusCode: 200, title: '\n\tLelands\n' },
+}
+
 const HERITAGE_NOBID_URL = 'https://sports.ha.com/itm/baseball-collectibles/balls/1937-new-york-yankees-team-signed-baseball-with-lou-gehrig-sweet-spot/a/50089-81460.s'
 const HERITAGE_SESSION = [
   '2026 December 18 - 20 Winter Sports Catalog Auction #50089 [(go to Auction Home page)](https://sports.ha.com/c/auction-home.zx?saleNo=50089)',
@@ -218,6 +268,7 @@ const samplePaths = [
   args[2] ?? '/tmp/mintd-heritage-active-firecrawl.json',
   args[3] ?? '/tmp/lotg-49085.json',
   args[4] ?? '/tmp/lotg-49605.json',
+  args[5] ?? '/tmp/lelands-138859.json',
 ]
 
 let fixtureChecks = 0
@@ -334,6 +385,69 @@ check('Love of the Game: labelled CURRENT BID used once bids exist', () => {
   assert.equal(r.noBids, false)
 })
 
+lotCheck("Leland's 138859: labelled CURRENT BID, opening bid, lot, image, end time", LELANDS_FIXTURE, 5, (doc) => {
+  const r = parseLelands(doc, { lotId: '138859', lotNumber: '4' })
+  assert.equal(r.ok, true, r.reason)
+  assert.equal(r.currentBid, 32744) // never the $15,000 starting bid
+  assert.equal(r.openingBid, 15000)
+  assert.equal(r.noBids, false)
+  assert.equal(r.lotNumber, '4')
+  assert.match(r.title, /^Lou Gehrig's 1934 Tour of Japan Album with All-American Team Signatures and Original Photographs \(PSA\)$/)
+  assert.equal(r.imageUrl, 'https://auction.lelands.com/images_items/item_138859_1_517672.jpg')
+  assert.equal(r.endTime, '2026-12-06T03:00:00.000Z') // 12/5/2026 10:00 PM EST
+  assert.equal(r.status, 'live')
+})
+
+lotCheck("Leland's 138859: rejects other lot / item id / house", LELANDS_FIXTURE, 5, (doc) => {
+  assert.equal(parseLelands(doc, { lotId: '138859', lotNumber: '5' }).ok, false)
+  assert.equal(parseLelands(doc, { lotId: '138725', lotNumber: null }).ok, false) // Prev link's item id
+  assert.equal(parseLelands(doc, { lotId: '138477', lotNumber: '4' }).ok, false) // Next link's item id
+  // A Leland's page never satisfies another CreateAuction house's adapter (host pinned per site).
+  assert.equal(parseGreyFlannel(doc, { lotId: '138859', lotNumber: '4' }).ok, false)
+  assert.equal(parseLoveOfTheGame(doc, { lotId: '138859', lotNumber: '4' }).ok, false)
+  const bare = { markdown: doc.markdown, metadata: {} }
+  assert.equal(parseLelands(bare, { lotId: '138859', lotNumber: '4' }).ok, true)
+  assert.equal(parseLelands(bare, { lotId: '138725', lotNumber: null }).ok, false)
+})
+
+check("Leland's: .aspx final URL accepted; other host / item id in metadata rejected", () => {
+  const withUrl = (url) => ({ markdown: LELANDS_FIXTURE.markdown, metadata: { url, statusCode: 200 } })
+  assert.equal(parseLelands(withUrl(`${LELANDS_HOST}/bids/bidplace.aspx?itemid=138859`), { lotId: '138859', lotNumber: '4' }).ok, true)
+  for (const url of [
+    `${LELANDS_HOST}/bids/bidplace.aspx?itemid=138725`,
+    'https://auction.lelands.com.evil.test/bids/bidplace?itemid=138859',
+    'https://lelands.com/bids/bidplace?itemid=138859',
+    'https://bid.greyflannelauctions.com/bids/bidplace?itemid=138859',
+    'not a url',
+  ]) assert.equal(parseLelands(withUrl(url), { lotId: '138859', lotNumber: '4' }).ok, false, url)
+})
+
+check("Leland's: inconsistent prices refused (below start, conflicting, $0, missing)", () => {
+  const variant = (from, to) => ({ markdown: LELANDS_FIXTURE.markdown.replace(from, to), metadata: LELANDS_FIXTURE.metadata })
+  const exp = { lotId: '138859', lotNumber: '4' }
+  assert.equal(parseLelands(variant('### CURRENT BID:  $32,744.00', '### CURRENT BID:  $14,000.00'), exp).ok, false)
+  assert.equal(parseLelands(variant('### CURRENT BID:  $32,744.00', '### CURRENT BID:  $32,744.00\n\nCURRENT BID: $33,000.00'), exp).ok, false)
+  assert.equal(parseLelands(variant('### CURRENT BID:  $32,744.00', '### CURRENT BID:  $0.00'), exp).ok, false)
+  assert.equal(parseLelands(variant('### CURRENT BID:  $32,744.00', ''), exp).ok, false)
+  // A second lot heading (layout change / wrong page) is refused.
+  assert.equal(parseLelands(variant('Category:', '## Lot \\#  5:  Other lot\n\nCategory:'), exp).ok, false)
+  // 0 bids → no current bid, opening bid kept separately.
+  const none = parseLelands(variant('Bids: **17**', 'Bids: **0**'), exp)
+  assert.equal(none.ok, true, none.reason)
+  assert.equal(none.currentBid, null)
+  assert.equal(none.noBids, true)
+  assert.equal(none.openingBid, 15000)
+})
+
+check("Leland's: only same-item images on auction.lelands.com are used", () => {
+  const md = LELANDS_FIXTURE.markdown
+    .replaceAll(`${LELANDS_HOST}/images_items/item_138859_`, 'https://cdn.evil.test/images_items/item_138859_')
+    + '\n![](https://auction.lelands.com/images_items/item_138725_1_1.jpg)'
+  const r = parseLelands({ markdown: md, metadata: LELANDS_FIXTURE.metadata }, { lotId: '138859', lotNumber: '4' })
+  assert.equal(r.ok, true, r.reason)
+  assert.equal(r.imageUrl, null)
+})
+
 lotCheck('Heritage no-bid: no current bid, opening bid captured separately', HERITAGE_NOBID_FIXTURE, 1, (doc) => {
   const r = parseHeritage(doc, { lotId: '50089-81460' })
   assert.equal(r.ok, true, r.reason)
@@ -379,6 +493,42 @@ check('Love of the Game URL rebuilt from numeric id only', () => {
   for (const bad of ['', '49085&x=1', '../1', '1'.repeat(11), '49085 ', 'https://evil.test/?itemid=1']) {
     assert.equal(buildLoveOfTheGameUrl(bad), null, bad)
   }
+})
+
+check("Leland's URL rebuilt from numeric id only (no-extension form)", () => {
+  assert.equal(buildLelandsUrl('138859'), 'https://auction.lelands.com/bids/bidplace?itemid=138859')
+  for (const bad of ['', '138859&x=1', '../1', '1'.repeat(11), '138859 ', 'https://evil.test/?itemid=1']) {
+    assert.equal(buildLelandsUrl(bad), null, bad)
+  }
+})
+
+check("Client parseLotUrl: Leland's .aspx and no-extension links canonicalise to one URL", () => {
+  const canonical = 'https://auction.lelands.com/bids/bidplace?itemid=138859'
+  for (const input of [
+    'https://auction.lelands.com/bids/bidplace.aspx?itemid=138859',
+    'https://auction.lelands.com/bids/bidplace?itemid=138859',
+    'http://auction.lelands.com/bids/bidplace.aspx?itemid=138859#lot-desc',
+    'https://AUCTION.lelands.com/bids/BidPlace.aspx?itemId=138859&utm=x',
+  ]) {
+    const r = parseLotUrl(input)
+    assert.equal(r.error, undefined, `${input}: ${r.error}`)
+    assert.deepEqual(r, { house: 'lelands', lotId: '138859', canonicalUrl: canonical, sourceUrl: canonical }, input)
+  }
+  for (const bad of [
+    'https://auction.lelands.com.evil.test/bids/bidplace?itemid=138859',
+    'https://lelands.com/bids/bidplace?itemid=138859',
+    'https://auction.lelands.com:8443/bids/bidplace?itemid=138859',
+    'https://user@auction.lelands.com/bids/bidplace?itemid=138859',
+    'https://auction.lelands.com/bids/bidplace.asp?itemid=138859',
+    'https://auction.lelands.com/bids/bidplace.aspx.evil?itemid=138859',
+    'https://auction.lelands.com/x/bids/bidplace.aspx?itemid=138859',
+    'https://auction.lelands.com/bids/bidplace.aspx?itemid=13885x',
+    'https://auction.lelands.com/bids/bidplace.aspx',
+    'ftp://auction.lelands.com/bids/bidplace?itemid=138859',
+  ]) assert.ok(parseLotUrl(bad).error, bad)
+  // The .aspx form is accepted for the other CreateAuction houses too, still canonicalised.
+  assert.equal(parseLotUrl('https://bid.greyflannelauctions.com/bids/bidplace.aspx?itemid=59791').canonicalUrl,
+    'https://bid.greyflannelauctions.com/bids/bidplace?itemid=59791')
 })
 
 check('Grey Flannel page never satisfies the Love of the Game adapter', () => {

@@ -1,5 +1,5 @@
 // Pure parsers for the Firecrawl-backed adapters (Grey Flannel, Love of the
-// Game, Heritage).
+// Game, Leland's, Heritage).
 //
 // No Deno/Node APIs here: the Edge Function imports this module, and
 // scripts/check-watchlist-parsers.mjs runs the same functions under Node
@@ -10,6 +10,7 @@
 // - current bid is read only from a line explicitly labelled "Current Bid".
 //   "Starting Bid" / "Bid Next Minimum" / "Minimum Next Bid" are never used
 //   as the current bid, and a $0.00 "current bid" is never a live price.
+//   On CreateAuction sites a current bid below the starting bid is rejected.
 //   A no-bid lot returns currentBid = null with the opening bid captured
 //   separately.
 
@@ -36,6 +37,7 @@ const HERITAGE_LOT_ID = /^([0-9]{1,8})-([0-9]{1,10})$/
 const HERITAGE_HOSTS = new Set(['sports.ha.com', 'www.ha.com'])
 const GREY_HOST = 'bid.greyflannelauctions.com'
 const LOTG_HOST = 'bid.loveofthegameauctions.com'
+const LELANDS_HOST = 'auction.lelands.com'
 const MONEY = String.raw`\$\s*([0-9][0-9,]{0,12}(?:\.[0-9]{1,2})?)`
 
 // ── URL builders / validators ────────────────────────────────────────────────
@@ -48,6 +50,11 @@ export function buildGreyFlannelUrl(lotId: string): string | null {
 /** Love of the Game fetch URL, rebuilt from the numeric item id only. */
 export function buildLoveOfTheGameUrl(lotId: string): string | null {
   return NUMERIC_ID.test(lotId) ? `https://${LOTG_HOST}/bids/bidplace?itemid=${lotId}` : null
+}
+
+/** Leland's fetch URL, rebuilt from the numeric item id only (no-extension bidplace form). */
+export function buildLelandsUrl(lotId: string): string | null {
+  return NUMERIC_ID.test(lotId) ? `https://${LELANDS_HOST}/bids/bidplace?itemid=${lotId}` : null
 }
 
 /**
@@ -167,16 +174,17 @@ function to24h(h: number, ampm: string): number {
   return (h % 12) + (pm ? 12 : 0)
 }
 
-// ── CreateAuction sites (Grey Flannel, Love of the Game) ────────────────────
+// ── CreateAuction sites (Grey Flannel, Love of the Game, Leland's) ──────────
 //
-// Grey Flannel and Love of the Game both run CreateAuction's bidplace page, so
-// one parser handles both; each site is pinned to its own exact host, and the
+// Grey Flannel, Love of the Game and Leland's all run CreateAuction's bidplace
+// page, so one parser handles them; each site is pinned to its own exact host, and the
 // item id / lot number / image host are checked against that site only.
 
 type CreateAuctionSite = { host: string; name: string }
 
 const GREY_FLANNEL_SITE: CreateAuctionSite = { host: GREY_HOST, name: 'Grey Flannel' }
 const LOTG_SITE: CreateAuctionSite = { host: LOTG_HOST, name: 'Love of the Game' }
+const LELANDS_SITE: CreateAuctionSite = { host: LELANDS_HOST, name: "Leland's" }
 
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -234,6 +242,11 @@ function parseCreateAuction(
     // $0.00 is a placeholder, never a live price; without a "Bids: 0" line we can't tell why.
     return { ok: false, reason: 'Lot page shows a $0 current bid without a bid count' }
   } else if (current !== null) {
+    // The first bid must meet the starting bid; a lower "current bid" means
+    // the page is inconsistent (or we misread it) — refuse rather than guess.
+    if (opening !== null && current < opening) {
+      return { ok: false, reason: 'Lot page shows a current bid below the starting bid' }
+    }
     currentBid = current
   } else {
     return { ok: false, reason: 'Could not find a labelled Current Bid on the lot page' }
@@ -274,6 +287,13 @@ export function parseLoveOfTheGame(
   expected: { lotId: string; lotNumber?: string | null },
 ): ParsedLot | ParseFailure {
   return parseCreateAuction(doc, expected, LOTG_SITE)
+}
+
+export function parseLelands(
+  doc: FirecrawlDoc,
+  expected: { lotId: string; lotNumber?: string | null },
+): ParsedLot | ParseFailure {
+  return parseCreateAuction(doc, expected, LELANDS_SITE)
 }
 
 // ── Heritage ─────────────────────────────────────────────────────────────────

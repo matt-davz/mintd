@@ -5,7 +5,7 @@
 // fixed-host adapters in supabase/functions/auction-watchlist-refresh.
 
 // Per-lot refresh caps, mirrored from the Edge Function. Direct fetches
-// (REA, H&S) are cheap; Grey Flannel / Love of the Game / Heritage go through Firecrawl, which
+// (REA, H&S) are cheap; Grey Flannel / Love of the Game / Leland's / Heritage go through Firecrawl, which
 // costs credits, so they are checked at most hourly.
 export const REFRESH_INTERVAL_MIN = 10
 export const SCRAPED_REFRESH_INTERVAL_MIN = 60
@@ -44,6 +44,14 @@ export const HOUSES = {
   love_of_the_game: {
     label: 'Love of the Game Auctions',
     short: 'Love of the Game',
+    liveRefresh: true,
+    scraped: true,
+    refreshIntervalMin: SCRAPED_REFRESH_INTERVAL_MIN,
+    closeCaveat: 'Extended bidding may apply',
+  },
+  lelands: {
+    label: "Leland's",
+    short: "Leland's",
     liveRefresh: true,
     scraped: true,
     refreshIntervalMin: SCRAPED_REFRESH_INTERVAL_MIN,
@@ -90,6 +98,7 @@ const MAX_URL_LENGTH = 1000
 const CREATE_AUCTION_HOSTS = {
   'bid.greyflannelauctions.com': 'grey_flannel',
   'bid.loveofthegameauctions.com': 'love_of_the_game',
+  'auction.lelands.com': 'lelands',
 }
 
 /**
@@ -123,11 +132,13 @@ export function parseLotUrl(input) {
     return { house, lotId: m[1], canonicalUrl, sourceUrl: canonicalUrl }
   }
 
-  // Grey Flannel and Love of the Game share CreateAuction's bidplace page.
+  // Grey Flannel, Love of the Game and Leland's share CreateAuction's bidplace
+  // page. Both /bids/bidplace and /bids/bidplace.aspx are accepted; the stored
+  // URL is always the no-extension form on the fixed host.
   const createAuction = CREATE_AUCTION_HOSTS[host]
   if (createAuction) {
     const itemId = url.searchParams.get('itemid') ?? url.searchParams.get('itemId')
-    if (!/^\/bids\/bidplace\/?$/i.test(path) || !itemId || !/^[0-9]{1,10}$/.test(itemId)) {
+    if (!/^\/bids\/bidplace(?:\.aspx|\/)?$/i.test(path) || !itemId || !/^[0-9]{1,10}$/.test(itemId)) {
       return { error: `Expected a ${HOUSES[createAuction].short} bidplace?itemid=… link.` }
     }
     const canonicalUrl = `https://${host}/bids/bidplace?itemid=${itemId}`

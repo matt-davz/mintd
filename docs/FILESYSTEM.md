@@ -112,8 +112,8 @@ Outside `src/` (watchlist-related):
 
 ```
 supabase/functions/auction-watchlist-refresh/
-├── index.ts     # Edge Function: auth, per-house adapters (direct REA/H&S, Firecrawl Grey Flannel/Love of the Game/Heritage), rate limits, DB writes
-└── parsers.ts   # Pure Firecrawl-markdown parsers (shared CreateAuction parser for Grey Flannel/Love of the Game) + Heritage URL validation (no Deno APIs; also run under Node)
+├── index.ts     # Edge Function: auth, per-house adapters (direct REA/H&S, Firecrawl Grey Flannel/Love of the Game/Leland's/Heritage), rate limits, DB writes
+└── parsers.ts   # Pure Firecrawl-markdown parsers (shared CreateAuction parser for Grey Flannel/Love of the Game/Leland's) + Heritage URL validation (no Deno APIs; also run under Node)
 scripts/
-└── check-watchlist-parsers.mjs  # node scripts/check-watchlist-parsers.mjs — parser checks: inline fixtures (Grey Flannel, Love of the Game, Heritage) + optional saved Firecrawl JSON samples (not committed)
+└── check-watchlist-parsers.mjs  # node scripts/check-watchlist-parsers.mjs — parser checks: inline fixtures (Grey Flannel, Love of the Game, Leland's, Heritage) + client URL parsing + optional saved Firecrawl JSON samples (not committed)
 ```

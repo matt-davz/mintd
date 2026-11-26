@@ -13,14 +13,16 @@
 //   Deploy with --no-verify-jwt: the Edge gateway's legacy JWT check doesn't
 //   understand Clerk tokens; verification happens at PostgREST instead.
 // - SSRF: we never fetch a URL supplied by the client, and never use
-//   source_url. REA / H&S / Grey Flannel / Love of the Game URLs are rebuilt
-//   from (house, lot_id) with a fixed https host; lot_id must be all digits.
+//   source_url. REA / H&S / Grey Flannel / Love of the Game / Leland's URLs
+//   are rebuilt from (house, lot_id) with a fixed https host; lot_id must be
+//   all digits.
 //   Heritage URLs carry a slug, so the stored canonical_url is validated with
 //   the URL parser (exact host, https, default port, no credentials/query,
 //   path ends in the stored lot_id) — see parsers.ts. Direct fetches don't
 //   follow redirects, are size-capped and time out. Grey Flannel / Love of the
-//   Game / Heritage are fetched through Firecrawl (they bot-block direct
-//   server requests); the scraped page must identify the expected lot before
+//   Game / Leland's / Heritage are fetched through Firecrawl (Grey Flannel,
+//   Love of the Game and Heritage bot-block direct server requests; Leland's
+//   shares the CreateAuction path); the scraped page must identify the expected lot before
 //   anything is written.
 // - Credits / rate limit: each lot is fetched at most once per its house's
 //   interval (10 min direct, 60 min Firecrawl), tracked in
@@ -37,8 +39,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   type FirecrawlDoc, type ParseFailure, type ParsedLot,
-  buildGreyFlannelUrl, buildLoveOfTheGameUrl, extractFirecrawlDoc, parseGreyFlannel, parseHeritage, parseLoveOfTheGame,
-  targetStatusCode, validateHeritageUrl,
+  buildGreyFlannelUrl, buildLelandsUrl, buildLoveOfTheGameUrl, extractFirecrawlDoc, parseGreyFlannel, parseHeritage,
+  parseLelands, parseLoveOfTheGame, targetStatusCode, validateHeritageUrl,
 } from './parsers.ts'
 
 const DIRECT_INTERVAL_MS = 10 * 60 * 1000
@@ -132,6 +134,15 @@ const ADAPTERS: Record<string, DirectAdapter | FirecrawlAdapter> = {
     intervalMs: FIRECRAWL_INTERVAL_MS,
     buildUrl: (lot) => buildLoveOfTheGameUrl(lot.lot_id),
     parse: (doc, lot) => parseLoveOfTheGame(doc, { lotId: lot.lot_id, lotNumber: lot.lot_number }),
+  },
+  // Same CreateAuction platform; scraped via Firecrawl like the other CreateAuction
+  // houses. URL rebuilt from the numeric item id on the fixed auction.lelands.com
+  // host; page must show the stored lot number.
+  lelands: {
+    kind: 'firecrawl',
+    intervalMs: FIRECRAWL_INTERVAL_MS,
+    buildUrl: (lot) => buildLelandsUrl(lot.lot_id),
+    parse: (doc, lot) => parseLelands(doc, { lotId: lot.lot_id, lotNumber: lot.lot_number }),
   },
   // DataDome blocks direct server fetches → Firecrawl. Stored canonical_url validated (never source_url).
   heritage: {
