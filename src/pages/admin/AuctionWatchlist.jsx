@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import styled from 'styled-components'
 import { useAuctionWatchlist } from '../../hooks/useAuctionWatchlist'
-import { HOUSES, REFRESH_INTERVAL_MIN } from '../../lib/auctionWatchlist'
+import { HOUSES, REFRESH_INTERVAL_MIN, SCRAPED_REFRESH_INTERVAL_MIN, isRefreshDue } from '../../lib/auctionWatchlist'
 import { ErrorBanner, PageHeading, PageSub, PageTitle } from '../../components/admin/FormFields'
 import { AddLotForm } from '../../components/admin/watchlist/AddLotForm'
 import { WatchlistToolbar } from '../../components/admin/watchlist/WatchlistToolbar'
@@ -41,15 +41,20 @@ const Stack = styled.div`
 
 function summarize(r) {
   const parts = [`${r.updated} updated`]
-  if (r.skipped_recent) parts.push(`${r.skipped_recent} checked <${r.min_interval_minutes ?? REFRESH_INTERVAL_MIN}m ago`)
+  if (r.skipped_recent) parts.push(`${r.skipped_recent} checked recently`)
+  if (r.deferred) parts.push(`${r.deferred} deferred`)
   if (r.unsupported) parts.push(`${r.unsupported} manual-only`)
   if (r.blocked) parts.push(`${r.blocked} blocked`)
   if (r.errors) parts.push(`${r.errors} failed`)
   return parts.join(' · ')
 }
 
-const isDue = (lot, now) => HOUSES[lot.house]?.liveRefresh
-  && (!lot.refresh_attempted_at || now - new Date(lot.refresh_attempted_at).getTime() > REFRESH_INTERVAL_MIN * 60000)
+function refreshNote(r) {
+  const scraped = r.firecrawl_configured
+    ? `Grey Flannel & Heritage every ${SCRAPED_REFRESH_INTERVAL_MIN} min (server-side scrape)`
+    : 'Grey Flannel & Heritage: manual entry (server-side scraping not configured)'
+  return `Each lot is checked at most: REA & Huggins & Scott every ${REFRESH_INTERVAL_MIN} min; ${scraped}.`
+}
 
 export default function AuctionWatchlist() {
   const { lots, loading, error, refresh, addLot, removeLot, updateLot, setManualPrice } = useAuctionWatchlist()
@@ -72,7 +77,7 @@ export default function AuctionWatchlist() {
     setRefreshMsg(null)
     try {
       const r = await refresh()
-      setRefreshMsg({ text: `Refreshed: ${summarize(r)}` })
+      setRefreshMsg({ text: `Refreshed: ${summarize(r)}`, note: refreshNote(r) })
     } catch (e) {
       setRefreshMsg({ text: `Refresh failed: ${e.message}`, error: true })
     } finally {
@@ -81,12 +86,12 @@ export default function AuctionWatchlist() {
     }
   }
 
-  // Auto-refresh once per visit when live lots are due (server enforces the 10-min cap anyway).
+  // Auto-refresh once per visit when some lot is due (server enforces the per-house caps anyway).
   useEffect(() => {
     if (loading || error || autoRefreshed.current) return
     autoRefreshed.current = true
     const start = Date.now()
-    if (lots.some(l => isDue(l, start))) Promise.resolve().then(runRefresh)
+    if (lots.some(l => isRefreshDue(l, start))) Promise.resolve().then(runRefresh)
     // runRefresh intentionally excluded — run once after first load
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, error, lots])
@@ -143,7 +148,7 @@ export default function AuctionWatchlist() {
 
       {refreshMsg && (refreshMsg.error
         ? <ErrorBanner role="alert" style={{ marginBottom: 'var(--space-4)' }}>{refreshMsg.text}</ErrorBanner>
-        : <Summary role="status">{refreshMsg.text}. Live prices: REA &amp; Huggins &amp; Scott; each lot is checked at most every {REFRESH_INTERVAL_MIN} min.</Summary>)}
+        : <Summary role="status">{refreshMsg.text}. {refreshMsg.note}</Summary>)}
 
       {showAdd && <AddLotForm auctionsByHouse={auctionsByHouse} onAdd={addLot} onClose={() => setShowAdd(false)} />}
 

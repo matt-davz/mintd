@@ -13,12 +13,16 @@
 -- auction-watchlist-refresh Edge Function after a fresh fetch
 -- (bid_source = 'live') or by an explicit manual entry in the admin
 -- page (bid_source = 'manual'). The seed below deliberately leaves
--- current_bid / bid_checked_at NULL — no price snapshots are seeded.
+-- current_bid / opening_bid / bid_checked_at NULL — no price snapshots
+-- are seeded. A live check of a lot with no bids leaves current_bid
+-- NULL and records the opening bid separately in opening_bid.
 --
--- SSRF defence: the refresh function never fetches canonical_url or
--- source_url. It rebuilds the fetch URL from (house, lot_id) with a
--- fixed host per house. The CHECK constraints below additionally pin
--- canonical_url to the allowed host/shape for each house so rows
+-- SSRF defence: the refresh function never fetches source_url. For
+-- REA / H&S / Grey Flannel it rebuilds the fetch URL from
+-- (house, lot_id) with a fixed host. For Heritage it re-validates the
+-- stored canonical_url with a URL parser (exact host, path ending in
+-- lot_id). The CHECK constraints below additionally pin canonical_url
+-- (and image_url) to the allowed host/shape for each house so rows
 -- inserted directly through PostgREST can't smuggle other hosts.
 --
 -- Idempotent: safe to re-run (IF NOT EXISTS / DROP ... IF EXISTS /
@@ -40,6 +44,7 @@ create table if not exists public.auction_watchlist_lots (
   scheduled_close_at   timestamptz,
   closing_note         text,
   current_bid          numeric(12,2),
+  opening_bid          numeric(12,2),
   currency             text        not null default 'USD',
   bid_checked_at       timestamptz,
   bid_source           text,
@@ -63,6 +68,8 @@ create table if not exists public.auction_watchlist_lots (
     check (bid_source is null or bid_source in ('live', 'manual')),
   constraint auction_watchlist_bid_nonneg_check
     check (current_bid is null or current_bid >= 0),
+  constraint auction_watchlist_opening_bid_nonneg_check
+    check (opening_bid is null or opening_bid >= 0),
   constraint auction_watchlist_bid_checked_check
     check (current_bid is null or (bid_checked_at is not null and bid_source is not null)),
   constraint auction_watchlist_currency_check
@@ -71,8 +78,15 @@ create table if not exists public.auction_watchlist_lots (
     check (lot_status in ('unknown', 'live', 'extended', 'closed')),
   constraint auction_watchlist_refresh_status_check
     check (refresh_status in ('never', 'ok', 'manual', 'blocked', 'error', 'unsupported')),
-  constraint auction_watchlist_image_url_check
-    check (image_url is null or image_url ~ '^https://res\.cloudinary\.com/(robertedwardauctions|hugginsandscott)/image/upload/[A-Za-z0-9_,:./-]+$'),
+  -- Images only from each house's own image host/path (as validated by the refresh function).
+  constraint auction_watchlist_image_url_check check (
+    image_url is null
+    or (house = 'rea'           and image_url ~ '^https://res\.cloudinary\.com/robertedwardauctions/image/upload/[A-Za-z0-9_,:./-]+$')
+    or (house = 'huggins_scott' and image_url ~ '^https://res\.cloudinary\.com/hugginsandscott/image/upload/[A-Za-z0-9_,:./-]+$')
+    or (house = 'grey_flannel'  and lot_id ~ '^[0-9]{1,10}$'
+        and image_url ~ ('^https://bid\.greyflannelauctions\.com/images_items/item_' || lot_id || '_[0-9]{1,3}_[0-9]{1,12}\.(jpg|jpeg|png)$'))
+    or (house = 'heritage'      and image_url ~ '^https://dyn1\.heritagestatic\.com/ha\?p=[0-9-]{1,40}&it=product$')
+  ),
   -- lot_id shape + canonical URL host pinned per house
   constraint auction_watchlist_lot_url_check check (
     (house = 'rea'           and lot_id ~ '^[0-9]{1,10}$'
@@ -97,8 +111,10 @@ comment on column public.auction_watchlist_lots.scheduled_close_at is
   'Scheduled close in UTC. For REA/H&S this is when extended bidding begins, not a guaranteed final close.';
 comment on column public.auction_watchlist_lots.current_bid is
   'Last verified current bid. Only written after a fresh fetch (bid_source=live) or explicit manual entry (bid_source=manual). Never estimated.';
+comment on column public.auction_watchlist_lots.opening_bid is
+  'Opening / starting bid as shown on the lot page (Grey Flannel, Heritage). Never used as current_bid. With bid_source=live and current_bid NULL it means the last check found no bids.';
 comment on column public.auction_watchlist_lots.refresh_attempted_at is
-  'Last time the refresh function tried this lot. Used to cap refresh frequency (10 min per lot).';
+  'Last time the refresh function tried this lot. Caps refresh frequency: 10 min for REA/H&S, 60 min for Firecrawl-scraped houses (Grey Flannel, Heritage).';
 
 create index if not exists idx_auction_watchlist_close
   on public.auction_watchlist_lots (scheduled_close_at);
@@ -227,6 +243,6 @@ from (values
    'https://sports.ha.com/itm/baseball-collectibles/balls/1937-new-york-yankees-team-signed-baseball-with-lou-gehrig-sweet-spot/a/50089-81460.s',
    'https://sports.ha.com/itm/baseball-collectibles/balls/1937-new-york-yankees-team-signed-baseball-with-lou-gehrig-sweet-spot/a/50089-81460.s?ic4=GalleryView-ShortDescription-071515',
    '2026-12-20 04:00:00+00',
-   'Normal bidding cutoff inferred from a nearby lot in the same auction; Heritage extended bidding may follow. Exact lot close should be rechecked.')
+   'Lot page: Session 2 (Lots 81422-82181) normal bidding closes 10:00 PM Central Time, Saturday, December 19, 2026; Heritage extended bidding begins then. Live refresh re-reads this cutoff.')
 ) as seed(house, auction_name, lot_id, lot_number, title, priority, canonical_url, source_url, scheduled_close_at, closing_note)
 on conflict (canonical_url) do nothing;

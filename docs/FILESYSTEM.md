@@ -107,3 +107,13 @@ src/
 │   └── GlobalStyles.js         # Design tokens + global CSS
 └── main.jsx                    # React Router + Clerk provider setup
 ```
+
+Outside `src/` (watchlist-related):
+
+```
+supabase/functions/auction-watchlist-refresh/
+├── index.ts     # Edge Function: auth, per-house adapters (direct REA/H&S, Firecrawl Grey Flannel/Heritage), rate limits, DB writes
+└── parsers.ts   # Pure Firecrawl-markdown parsers + Heritage URL validation (no Deno APIs; also run under Node)
+scripts/
+└── check-watchlist-parsers.mjs  # node scripts/check-watchlist-parsers.mjs — parser checks against saved Firecrawl JSON samples (not committed)
+```

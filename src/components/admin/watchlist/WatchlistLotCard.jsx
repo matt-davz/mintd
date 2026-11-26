@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import styled from 'styled-components'
-import { HOUSES } from '../../../lib/auctionWatchlist'
+import { HOUSES, formatAgo } from '../../../lib/auctionWatchlist'
 import { Badge, GhostBtn, IconBtn } from './styles'
 import { LotPrice } from './LotPrice'
 import { LotClosing } from './LotClosing'
@@ -141,7 +141,12 @@ export function WatchlistLotCard({ lot, now, onRemove, onManualPrice, onTogglePr
         <LotClosing lot={lot} now={now} />
       </Stats>
 
-      {noticeTone && lot.last_error && <Notice $tone={noticeTone}>{lot.last_error}</Notice>}
+      {noticeTone && lot.last_error && (
+        <Notice $tone={noticeTone}>
+          {lot.last_error}
+          {noticeTone === 'error' && lot.refresh_attempted_at && ` · Last attempt ${formatAgo(lot.refresh_attempted_at, now)}${lot.bid_checked_at ? ' — showing last verified reading' : ''}.`}
+        </Notice>
+      )}
 
       {editingPrice ? (
         <ManualPriceForm

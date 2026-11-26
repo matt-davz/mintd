@@ -59,6 +59,9 @@ export function AddLotForm({ auctionsByHouse, onAdd, onClose }) {
   const parsed = useMemo(() => (f.url.trim() ? parseLotUrl(f.url) : null), [f.url])
   const house = parsed && !parsed.error ? HOUSES[parsed.house] : null
   const knownAuctions = parsed && !parsed.error ? auctionsByHouse[parsed.house] ?? [] : []
+  const autoHint = !house?.liveRefresh ? ''
+    : house.scraped ? ' (recommended — read from lot page only if server-side scraping is configured)'
+    : ' (optional — read from lot page)'
   const set = (k) => (e) => setF(prev => ({ ...prev, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }))
 
   async function handleSubmit(e) {
@@ -105,7 +108,9 @@ export function AddLotForm({ auctionsByHouse, onAdd, onClose }) {
           <Detected $error={!!parsed?.error}>
             {parsed?.error ?? (house && <>
               <Badge $tone="blue">{house.short}</Badge>
-              {house.liveRefresh ? 'Price, close time and image refresh automatically.' : 'No live refresh for this site — enter details and update the price manually.'}
+              {house.scraped
+                ? `Price, close time and image refresh automatically (at most every ${house.refreshIntervalMin} min) when server-side scraping is configured; otherwise update the price manually.`
+                : 'Price, close time and image refresh automatically.'}
             </>)}
           </Detected>
         </Wide>
@@ -119,11 +124,11 @@ export function AddLotForm({ auctionsByHouse, onAdd, onClose }) {
           <EditInput id="aw-lotno" value={f.lotNumber} onChange={set('lotNumber')} />
         </Field>
         <Wide>
-          <FieldLabel htmlFor="aw-title">Title{house?.liveRefresh ? ' (optional — read from lot page)' : ''}</FieldLabel>
+          <FieldLabel htmlFor="aw-title">Title{autoHint}</FieldLabel>
           <EditInput id="aw-title" value={f.title} onChange={set('title')} />
         </Wide>
         <Wide>
-          <FieldLabel htmlFor="aw-close">Scheduled close{house?.liveRefresh ? ' (optional — read from lot page)' : ''}</FieldLabel>
+          <FieldLabel htmlFor="aw-close">Scheduled close{autoHint}</FieldLabel>
           <Row>
             <EditInput id="aw-close" type="datetime-local" value={f.closeLocal} onChange={set('closeLocal')} />
             <EditSelect value={f.closeTz} onChange={set('closeTz')} aria-label="Close time zone">
@@ -137,7 +142,7 @@ export function AddLotForm({ auctionsByHouse, onAdd, onClose }) {
       <Footer>
         <SaveBtn type="submit" disabled={saving || !house}>{saving ? 'Adding…' : 'Add to watchlist'}</SaveBtn>
         <GhostBtn type="button" onClick={onClose}>Close</GhostBtn>
-        <Hint>Supported: REA, Huggins &amp; Scott (live), Grey Flannel, Heritage (manual).</Hint>
+        <Hint>Supported: REA, Huggins &amp; Scott (live), Grey Flannel, Heritage (live via server-side scrape, hourly; manual fallback).</Hint>
       </Footer>
     </Form>
   )

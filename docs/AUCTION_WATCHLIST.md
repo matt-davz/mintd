@@ -10,6 +10,8 @@ A private, signed-in watchlist of lots across upcoming auctions. It shows curren
 |---|---|
 | Migration (table, RLS, seed of Zane's 24 lots) | `supabase/migrations/0039_auction_watchlist.sql` |
 | Edge Function (server-side price refresh) | `supabase/functions/auction-watchlist-refresh/index.ts` |
+| Firecrawl markdown parsers + Heritage URL validation (pure) | `supabase/functions/auction-watchlist-refresh/parsers.ts` |
+| Parser checks (Node, no framework) | `scripts/check-watchlist-parsers.mjs` |
 | Page | `src/pages/admin/AuctionWatchlist.jsx` |
 | Components | `src/components/admin/watchlist/` (`AuctionGroup`, `WatchlistLotCard`, `LotPrice`, `LotClosing`, `ManualPriceForm`, `AddLotForm`, `WatchlistToolbar`, `styles.js`) |
 | Data hook | `src/hooks/useAuctionWatchlist.js` (uses `useSupabaseClient`, the Clerk JWT client) |
@@ -17,12 +19,12 @@ A private, signed-in watchlist of lots across upcoming auctions. It shows curren
 
 ## Supported auction houses
 
-| House | `house` key | Live refresh | Notes |
-|---|---|---|---|
-| Robert Edward Auctions | `rea` | ✅ | `bid.collectrea.com/lots/{id}` |
-| Huggins & Scott | `huggins_scott` | ✅ | `bid.hugginsandscott.com/lots/{id}` |
-| Grey Flannel | `grey_flannel` | ❌ manual | Server fetches get a Cloudflare challenge (HTTP 403) |
-| Heritage | `heritage` | ❌ manual | Server fetches get a DataDome captcha (HTTP 403). `lot_id` = `<saleNo>-<lotNo>` |
+| House | `house` key | Live refresh | Max frequency per lot | Notes |
+|---|---|---|---|---|
+| Robert Edward Auctions | `rea` | ✅ direct fetch | 10 min | `bid.collectrea.com/lots/{id}` |
+| Huggins & Scott | `huggins_scott` | ✅ direct fetch | 10 min | `bid.hugginsandscott.com/lots/{id}` |
+| Grey Flannel | `grey_flannel` | ✅ via Firecrawl, if `FIRECRAWL_API_KEY` is set; manual otherwise | 60 min | Direct server fetches get a Cloudflare challenge. URL rebuilt from the numeric item id |
+| Heritage | `heritage` | ✅ via Firecrawl, if `FIRECRAWL_API_KEY` is set; manual otherwise | 60 min | Direct server fetches get a DataDome captcha. `lot_id` = `<saleNo>-<lotNo>`; stored `canonical_url` is validated before use |
 
 REA and H&S run the same Livewire platform. The function parses each lot page for:
 - `currentBid` from the `lots.lot-bidding` `wire:snapshot`, falling back to the `x-data` `currentBid:` value
@@ -30,21 +32,43 @@ REA and H&S run the same Livewire platform. The function parses each lot page fo
 - the first `{lotId}-1.jpg` image on the house's own Cloudinary account
 - title and lot number from `<h1>Lot # N: …</h1>`, filled in only when missing
 
-We don't try to get past the Grey Flannel and Heritage bot walls. Their lots show the last manual price (labeled **Manual**) or **Unavailable**, plus a direct link to the lot page.
+### Grey Flannel and Heritage (Firecrawl)
+
+These two houses block direct server requests. The function calls Firecrawl's scrape API (`POST https://api.firecrawl.dev/v2/scrape` with `{ url, formats: ['markdown'], maxAge: 0 }`) and parses the returned markdown in `parsers.ts`. Each scrape costs one Firecrawl credit.
+
+- **Fetch URL.** Grey Flannel: `https://bid.greyflannelauctions.com/bids/bidplace?itemid=<lot_id>`, rebuilt from the all-digit id. Heritage: the stored `canonical_url`, accepted only if `new URL()` gives https, host exactly `sports.ha.com` or `www.ha.com`, no username/password/port/query/fragment, a path `/itm/…/a/<sale>-<lot>.s` that equals the stored `lot_id`, and a serialised form identical to the stored string. `source_url` is never used.
+- **Lot identity.** Nothing is written unless the scraped page is the expected lot:
+  - Grey Flannel: Firecrawl's final URL must carry the same `itemid`. The page must have exactly one `Lot # N:` heading, and `N` must match the stored `lot_number` (if set).
+  - Heritage: the final URL and `og:url` must end in `/a/<sale>-<lot>.s` on an allowed host. Every `LOT #N` marker must be the stored lot, and the sale number must appear on the page.
+- **Current bid.** Read only from a line labeled **Current Bid** (Grey: `### CURRENT BID: $1,464.00`, Heritage: `Current Bid: $3,000`). `Starting Bid`, `Bid Next Minimum`, and `Minimum Next Bid` are never read as the current bid. If the page shows conflicting amounts, the check fails.
+- **No bids.** Heritage `Status: Starting Bid Not Met` (or 0 bidders) with a `Starting Bid`, or Grey Flannel `Bids: 0`, counts as a successful check. It saves `current_bid = NULL`, sets `opening_bid` to the starting bid, sets `bid_source = 'live'`, and stamps `bid_checked_at`. The UI shows **No bids yet** plus "Opening bid $X". If the page shows no Current Bid and is not clearly a no-bid lot, the check fails.
+- **Close time.** Heritage: the lot's session line, e.g. `(Lots 81422-82181) - 10:00 PM Central Time, Saturday, December 19, 2026.`. It is used only when the lot number falls inside the range. Grey Flannel: the auction `End:` line (`12/13/2026 8:00 PM EST`). Both are converted to UTC through their IANA zone.
+- **Images.** Grey Flannel: `bid.greyflannelauctions.com/images_items/item_<lot_id>_N_M.jpg`. Heritage: `og:image` normalized to `https://dyn1.heritagestatic.com/ha?p=<digits/dashes>&it=product`. The DB CHECK allows only these shapes, per house.
+- **Status.** A `Time Left` countdown marks the lot `live`. Grey Flannel `Time Left: Closed/Ended` marks it `closed`. Closed Heritage lots aren't detected. After the scheduled time, the UI still says "May still be in extended bidding".
+
+**Without `FIRECRAWL_API_KEY`**, Grey Flannel and Heritage lots are marked `unsupported`. They show the last manual price (labeled **Manual**) or **Unavailable**, plus a direct link to the lot page. The group header shows "Manual prices". The page doesn't auto-trigger refreshes for them.
+
+**Testing the parsers:**
+```bash
+node scripts/check-watchlist-parsers.mjs [grey.json] [heritage-no-bid.json] [heritage-active.json]
+```
+This needs Node ≥ 22.18 (built-in TypeScript stripping). All 10 checks run against small inline fixtures in the script (minimal synthetic markdown matching the observed Grey Flannel and Heritage page structure), so a clean checkout always runs and must pass them. Optionally, saved full Firecrawl responses (CLI JSON or a REST v2 envelope, never committed) are run through the same lot checks too. They default to `/tmp/mintd-*-firecrawl.json` and are left out if absent; a path passed explicitly must exist. The active-bid Heritage fixture (lot 50089-81457) is a parser fixture only. It is not a watchlist lot and must never be seeded.
 
 ## Honesty rules
 
-- `current_bid` is written only after a fresh 200 response that parsed cleanly (`bid_source = 'live'`), or after an explicit manual entry (`bid_source = 'manual'`). A DB constraint requires `bid_checked_at` and `bid_source` whenever `current_bid` is set.
-- A failed refresh keeps the last verified price and records `refresh_status` (`blocked` / `error`) and `last_error`.
+- `current_bid` is written only after a fresh 200 response that parsed cleanly and matched the expected lot (`bid_source = 'live'`), or after an explicit manual entry (`bid_source = 'manual'`). A DB constraint requires `bid_checked_at` and `bid_source` whenever `current_bid` is set.
+- The opening bid is never shown as the current bid. It goes in `opening_bid`, labeled "Opening bid", next to **No bids yet**.
+- A failed refresh keeps the last verified price (and `bid_checked_at`, so it goes stale). It records `refresh_status` (`blocked` / `error`) and `last_error`. The card shows the error and when the last attempt was made.
 - The seed sets no prices. Every lot shows **Unavailable** until the first refresh.
-- Stale readings are flagged: older than 60 min, or older than 15 min once the lot is within 24 h of its scheduled close.
+- Stale readings are flagged: older than 60 min, or older than 15 min once the lot is within 24 h of its scheduled close. Firecrawl-scraped houses can only refresh hourly, so their threshold is never below 90 min. Every reading shows "Checked Xm ago".
 - Countdowns are to the **scheduled** close. REA and H&S are labeled "Until extended bidding". Other houses are labeled "Extended bidding may apply". After the scheduled time the UI says "May still be in extended bidding". It says closed only if the last refresh reported `lot_status = 'closed'`.
 
 ## Security
 
-- **SSRF:** the function never fetches a URL from the table or the request. It builds the URL from `(house, lot_id)` with a fixed https host, and `lot_id` must be all digits. Redirects are not followed (`redirect: 'manual'`). Bodies are capped at 2 MB, and each request times out after 12 s. Client-side `parseLotUrl()` and the table's CHECK constraints pin the same hosts and URL shapes.
+- **SSRF:** the function never fetches a URL from the request, and never uses `source_url`. For REA, H&S, and Grey Flannel it builds the URL from `(house, lot_id)` with a fixed https host, and `lot_id` must be all digits. For Heritage it re-validates the stored `canonical_url` with the URL parser (see above), on top of the table's CHECK constraint. Direct fetches don't follow redirects (`redirect: 'manual'`), are capped at 2 MB, and time out after 12 s. Firecrawl calls go only to the fixed `api.firecrawl.dev` endpoint. They time out after 45 s, responses are capped at 4 MB, and the scraped page must identify the expected lot. Client-side `parseLotUrl()` and the table's CHECK constraints pin the same hosts and URL shapes.
+- **Firecrawl key:** read only from the Edge secret `FIRECRAWL_API_KEY` (`Deno.env`). It is never stored in the repo, the DB, or the client, and never echoed in responses or `last_error`. The response only says `firecrawl_configured: true/false`.
 - **Auth:** the function rejects requests without a non-expired `role: authenticated` bearer token. It then runs all reads and writes through PostgREST **as the caller**, using the anon key plus the caller's Clerk JWT, so RLS applies. PostgREST verifies the token signature through the Clerk third-party auth integration. **The service role key is not used.**
-- **Rate limiting:** a lot is fetched at most once every 10 minutes, tracked in `refresh_attempted_at`. Concurrency is 3 and each call handles at most 60 lots. The page auto-refreshes once per visit, and only when some live lot is due.
+- **Rate limiting / credits:** REA and H&S lots are fetched at most once every 10 minutes. Grey Flannel and Heritage lots are fetched at most once every **60 minutes**. Both are tracked in `refresh_attempted_at`. The slot is claimed *before* fetching, so a failed scrape also waits the full interval instead of retrying and burning credits. Concurrency is 3 (direct) and 2 (Firecrawl). Each call handles at most 60 lots and at most 6 Firecrawl scrapes; extra lots are reported as `deferred`, nearest close first. The page auto-refreshes once per visit, and only when some lot is due. Adding a Grey Flannel or Heritage lot triggers one scrape.
 
 ## Setup / deployment
 
@@ -60,14 +84,19 @@ Nothing here has been applied or deployed yet.
    ```bash
    supabase functions deploy auction-watchlist-refresh --no-verify-jwt
    ```
-   `SUPABASE_URL` and `SUPABASE_ANON_KEY` are injected automatically. No other secrets are needed.
-4. *(Optional)* Restrict CORS:
+   `SUPABASE_URL` and `SUPABASE_ANON_KEY` are injected automatically. `parsers.ts` is bundled with the function.
+4. *(Optional, after Matt's review)* Turn on Grey Flannel and Heritage live refresh by setting `FIRECRAWL_API_KEY` as a Supabase Edge Function secret. Matt: at deployment time, open `~/.openclaw/secrets.json` on the server, read the existing Firecrawl key there, and enter it as the value of the `FIRECRAWL_API_KEY` secret (Supabase dashboard → Edge Functions → Secrets, or `supabase secrets set`). The key itself is never written down here or anywhere else in the repo. Don't copy it into source, docs, `.env.local`, any `VITE_*` variable, a committed script, or shell history you share. Confirm it's set (names only, no values) with:
+   ```bash
+   supabase secrets list
+   ```
+   No redeploy is needed for secrets. If you skip this step, those two houses stay in manual-entry mode. Expect at most about 24 credits per lot per day, and only while the page is open: refreshes run on page visit or **Refresh prices**, not on a schedule. Remove the key with `supabase secrets unset FIRECRAWL_API_KEY` to go back to manual mode.
+5. *(Optional)* Restrict CORS:
    ```bash
    supabase secrets set WATCHLIST_ALLOWED_ORIGINS=https://<your-netlify-domain>,http://localhost:5173
    ```
    The default is `*`. Auth is bearer-token based, so CORS is not the security boundary.
-5. Open `/admin/auction-watchlist` and click **Refresh prices**. REA and H&S lots should show live bids. Grey Flannel and Heritage show "Live refresh unavailable" and take manual prices.
+6. Open `/admin/auction-watchlist` and click **Refresh prices**. REA and H&S lots should show live bids. With the Firecrawl key set, Grey Flannel lot 150 shows its current bid and Heritage lot 81460 shows "No bids yet · Opening bid $2,000" (as of the sample). Without the key, they show the manual-mode notice and take manual prices.
 
 ## Adding lots
 
-Use **Add lot**, then paste a lot URL from one of the four supported hosts. For REA and H&S, only the URL and auction name are needed. Title, lot number, close time, and image come from the first refresh. For Grey Flannel and Heritage, also enter a title and close time (with time zone). The lot is saved to Supabase, so it syncs across devices.
+Use **Add lot**, then paste a lot URL from one of the four supported hosts. For REA and H&S, only the URL and auction name are needed. Title, lot number, close time, and image come from the first refresh. For Grey Flannel and Heritage, the first refresh fills these in too, but only when `FIRECRAWL_API_KEY` is set. Without it, enter a title and close time (with time zone) yourself. For Grey Flannel, entering the lot number also lets the refresh check it against the page. The lot is saved to Supabase, so it syncs across devices.

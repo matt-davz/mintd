@@ -74,7 +74,9 @@ export function AuctionGroup({ group, now, onRemove, onManualPrice, onTogglePrio
               {remaining ? `Scheduled close in ${remaining}` : 'Scheduled close passed'} · {formatCloseTime(firstCloseIso)}
             </span>
           )}
-          {!house?.liveRefresh && <Badge $tone="muted">Manual prices</Badge>}
+          {(!house?.liveRefresh || (house.scraped && group.lots.every(l => l.refresh_status === 'unsupported')))
+            ? <Badge $tone="muted">Manual prices</Badge>
+            : house.scraped && <Badge $tone="muted">Checked hourly</Badge>}
         </Meta>
       </Header>
       <Grid>

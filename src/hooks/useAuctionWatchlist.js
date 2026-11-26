@@ -5,7 +5,7 @@ import { HOUSES } from '../lib/auctionWatchlist'
 const TABLE = 'auction_watchlist_lots'
 const COLUMNS = [
   'id', 'canonical_url', 'source_url', 'house', 'auction_name', 'lot_id', 'lot_number',
-  'title', 'priority', 'scheduled_close_at', 'closing_note', 'current_bid', 'currency',
+  'title', 'priority', 'scheduled_close_at', 'closing_note', 'current_bid', 'opening_bid', 'currency',
   'bid_checked_at', 'bid_source', 'image_url', 'lot_status', 'refresh_status',
   'refresh_attempted_at', 'last_error',
 ].join(', ')

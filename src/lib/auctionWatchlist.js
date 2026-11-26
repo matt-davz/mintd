@@ -4,33 +4,61 @@
 // URL validation mirrors the CHECK constraints in migration 0039 and the
 // fixed-host adapters in supabase/functions/auction-watchlist-refresh.
 
+// Per-lot refresh caps, mirrored from the Edge Function. Direct fetches
+// (REA, H&S) are cheap; Grey Flannel / Heritage go through Firecrawl, which
+// costs credits, so they are checked at most hourly.
 export const REFRESH_INTERVAL_MIN = 10
+export const SCRAPED_REFRESH_INTERVAL_MIN = 60
 
+/**
+ * liveRefresh: the Edge Function has an adapter for this house.
+ * scraped:     fetched via Firecrawl. Only works when FIRECRAWL_API_KEY is set
+ *              server-side; otherwise lots come back `unsupported` and stay
+ *              manual-entry.
+ */
 export const HOUSES = {
   rea: {
     label: 'Robert Edward Auctions',
     short: 'REA',
     liveRefresh: true,
+    scraped: false,
+    refreshIntervalMin: REFRESH_INTERVAL_MIN,
     closeCaveat: 'Until extended bidding',
   },
   huggins_scott: {
     label: 'Huggins & Scott',
     short: 'H&S',
     liveRefresh: true,
+    scraped: false,
+    refreshIntervalMin: REFRESH_INTERVAL_MIN,
     closeCaveat: 'Until extended bidding',
   },
   grey_flannel: {
     label: 'Grey Flannel Auctions',
     short: 'Grey Flannel',
-    liveRefresh: false,
+    liveRefresh: true,
+    scraped: true,
+    refreshIntervalMin: SCRAPED_REFRESH_INTERVAL_MIN,
     closeCaveat: 'Extended bidding may apply',
   },
   heritage: {
     label: 'Heritage Auctions',
     short: 'Heritage',
-    liveRefresh: false,
+    liveRefresh: true,
+    scraped: true,
+    refreshIntervalMin: SCRAPED_REFRESH_INTERVAL_MIN,
     closeCaveat: 'Extended bidding may apply',
   },
+}
+
+/** True when the lot's house can refresh and its per-lot cap has elapsed. */
+export function isRefreshDue(lot, nowMs) {
+  const house = HOUSES[lot.house]
+  if (!house?.liveRefresh) return false
+  // Server said scraping isn't configured — don't auto-trigger for it.
+  if (house.scraped && lot.refresh_status === 'unsupported') return false
+  if (!lot.refresh_attempted_at) return true
+  return nowMs - new Date(lot.refresh_attempted_at).getTime() > house.refreshIntervalMin * 60000
 }
 
 export const HOUSE_KEYS = Object.keys(HOUSES)
@@ -163,13 +191,26 @@ export function formatAgo(iso, nowMs) {
 /**
  * A bid reading is stale after 60 min, or after 15 min once the lot is
  * within 24h of its scheduled close (prices move fast near the end).
+ * Firecrawl-scraped houses can only refresh hourly, so for them the
+ * threshold is never below 1.5× that interval (90 min) — otherwise they'd
+ * read as stale right after a successful check.
  */
 export function isBidStale(lot, nowMs) {
   if (!lot.bid_checked_at) return true
   const age = nowMs - new Date(lot.bid_checked_at).getTime()
   const close = lot.scheduled_close_at ? new Date(lot.scheduled_close_at).getTime() : null
   const nearClose = close !== null && close - nowMs < 24 * 3600 * 1000
-  return age > (nearClose ? 15 : 60) * 60000
+  const base = nearClose ? 15 : 60
+  const floor = HOUSES[lot.house]?.scraped ? SCRAPED_REFRESH_INTERVAL_MIN * 1.5 : 0
+  return age > Math.max(base, floor) * 60000
+}
+
+/**
+ * Last live check succeeded and found no bids: current_bid is NULL by design
+ * (the opening bid is in opening_bid and must never be shown as current).
+ */
+export function hasNoBids(lot) {
+  return lot.current_bid == null && lot.bid_source === 'live' && !!lot.bid_checked_at
 }
 
 export function formatMoney(amount, currency = 'USD') {

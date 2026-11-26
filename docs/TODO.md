@@ -100,7 +100,9 @@
 - [x] `auction_watchlist_lots` table + RLS + seed (migration `0039`)
 - [x] `<AuctionWatchlist>` page — grouped by auction, countdowns, stale/manual flags, add/remove, house filter + search
 - [x] `supabase/functions/auction-watchlist-refresh` — REA + Huggins & Scott live refresh
+- [x] Grey Flannel + Heritage live refresh via Firecrawl (hourly cap, lot-identity check, opening bid for no-bid lots); parser checks in `scripts/check-watchlist-parsers.mjs`
 - [ ] Apply migration `0039` and deploy `auction-watchlist-refresh --no-verify-jwt` (see `docs/AUCTION_WATCHLIST.md`)
+- [ ] After Matt's review: `supabase secrets set FIRECRAWL_API_KEY=…` from the existing secrets store (optional; Grey Flannel/Heritage stay manual without it)
 - [ ] Confirm Clerk → Supabase third-party auth / `supabase` JWT template works for `useSupabaseClient`
 
 ## 7. Deployment
