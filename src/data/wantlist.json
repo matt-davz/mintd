@@ -13,7 +13,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$5,000 - $10,000\""
   },
   {
     "id": "20934",
@@ -29,7 +30,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$15,000 - $25,000\""
   },
   {
     "id": "19879",
@@ -45,7 +47,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$2,000 - $4,000\""
   },
   {
     "id": "210386",
@@ -61,7 +64,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": "Zane asked to win all Joe DiMaggio hitting-streak lots; coordinate bidding with Matthew."
+    "notes": "Zane asked to win all Joe DiMaggio hitting-streak lots; coordinate bidding with Matthew.",
+    "expected_price": "\"$10,000 - $15,000\""
   },
   {
     "id": "176323",
@@ -77,7 +81,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": "Zane asked to win all Joe DiMaggio hitting-streak lots; coordinate bidding with Matthew."
+    "notes": "Zane asked to win all Joe DiMaggio hitting-streak lots; coordinate bidding with Matthew.",
+    "expected_price": "\"$10,000 - $20,000\""
   },
   {
     "id": "185303",
@@ -93,7 +98,8 @@
     "cert_service": "PSA",
     "grade": "5",
     "auto_grade": "",
-    "notes": "Zane asked to win all Joe DiMaggio hitting-streak lots; coordinate bidding with Matthew."
+    "notes": "Zane asked to win all Joe DiMaggio hitting-streak lots; coordinate bidding with Matthew.",
+    "expected_price": "\"$10,000 - $15,000\""
   },
   {
     "id": "210383",
@@ -109,7 +115,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$5,000 - $10,000\""
   },
   {
     "id": "201838",
@@ -125,7 +132,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$5,000 - $10,000\""
   },
   {
     "id": "196877",
@@ -141,7 +149,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$10,000 - $20,000\""
   },
   {
     "id": "205155",
@@ -157,7 +166,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$5,000 - $10,000\""
   },
   {
     "id": "200787",
@@ -173,7 +183,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$5,000 - $10,000\""
   },
   {
     "id": "202539",
@@ -189,7 +200,8 @@
     "cert_service": "PSA",
     "grade": "MINT",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$3,000 - $5,000\""
   },
   {
     "id": "202559",
@@ -205,7 +217,8 @@
     "cert_service": "PSA",
     "grade": "MINT",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$2,000 - $4,000\""
   },
   {
     "id": "198542",
@@ -221,7 +234,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$5,000 - $10,000\""
   },
   {
     "id": "211274",
@@ -237,7 +251,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$3,000 - $5,000\""
   },
   {
     "id": "211562",
@@ -253,7 +268,8 @@
     "cert_service": "PSA",
     "grade": "MINT",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$2,000 - $4,000\""
   },
   {
     "id": "210357",
@@ -269,7 +285,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$5,000 - $10,000\""
   },
   {
     "id": "210521",
@@ -285,7 +302,8 @@
     "cert_service": "PSA",
     "grade": "MINT",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$5,000 - $8,000\""
   },
   {
     "id": "200785",
@@ -301,7 +319,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$3,000 - $5,000\""
   },
   {
     "id": "210353",
@@ -317,7 +336,8 @@
     "cert_service": "PSA",
     "grade": "VG 3",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$1,500 - $3,000\""
   },
   {
     "id": "198265",
@@ -333,7 +353,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$5,000 - $10,000\""
   },
   {
     "id": "59791",
@@ -349,7 +370,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$20,000 - $30,000\""
   },
   {
     "id": "59792",
@@ -365,7 +387,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$15,000 - $25,000\""
   },
   {
     "id": "49085",
@@ -381,7 +404,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$15,000 - $25,000\""
   },
   {
     "id": "49605",
@@ -397,7 +421,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$15,000 - $25,000\""
   },
   {
     "id": "138859",
@@ -413,7 +438,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": "Zane said he has to have this album, including the Japanese team autographs. Matthew also expressed interest; coordinate who bids and agree on a limit."
+    "notes": "Zane said he has to have this album, including the Japanese team autographs. Matthew also expressed interest; coordinate who bids and agree on a limit.",
+    "expected_price": "\"$50,000 - $100,000\""
   },
   {
     "id": "138843",
@@ -429,7 +455,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$10,000 - $20,000\""
   },
   {
     "id": "138815",
@@ -445,7 +472,8 @@
     "cert_service": "PSA",
     "grade": "Type",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$20,000 - $40,000\""
   },
   {
     "id": "139178",
@@ -461,7 +489,8 @@
     "cert_service": "PSA",
     "grade": "VG-EX",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$4,000 - $6,000\""
   },
   {
     "id": "139176",
@@ -477,7 +506,8 @@
     "cert_service": "PSA",
     "grade": "NM 7",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$5,000 - $10,000\""
   },
   {
     "id": "139484",
@@ -493,7 +523,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": "Zane explicitly said to put this on the must have list."
+    "notes": "Zane explicitly said to put this on the must have list.",
+    "expected_price": "\"$2,500 - $4,000\""
   },
   {
     "id": "139853",
@@ -509,7 +540,8 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$4,000 - $8,000\""
   },
   {
     "id": "81460",
@@ -525,6 +557,7 @@
     "cert_service": "",
     "grade": "",
     "auto_grade": "",
-    "notes": ""
+    "notes": "",
+    "expected_price": "\"$20,000 - $40,000\""
   }
 ]

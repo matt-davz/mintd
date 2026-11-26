@@ -215,6 +215,12 @@ const Muted = styled.span`
   color: var(--color-outline);
 `
 
+const EstimateText = styled.span`
+  color: var(--color-on-surface-variant);
+  font-style: italic;
+  white-space: nowrap;
+`
+
 const NotesText = styled.span`
   display: block;
   max-width: 24rem;
@@ -236,7 +242,7 @@ const StatusRow = styled.tr`
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const COLUMNS = ['Importance', 'Title', 'Auction House', 'Auction', 'Closes', 'Cert', 'Grade', 'Auto Grade', 'Current Bid', 'Notes']
+const COLUMNS = ['Importance', 'Title', 'Auction House', 'Auction', 'Closes', 'Cert', 'Grade', 'Auto Grade', 'Current Bid', 'Expected Price', 'Notes']
 const NOTES_MAX = 80
 const DASH = '—'
 
@@ -315,6 +321,9 @@ function LotRow({ lot }) {
       <Td $dim={!lot.grade}>{lot.grade || DASH}</Td>
       <Td $dim={!lot.auto_grade}>{lot.auto_grade || DASH}</Td>
       <Td $dim={lot.current_bid == null}>{formatBid(lot.current_bid)}</Td>
+      <Td $dim={!lot.expected_price}>
+        {lot.expected_price ? <EstimateText>{lot.expected_price}</EstimateText> : DASH}
+      </Td>
       <Td $dim={!lot.notes}>
         {lot.notes ? <NotesText title={lot.notes}>{truncate(lot.notes, NOTES_MAX)}</NotesText> : DASH}
       </Td>
