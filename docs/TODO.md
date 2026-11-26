@@ -104,6 +104,7 @@
 - [x] Love of the Game Auctions live refresh via Firecrawl (shared CreateAuction parser with Grey Flannel; `$0.00` with 0 bids → "No bids yet"); Zane's lots 17 + 41 added to the `0039` seed (26 lots)
 - [x] Leland's live refresh via Firecrawl (shared CreateAuction parser; `auction.lelands.com`, `.aspx` and no-extension links canonicalised; current bid below starting bid refused); Zane's lot 4 / item 138859 added to the `0039` seed (27 lots)
 - [x] Zane's Leland's lots 636 / item 138815 (1934 Tour of Japan teams photo, PSA Type I) and 663 / item 138843 (1934 Gehrig Christmas card from Japan) added to the `0039` seed (29 lots)
+- [x] Zane's Leland's lots 1017 / item 139178 (1941 World Series Game 4 Mickey Owen dropped third strike ticket stub, PSA VG-EX 4) and 1061 / item 139176 (9/21/90 Griffey Jr. robs Griffey Sr. ticket stub, PSA NM 7) added to the `0039` seed (31 lots)
 - [ ] Apply migration `0039` and deploy `auction-watchlist-refresh --no-verify-jwt` (see `docs/AUCTION_WATCHLIST.md`)
 - [ ] After Matt's review: `supabase secrets set FIRECRAWL_API_KEY=…` from the existing secrets store (optional; Grey Flannel/Love of the Game/Leland's/Heritage stay manual without it)
 - [ ] Confirm Clerk → Supabase third-party auth / `supabase` JWT template works for `useSupabaseClient`

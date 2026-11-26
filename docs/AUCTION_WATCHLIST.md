@@ -8,7 +8,7 @@ A private, signed-in watchlist of lots across upcoming auctions. It shows curren
 
 | Piece | Path |
 |---|---|
-| Migration (table, RLS, seed of Zane's 29 lots) | `supabase/migrations/0039_auction_watchlist.sql` |
+| Migration (table, RLS, seed of Zane's 31 lots) | `supabase/migrations/0039_auction_watchlist.sql` |
 | Edge Function (server-side price refresh) | `supabase/functions/auction-watchlist-refresh/index.ts` |
 | Firecrawl markdown parsers + Heritage URL validation (pure) | `supabase/functions/auction-watchlist-refresh/parsers.ts` |
 | Parser checks (Node, no framework) | `scripts/check-watchlist-parsers.mjs` |
@@ -34,7 +34,7 @@ REA and H&S run the same Livewire platform. The function parses each lot page fo
 - the first `{lotId}-1.jpg` image on the house's own Cloudinary account
 - title and lot number from `<h1>Lot # N: …</h1>`, filled in only when missing
 
-Six houses are supported. The seed holds Zane's 29 tracked lots (H&S 3, REA 18, Grey Flannel 2, Love of the Game 2, Leland's 3, Heritage 1).
+Six houses are supported. The seed holds Zane's 31 tracked lots (H&S 3, REA 18, Grey Flannel 2, Love of the Game 2, Leland's 5, Heritage 1).
 
 ### Grey Flannel, Love of the Game, Leland's, and Heritage (Firecrawl)
 
@@ -99,7 +99,7 @@ Nothing here has been applied or deployed yet.
    supabase secrets set WATCHLIST_ALLOWED_ORIGINS=https://<your-netlify-domain>,http://localhost:5173
    ```
    The default is `*`. Auth is bearer-token based, so CORS is not the security boundary.
-6. Open `/admin/auction-watchlist` and click **Refresh prices**. REA and H&S lots should show live bids. With the Firecrawl key set, Grey Flannel lot 150 shows its current bid and Heritage lot 81460 shows "No bids yet · Opening bid $2,000", Love of the Game lots 17 and 41 show "No bids yet" with opening bids $2,500 and $1,000, and Leland's lot 4 shows its current bid ($32,744 with 17 bids on 2026-11-26; the live value will differ) (as of the samples). Leland's lots 636 and 663 show whatever their pages report on that refresh (current bid, or "No bids yet" plus opening bid). With 8 Firecrawl-scraped lots and a cap of 6 scrapes per call, the first refresh reports 2 as `deferred` (nearest close first); click **Refresh prices** again to pick them up. Without the key, they show the manual-mode notice and take manual prices.
+6. Open `/admin/auction-watchlist` and click **Refresh prices**. REA and H&S lots should show live bids. With the Firecrawl key set, Grey Flannel lot 150 shows its current bid and Heritage lot 81460 shows "No bids yet · Opening bid $2,000", Love of the Game lots 17 and 41 show "No bids yet" with opening bids $2,500 and $1,000, and Leland's lot 4 shows its current bid ($32,744 with 17 bids on 2026-11-26; the live value will differ) (as of the samples). Leland's lots 636, 663, 1017, and 1061 show whatever their pages report on that refresh (current bid, or "No bids yet" plus opening bid). With 10 Firecrawl-scraped lots and a cap of 6 scrapes per call, the first refresh reports 4 as `deferred` (nearest close first); click **Refresh prices** again to pick them up. Without the key, they show the manual-mode notice and take manual prices.
 
 ## Adding lots
 
