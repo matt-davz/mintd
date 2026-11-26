@@ -132,31 +132,39 @@ const Th = styled.th`
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: rgba(229, 226, 225, 0.35);
+  color: ${({ $active }) => ($active ? 'var(--color-primary)' : 'rgba(229, 226, 225, 0.35)')};
   background-color: #202020;
+  box-shadow: ${({ $active }) => ($active ? 'inset 0 -2px 0 var(--color-primary)' : 'none')};
   text-align: left;
 `
 
-const GroupHeaderCell = styled.td`
-  position: sticky;
-  top: ${HEADER_HEIGHT};
-  z-index: 2;
-  padding: var(--space-3) var(--space-5);
-  background-color: var(--color-surface-high);
-  font-family: var(--font-headline);
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-on-surface);
-`
+const SortButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: color var(--transition-base);
 
-const GroupMeta = styled.span`
-  margin-left: var(--space-3);
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 400;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--color-outline);
+  .material-symbols-outlined {
+    font-size: 0.875rem;
+    opacity: ${({ $active }) => ($active ? 1 : 0.35)};
+  }
+
+  &:hover { color: var(--color-on-surface); }
+  &:hover .material-symbols-outlined { opacity: 1; }
+  &:focus-visible {
+    outline: 1px solid rgba(173, 198, 255, 0.6);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
 `
 
 const Td = styled.td`
@@ -242,7 +250,6 @@ const StatusRow = styled.tr`
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const COLUMNS = ['Importance', 'Title', 'Auction House', 'Auction', 'Closes', 'Cert', 'Grade', 'Auto Grade', 'Current Bid', 'Expected Price', 'Notes']
 const NOTES_MAX = 80
 const DASH = '—'
 
@@ -281,30 +288,97 @@ function truncate(text, max) {
 
 const isMust = lot => lot.importance === 'must_win'
 
-function compareLots(a, b) {
-  const byDate = (a.auction_close_date || '9999').localeCompare(b.auction_close_date || '9999')
-  if (byDate !== 0) return byDate
-  return Number(isMust(b)) - Number(isMust(a))
+// Strip surrounding straight/curly quotes, e.g. "\"$5,000 - $10,000\"" → "$5,000 - $10,000".
+function cleanEstimate(str) {
+  return typeof str === 'string' ? str.trim().replace(/^["'“”]+|["'“”]+$/g, '').trim() : ''
 }
 
-// Group by auction house; groups ordered by earliest close, must_win first within each group.
-function groupLots(lots) {
-  const groups = new Map()
-  for (const lot of [...lots].sort(compareLots)) {
-    if (!groups.has(lot.auction_house)) groups.set(lot.auction_house, [])
-    groups.get(lot.auction_house).push(lot)
-  }
-  return [...groups.entries()].map(([house, items]) => ({
-    house,
-    closeDate: items[0].auction_close_date,
-    lots: [...items].sort((a, b) => Number(isMust(b)) - Number(isMust(a)) || compareLots(a, b)),
-  }))
+// Lower bound of a price range string ("$5,000 - $10,000" → 5000); null when unparseable.
+function estimateLowerBound(str) {
+  const match = cleanEstimate(str).match(/\d[\d,]*(?:\.\d+)?/)
+  if (!match) return null
+  const n = Number(match[0].replace(/,/g, ''))
+  return Number.isFinite(n) ? n : null
+}
+
+function toNumber(value) {
+  if (value == null || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+const toText = value => (typeof value === 'string' && value.trim() ? value.trim() : null)
+
+// Sortable columns. `value` returns a comparable value or null (missing → always sorted last).
+const COLUMNS = [
+  { key: 'importance', label: 'Importance', type: 'number', value: lot => (isMust(lot) ? 0 : 1) },
+  { key: 'title', label: 'Title', type: 'text', value: lot => toText(lot.title) },
+  { key: 'auction_house', label: 'Auction House', type: 'text', value: lot => toText(lot.auction_house) },
+  { key: 'auction_name', label: 'Auction', type: 'text', value: lot => toText(lot.auction_name) },
+  { key: 'close', label: 'Time Left', type: 'text', value: lot => toText(lot.auction_close_date) },
+  { key: 'cert_service', label: 'Cert', type: 'text', value: lot => toText(lot.cert_service) },
+  { key: 'grade', label: 'Grade', type: 'text', value: lot => toText(lot.grade) },
+  { key: 'auto_grade', label: 'Auto Grade', type: 'text', value: lot => toText(lot.auto_grade) },
+  { key: 'current_bid', label: 'Current Bid', type: 'number', value: lot => toNumber(lot.current_bid) },
+  { key: 'expected_price', label: 'Expected Price', type: 'number', value: lot => estimateLowerBound(lot.expected_price) },
+  { key: 'notes', label: 'Notes', type: 'text', value: lot => toText(lot.notes) },
+]
+const COLUMNS_BY_KEY = Object.fromEntries(COLUMNS.map(col => [col.key, col]))
+const DEFAULT_SORT = { key: 'close', dir: 'asc' }
+
+const textCollator = new Intl.Collator('en-US', { sensitivity: 'base', numeric: true })
+
+// Compare one column; missing values go last regardless of direction.
+function compareByColumn(a, b, col, dir) {
+  const va = col.value(a)
+  const vb = col.value(b)
+  const aMissing = va == null
+  const bMissing = vb == null
+  if (aMissing || bMissing) return aMissing === bMissing ? 0 : aMissing ? 1 : -1
+  const base = col.type === 'number' ? va - vb : textCollator.compare(va, vb)
+  return dir === 'desc' ? -base : base
+}
+
+// Deterministic fallback: soonest close, must-have first, title, then id.
+function compareDefault(a, b) {
+  return compareByColumn(a, b, COLUMNS_BY_KEY.close, 'asc')
+    || compareByColumn(a, b, COLUMNS_BY_KEY.importance, 'asc')
+    || compareByColumn(a, b, COLUMNS_BY_KEY.title, 'asc')
+    || String(a.id).localeCompare(String(b.id))
+}
+
+function sortLots(lots, { key, dir }) {
+  const col = COLUMNS_BY_KEY[key] ?? COLUMNS_BY_KEY[DEFAULT_SORT.key]
+  return [...lots].sort((a, b) => compareByColumn(a, b, col, dir) || compareDefault(a, b))
+}
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+
+function SortableTh({ col, sort, onSort }) {
+  const active = sort.key === col.key
+  const ariaSort = active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'
+  const icon = active ? (sort.dir === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'
+  const nextDir = active && sort.dir === 'asc' ? 'descending' : 'ascending'
+  return (
+    <Th scope="col" aria-sort={ariaSort} $active={active}>
+      <SortButton
+        type="button"
+        $active={active}
+        onClick={() => onSort(col.key)}
+        title={`Sort by ${col.label} ${nextDir}`}
+      >
+        {col.label}
+        <span className="material-symbols-outlined" aria-hidden="true">{icon}</span>
+      </SortButton>
+    </Th>
+  )
 }
 
 // ─── Row ──────────────────────────────────────────────────────────────────────
 
 function LotRow({ lot }) {
   const must = isMust(lot)
+  const estimate = cleanEstimate(lot.expected_price)
   return (
     <Tr $must={must}>
       <Td $dim={!must}>{must ? <MustBadge>🔴 Must Have</MustBadge> : DASH}</Td>
@@ -321,8 +395,8 @@ function LotRow({ lot }) {
       <Td $dim={!lot.grade}>{lot.grade || DASH}</Td>
       <Td $dim={!lot.auto_grade}>{lot.auto_grade || DASH}</Td>
       <Td $dim={lot.current_bid == null}>{formatBid(lot.current_bid)}</Td>
-      <Td $dim={!lot.expected_price}>
-        {lot.expected_price ? <EstimateText>{lot.expected_price}</EstimateText> : DASH}
+      <Td $dim={!estimate}>
+        {estimate ? <EstimateText>{estimate}</EstimateText> : DASH}
       </Td>
       <Td $dim={!lot.notes}>
         {lot.notes ? <NotesText title={lot.notes}>{truncate(lot.notes, NOTES_MAX)}</NotesText> : DASH}
@@ -336,11 +410,17 @@ function LotRow({ lot }) {
 export default function WantList() {
   const [search, setSearch] = useState('')
   const [importance, setImportance] = useState('all')
+  const [sort, setSort] = useState(DEFAULT_SORT)
 
   const totalCount = wantlistData.length
   const mustCount = useMemo(() => wantlistData.filter(isMust).length, [])
 
-  const groups = useMemo(() => {
+  // Same column toggles direction; a new column starts ascending.
+  const handleSort = key => setSort(prev => (
+    prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }
+  ))
+
+  const lots = useMemo(() => {
     const q = search.trim().toLowerCase()
     const filtered = wantlistData.filter(lot => {
       const matchesSearch = !q
@@ -349,10 +429,10 @@ export default function WantList() {
       const matchesImportance = importance === 'all' || lot.importance === importance
       return matchesSearch && matchesImportance
     })
-    return groupLots(filtered)
-  }, [search, importance])
+    return sortLots(filtered, sort)
+  }, [search, importance, sort])
 
-  const shownCount = groups.reduce((n, g) => n + g.lots.length, 0)
+  const shownCount = lots.length
 
   return (
     <>
@@ -385,25 +465,15 @@ export default function WantList() {
       <TableWrap>
         <Table>
           <thead>
-            <tr>{COLUMNS.map(col => <Th key={col}>{col}</Th>)}</tr>
+            <tr>
+              {COLUMNS.map(col => <SortableTh key={col.key} col={col} sort={sort} onSort={handleSort} />)}
+            </tr>
           </thead>
-          {groups.length === 0 ? (
-            <tbody>
+          <tbody>
+            {lots.length === 0 ? (
               <StatusRow><td colSpan={COLUMNS.length}>No lots match</td></StatusRow>
-            </tbody>
-          ) : groups.map(group => (
-            <tbody key={group.house}>
-              <tr>
-                <GroupHeaderCell colSpan={COLUMNS.length}>
-                  {group.house}
-                  <GroupMeta>
-                    Closes {formatClose(group.closeDate)} {daysRemaining(group.closeDate)} · {group.lots.length} lot{group.lots.length === 1 ? '' : 's'}
-                  </GroupMeta>
-                </GroupHeaderCell>
-              </tr>
-              {group.lots.map(lot => <LotRow key={lot.id} lot={lot} />)}
-            </tbody>
-          ))}
+            ) : lots.map(lot => <LotRow key={lot.id} lot={lot} />)}
+          </tbody>
         </Table>
       </TableWrap>
     </>
