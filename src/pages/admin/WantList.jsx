@@ -314,12 +314,11 @@ const COLUMNS = [
   { key: 'importance', label: 'Importance', type: 'number', value: lot => (isMust(lot) ? 0 : 1) },
   { key: 'title', label: 'Title', type: 'text', value: lot => toText(lot.title) },
   { key: 'auction_house', label: 'Auction House', type: 'text', value: lot => toText(lot.auction_house) },
-  { key: 'auction_name', label: 'Auction', type: 'text', value: lot => toText(lot.auction_name) },
+  { key: 'current_bid', label: 'Current Bid', type: 'number', value: lot => toNumber(lot.current_bid) },
   { key: 'close', label: 'Time Left', type: 'text', value: lot => toText(lot.auction_close_date) },
   { key: 'cert_service', label: 'Cert', type: 'text', value: lot => toText(lot.cert_service) },
   { key: 'grade', label: 'Grade', type: 'text', value: lot => toText(lot.grade) },
   { key: 'auto_grade', label: 'Auto Grade', type: 'text', value: lot => toText(lot.auto_grade) },
-  { key: 'current_bid', label: 'Current Bid', type: 'number', value: lot => toNumber(lot.current_bid) },
   { key: 'expected_price', label: 'Expected Price', type: 'number', value: lot => estimateLowerBound(lot.expected_price) },
   { key: 'notes', label: 'Notes', type: 'text', value: lot => toText(lot.notes) },
 ]
@@ -386,7 +385,7 @@ function LotRow({ lot }) {
         <TitleLink href={lot.url} target="_blank" rel="noopener noreferrer">{lot.title}</TitleLink>
       </Td>
       <Td>{lot.auction_house}</Td>
-      <Td>{lot.auction_name || DASH}</Td>
+      <Td $dim={lot.current_bid == null}>{formatBid(lot.current_bid)}</Td>
       <Td>
         {formatClose(lot.auction_close_date)}
         <Muted>{daysRemaining(lot.auction_close_date)}</Muted>
@@ -394,7 +393,6 @@ function LotRow({ lot }) {
       <Td $dim={!lot.cert_service}>{lot.cert_service || DASH}</Td>
       <Td $dim={!lot.grade}>{lot.grade || DASH}</Td>
       <Td $dim={!lot.auto_grade}>{lot.auto_grade || DASH}</Td>
-      <Td $dim={lot.current_bid == null}>{formatBid(lot.current_bid)}</Td>
       <Td $dim={!estimate}>
         {estimate ? <EstimateText>{estimate}</EstimateText> : DASH}
       </Td>
