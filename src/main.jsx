@@ -19,10 +19,15 @@ import { AdminGuard } from './components/admin/AdminGuard'
 import { AdminLayout } from './components/admin/AdminLayout'
 import { Layout } from './components/layout/Layout'
 import NotFound from './pages/NotFound'
+import SignInPage from './pages/SignInPage'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ClerkProvider afterSignOutUrl="/">
+    <ClerkProvider
+      afterSignOutUrl="/"
+      signInUrl="/sign-in"
+      signInFallbackRedirectUrl="/admin/dashboard"
+    >
       <GlobalStyles />
       <BrowserRouter>
         <Routes>
@@ -33,6 +38,9 @@ createRoot(document.getElementById('root')).render(
             <Route path="/museum" element={<Timeline />} />
             <Route path="/contact" element={<Contact />} />
           </Route>
+
+          {/* Clerk sign-in (path routing needs the /* splat for sub-steps) */}
+          <Route path="/sign-in/*" element={<SignInPage />} />
 
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
