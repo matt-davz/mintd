@@ -9,6 +9,11 @@ import { AuctionGroup } from '../../components/admin/watchlist/AuctionGroup'
 import { WsOpportunitiesPanel } from '../../components/admin/watchlist/WsOpportunitiesPanel'
 import { GhostBtn, StateBox } from '../../components/admin/watchlist/styles'
 
+const Page = styled.div`
+  padding: var(--space-6) var(--space-4);
+  @media (min-width: 769px) { padding: var(--space-10); }
+`
+
 const HeaderRow = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -132,7 +137,7 @@ export default function AuctionWatchlist() {
   const handleTogglePriority = (lot) => updateLot(lot.id, { priority: lot.priority === 'must_win' ? 'normal' : 'must_win' })
 
   return (
-    <>
+    <Page>
       <HeaderRow>
         <PageHeading>
           <PageTitle>Auction Watchlist</PageTitle>
@@ -186,6 +191,6 @@ export default function AuctionWatchlist() {
           </Stack>
         </>
       )}
-    </>
+    </Page>
   )
 }

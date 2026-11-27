@@ -14,6 +14,7 @@ import { SetMembersAccordion } from '../../components/SetMembersAccordion'
 import { SeriesTicketsAccordion } from '../../components/SeriesTicketsAccordion'
 import { DuplicateCopiesSection } from '../../components/public/DuplicateCopiesSection'
 import { gradeColors, displayGrade } from '../../utils/gradeColors'
+import { RarityBadge } from '../../components/badges/RarityBadge'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -200,6 +201,14 @@ const ForSaleBadge = styled.span`
   margin-right: var(--space-2);
 `
 
+const BadgesRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+`
+
 const GradeBadge = styled.span`
   display: inline-block;
   width: fit-content;
@@ -211,8 +220,8 @@ const GradeBadge = styled.span`
   letter-spacing: 0.15em;
   text-transform: uppercase;
   padding: 0.25rem 0.75rem;
-  margin-bottom: var(--space-4);
 `
+
 
 const DataRow = styled.div`
   display: flex;
@@ -565,9 +574,12 @@ export default function ItemDetail() {
               {certifications.map(cert => (
                 <DataRow key={cert.id}>
                   <DataLabel>{cert.cert_service} Certification</DataLabel>
-                  <GradeBadge {...gradeColors(gradeColorSource(cert), cert.cert_service)}>
-                    {formatGradeLabel(cert) ?? 'Authenticated'}
-                  </GradeBadge>
+                  <BadgesRow>
+                    <GradeBadge {...gradeColors(gradeColorSource(cert), cert.cert_service)}>
+                      {formatGradeLabel(cert) ?? 'Authenticated'}
+                    </GradeBadge>
+                    <RarityBadge isOneOfOne={item?.is_one_of_one} isFinest={item?.is_finest} />
+                  </BadgesRow>
                   {cert.cert_id && (
                     cert.cert_link ? (
                       <DataValue

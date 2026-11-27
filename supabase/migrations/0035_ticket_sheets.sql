@@ -206,22 +206,30 @@ alter table public.item_ticket_sheets enable row level security;
 alter table public.ticket_sheet_games enable row level security;
 
 -- Public read
+drop policy if exists "Public read item_ticket_sheets" on public.item_ticket_sheets;
 create policy "Public read item_ticket_sheets"
   on public.item_ticket_sheets for select using (true);
+drop policy if exists "Public read ticket_sheet_games" on public.ticket_sheet_games;
 create policy "Public read ticket_sheet_games"
   on public.ticket_sheet_games for select using (true);
 
 -- Authenticated write (same pattern as other detail tables)
+drop policy if exists "Authenticated insert item_ticket_sheets" on public.item_ticket_sheets;
 create policy "Authenticated insert item_ticket_sheets"
   on public.item_ticket_sheets for insert with check (auth.role() = 'authenticated');
+drop policy if exists "Authenticated update item_ticket_sheets" on public.item_ticket_sheets;
 create policy "Authenticated update item_ticket_sheets"
   on public.item_ticket_sheets for update using (auth.role() = 'authenticated');
+drop policy if exists "Authenticated delete item_ticket_sheets" on public.item_ticket_sheets;
 create policy "Authenticated delete item_ticket_sheets"
   on public.item_ticket_sheets for delete using (auth.role() = 'authenticated');
 
+drop policy if exists "Authenticated insert ticket_sheet_games" on public.ticket_sheet_games;
 create policy "Authenticated insert ticket_sheet_games"
   on public.ticket_sheet_games for insert with check (auth.role() = 'authenticated');
+drop policy if exists "Authenticated update ticket_sheet_games" on public.ticket_sheet_games;
 create policy "Authenticated update ticket_sheet_games"
   on public.ticket_sheet_games for update using (auth.role() = 'authenticated');
+drop policy if exists "Authenticated delete ticket_sheet_games" on public.ticket_sheet_games;
 create policy "Authenticated delete ticket_sheet_games"
   on public.ticket_sheet_games for delete using (auth.role() = 'authenticated');

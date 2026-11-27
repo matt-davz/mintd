@@ -18,6 +18,11 @@ import { supabase } from '../../lib/supabase'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
+const Page = styled.div`
+  padding: var(--space-6) var(--space-4);
+  @media (min-width: 769px) { padding: var(--space-10); }
+`
+
 const PageHeading = styled.div`
   margin-bottom: var(--space-8);
 `
@@ -461,7 +466,7 @@ export default function GalleryOrder() {
   if (loading) return null
 
   return (
-    <div>
+    <Page>
       <PageHeading>
         <PageTitle>Gallery Order</PageTitle>
         <PageSub>Pinned items appear first in the public gallery in the order set below. All other items follow in default order.</PageSub>
@@ -548,6 +553,6 @@ export default function GalleryOrder() {
           </>
         )}
       </Section>
-    </div>
+    </Page>
   )
 }

@@ -16,7 +16,6 @@ import GalleryOrder from './pages/admin/GalleryOrder'
 import AuctionWatchlist from './pages/admin/AuctionWatchlist'
 import WantList from './pages/admin/WantList'
 import { AdminGuard } from './components/admin/AdminGuard'
-import { AdminLayout } from './components/admin/AdminLayout'
 import { Layout } from './components/layout/Layout'
 import NotFound from './pages/NotFound'
 import SignInPage from './pages/SignInPage'
@@ -31,12 +30,23 @@ createRoot(document.getElementById('root')).render(
       <GlobalStyles />
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
+          {/* All routes share the public Layout (header + footer) */}
           <Route element={<Layout />}>
             <Route path="/" element={<Gallery />} />
             <Route path="/item/:id" element={<ItemDetail />} />
             <Route path="/museum" element={<Timeline />} />
             <Route path="/contact" element={<Contact />} />
+
+            {/* Admin routes — Clerk auth required; unlocks extra nav items in Header */}
+            <Route element={<AdminGuard />}>
+              <Route path="/admin" element={<Navigate to="/" replace />} />
+              <Route path="/admin/dashboard" element={<Dashboard />} />
+              <Route path="/admin/items" element={<ItemList />} />
+              <Route path="/admin/psa-sync" element={<PsaSync />} />
+              <Route path="/admin/gallery-order" element={<GalleryOrder />} />
+              <Route path="/admin/auction-watchlist" element={<AuctionWatchlist />} />
+              <Route path="/admin/want-list" element={<WantList />} />
+            </Route>
           </Route>
 
           {/* Clerk sign-in (path routing needs the /* splat for sub-steps) */}
@@ -44,19 +54,6 @@ createRoot(document.getElementById('root')).render(
 
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
-
-          {/* Admin routes — all protected by AdminGuard, all wrapped in AdminLayout */}
-          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="/admin/*" element={<AdminGuard />}>
-            <Route element={<AdminLayout />}>
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="items" element={<ItemList />} />
-              <Route path="psa-sync" element={<PsaSync />} />
-              <Route path="gallery-order" element={<GalleryOrder />} />
-              <Route path="auction-watchlist" element={<AuctionWatchlist />} />
-              <Route path="want-list" element={<WantList />} />
-            </Route>
-          </Route>
         </Routes>
       </BrowserRouter>
     </ClerkProvider>

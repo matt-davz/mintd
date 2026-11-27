@@ -17,10 +17,12 @@ src/
 │   ├── ImageLightbox.jsx        # Shared fullscreen lightbox with rotate controls
 │   ├── BoxScoreDisplay.jsx      # Shared baseball linescore table (public + admin)
 │   ├── SetMembersAccordion.jsx  # Accordion + horizontal carousel for items in same set (public + admin)
+│   ├── badges/
+│   │   └── RarityBadge.jsx      # Shared rarity badge component — getRarityTier(popHigher, popSame) returns tier string or null; RarityBadge component renders nothing when no tier qualifies. Extend with styled() to add positioning (e.g. ItemCard uses CardRarityBadge = styled(RarityBadge) with position:absolute).
 │   ├── layout/
-│   │   ├── Header.jsx           # Fixed public nav — desktop links + mobile burger drawer (right-aligned)
+│   │   ├── Header.jsx           # Fixed nav — public links (Gallery/Museum/Contact) + admin links (Overview/Table View/Gallery Order/PSA Sync) + Add Asset button + Sign Out when Clerk session is active. Mobile burger drawer mirrors same items.
 │   │   ├── Footer.jsx
-│   │   └── Layout.jsx           # Public layout shell: Header + Outlet + Footer
+│   │   └── Layout.jsx           # Shared layout shell (public + admin): Header + Outlet + Footer
 │   ├── public/
 │   │   ├── ItemCard.jsx
 │   │   ├── ItemViewerModal.jsx  # Read-only item modal for Museum/Timeline page — glass card overlay, image + details side-by-side (desktop) or stacked (mobile), grade/pop/cert stats grid, signatories, type details, lightbox, "View Full Details" link to /item/:id
@@ -51,7 +53,6 @@ src/
 │   │   └── StadiumGiveawayDisplay.jsx
 │   └── admin/
 │       ├── AdminGuard.jsx      # Clerk auth wrapper for /admin/* routes
-│       ├── AdminLayout.jsx     # Sidebar nav + top bar + create modal
 │       ├── AdminFilterBar.jsx  # Admin advanced search: keyword + multi-select type/team/certService/grade pills in a collapsible accordion (each pill section expands/collapses independently)
 │       ├── ItemViewerModal.jsx # Modal: view/edit existing items + create new items
 │       ├── WsGameSlotsByYear.jsx # Dashboard WS Ticket Quest "By Game" tier — wrapping year groups; hover/focus/tap opens WsYearDetailPanel (hover bridge, click pin, Esc/outside/close button)

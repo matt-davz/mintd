@@ -12,6 +12,11 @@ import { WsGameSlotsByYear } from '../../components/admin/WsGameSlotsByYear'
 
 // ─── Page heading ─────────────────────────────────────────────────────────────
 
+const Page = styled.div`
+  padding: var(--space-6) var(--space-4);
+  @media (min-width: 769px) { padding: var(--space-10); }
+`
+
 const PageHeading = styled.div`
   margin-bottom: var(--space-12);
 `
@@ -583,6 +588,7 @@ export default function Dashboard() {
         />
       )}
 
+      <Page>
       <PageHeading>
         <PageTitle>Collection Management</PageTitle>
         <PageSub>
@@ -798,6 +804,7 @@ export default function Dashboard() {
           </TableFooter>
         )}
       </TableSection>
+      </Page>
     </>
   )
 }

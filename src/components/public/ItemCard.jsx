@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { withAutoOrient } from '../../lib/cloudinary'
 import { gradeColors, displayGrade } from '../../utils/gradeColors'
+import { RarityBadge } from '../badges/RarityBadge'
 
 const Card = styled(Link)`
   display: flex;
@@ -58,6 +59,14 @@ const ForSaleBadge = styled.span`
   letter-spacing: 0.2em;
   text-transform: uppercase;
   padding: 0.25rem 0.5rem;
+`
+
+const CardRarityBadge = styled(RarityBadge)`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 0.75rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 `
 
 const GradeBadge = styled.div`
@@ -135,6 +144,8 @@ export function ItemCard({ item }) {
     cert_service,
     for_sale,
     is_sold,
+    is_one_of_one,
+    is_finest,
   } = item
 
   // Show both grades when an autograph grade exists alongside a cert grade,
@@ -180,6 +191,7 @@ export function ItemCard({ item }) {
         {is_sold
           ? <ForSaleBadge>Sold</ForSaleBadge>
           : for_sale && <ForSaleBadge>For Sale</ForSaleBadge>}
+        <CardRarityBadge isOneOfOne={is_one_of_one} isFinest={is_finest} />
         {gradeLabel && <GradeBadge {...gradeColors(gradeColorSource, cert_service)}>{gradeLabel}</GradeBadge>}
       </ImageWrapper>
 

@@ -8,6 +8,11 @@ import { PriceCompsSection } from '../../components/admin/priceComps/PriceCompsS
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
+const Page = styled.div`
+  padding: var(--space-6) var(--space-4);
+  @media (min-width: 769px) { padding: var(--space-10); }
+`
+
 const PageHeading = styled.div`
   margin-bottom: var(--space-8);
 `
@@ -443,7 +448,7 @@ export default function WantList() {
   const shownCount = lots.length
 
   return (
-    <>
+    <Page>
       <PageHeading>
         <PageTitle>Want List</PageTitle>
         <PageSub>Active lots across upcoming auctions</PageSub>
@@ -486,6 +491,6 @@ export default function WantList() {
       </TableWrap>
 
       <PriceCompsSection />
-    </>
+    </Page>
   )
 }

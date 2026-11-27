@@ -22,6 +22,7 @@ import { SeriesTicketsAccordion } from '../SeriesTicketsAccordion'
 import { DuplicatesSection } from './DuplicatesSection'
 import { TicketSheetGamesSection } from './TicketSheetGamesSection'
 import { PrivateNotesSection } from './PrivateNotesSection'
+import { RarityBadge } from '../badges/RarityBadge'
 
 // ─── Reconcile helpers ────────────────────────────────────────────────────────
 
@@ -466,6 +467,7 @@ const GradeBadge = styled.span`
   padding: 0.25rem var(--space-3);
   border-radius: var(--radius-sm);
 `
+
 
 const Tag = styled.span`
   display: inline-block;
@@ -937,7 +939,7 @@ const EMPTY_FORM = {
   item_type: '', is_autographed: false, for_sale: false,
   is_sold: false, sale_price: '',
   is_visible: false, is_baseball: false, is_part_of_set: false,
-  is_duplicate: false, is_legendary: false, purchase_date: '', season_year: '', notes: '',
+  is_duplicate: false, is_legendary: false, is_one_of_one: false, is_finest: false, purchase_date: '', season_year: '', notes: '',
 }
 
 export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = false }) {
@@ -996,6 +998,8 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = fal
       is_part_of_set:      item.is_part_of_set ?? false,
       is_duplicate:        item.is_duplicate ?? false,
       is_legendary:        item.is_legendary ?? false,
+      is_one_of_one:       item.is_one_of_one ?? false,
+      is_finest:           item.is_finest ?? false,
       purchase_date:       item.purchase_date ?? '',
       season_year:         item.season_year ?? '',
       notes:               item.notes ?? '',
@@ -1195,6 +1199,8 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = fal
         is_part_of_set:   form.is_part_of_set,
         is_duplicate:     form.is_duplicate,
         is_legendary:     form.is_legendary,
+        is_one_of_one:    form.is_one_of_one,
+        is_finest:        form.is_finest,
         purchase_date:    form.purchase_date || null,
         season_year:      (() => {
           const fromGc = GAME_CONTEXT_VIA_DETAIL_FK.has(form.item_type) && gcForm?.season_year
@@ -1654,6 +1660,7 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = fal
                             : displayGrade(certifications[0].item_grade ?? certifications[0].auto_grade ?? '')}
                         </GradeBadge>
                       )}
+                      <RarityBadge isOneOfOne={item?.is_one_of_one} isFinest={item?.is_finest} />
                       {item.is_sold
                         ? <ForSaleTag>Sold{item.sale_price != null && ` · ${formatCurrency(item.sale_price)}`}</ForSaleTag>
                         : item.for_sale && <ForSaleTag>For Sale</ForSaleTag>}
@@ -2156,6 +2163,36 @@ export function ItemViewerModal({ itemId, onClose, onOpenItem, startInEdit = fal
                       </CheckboxLabel>
                     ) : (
                       <Bool value={item.is_legendary} />
+                    )}
+                  </Field>
+                  <Field>
+                    <FieldLabel>1/1</FieldLabel>
+                    {isEditing ? (
+                      <CheckboxLabel>
+                        <input
+                          type="checkbox"
+                          checked={form.is_one_of_one}
+                          onChange={e => setField('is_one_of_one', e.target.checked)}
+                        />
+                        Yes
+                      </CheckboxLabel>
+                    ) : (
+                      <Bool value={item.is_one_of_one} />
+                    )}
+                  </Field>
+                  <Field>
+                    <FieldLabel>Finest</FieldLabel>
+                    {isEditing ? (
+                      <CheckboxLabel>
+                        <input
+                          type="checkbox"
+                          checked={form.is_finest}
+                          onChange={e => setField('is_finest', e.target.checked)}
+                        />
+                        Yes
+                      </CheckboxLabel>
+                    ) : (
+                      <Bool value={item.is_finest} />
                     )}
                   </Field>
                   {!isCreateMode && (

@@ -77,6 +77,8 @@ Core table — everything hangs off this.
 | `notes` | `text` | | **Not private** — anon-readable via `items` and `item_gallery`. Put sensitive notes in `item_private_notes` |
 | `is_duplicate` | `boolean` | NOT NULL, default `false` | |
 | `is_legendary` | `boolean` | NOT NULL, default `false` | Marks item for special "legendary" display treatment on the Timeline |
+| `is_one_of_one` | `boolean` | NOT NULL, default `false` | Admin-curated flag — only one known copy of this item exists. Renders the amber **1/1** badge. |
+| `is_finest` | `boolean` | NOT NULL, default `false` | Admin-curated flag — no known copy has a higher grade. Renders the blue **Finest** badge. Independent of `is_one_of_one`; both can be true simultaneously. |
 | `museum_title` | `text` | nullable | Short tidbit-style title shown on the Museum/Timeline page. Falls back to `title` when NULL. Full title still shown on item detail page. Convention: `[tidbit] — Ticket Stub / Full Ticket / Program` (non-auto) or `[tidbit] — [type] — Signed by [Name(s)]` (auto). |
 | `season_year` | `integer` | nullable | Year of the game/event or card issue year. Backfilled from `game_context.season_year` for game-context items; from `item_cards.year_issued` for cards. Auto-synced from game context on save via `ItemViewerModal`. |
 | `created_at` | `timestamptz` | NOT NULL, default `now()` | |
@@ -595,7 +597,11 @@ Most recent price snapshot per cert. **Always query this instead of `psa_price_s
 ### `item_gallery`
 Denormalised view for the public gallery. One row per item with primary image, featured signer, tags array, team slugs array, set name, and primary cert (PSA/BGS/SGC preferred via lateral subquery). Featured signer and cert use `LATERAL LIMIT 1` to guarantee exactly one row per item. Filtered to `WHERE is_visible = true AND is_baseball = true`.
 
-**Columns:** `id`, `title`, `museum_title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_sold`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
+**Columns:** `id`, `title`, `museum_title`, `description`, `reference_link`, `price`, `acquisition_type`, `is_autographed`, `is_legendary`, `is_one_of_one`, `is_finest`, `is_duplicate`, `item_type`, `season_year`, `purchase_date`, `for_sale`, `is_sold`, `is_part_of_set`, `set_id`, `notes`, `created_at`, `primary_image_url`, `featured_signer`, `signatory_count integer`, `tag_slugs text[]`, `team_slugs text[]`, `set_name`, `cert_service`, `cert_id`, `cert_grade`, `auto_grade`, `pop_higher integer`, `pop_same integer`, `game_date date`, `series_game_number integer`, `legendary_event_title text`
+
+Final definition: migration `0042_item_gallery_sold_and_rarity.sql` (union of the two `0038` rebuilds).
+
+`pop_higher` and `pop_same` come from `latest_population` joined via the primary cert's UUID. Both are `NULL` when no population snapshot exists. Rarity badge rendering is handled by `RarityBadge` (`src/components/badges/RarityBadge.jsx`) — badges are driven by the admin-curated `is_one_of_one` and `is_finest` flags on `items`, not by pop data directly.
 
 **Grade display:** Use `displayGrade()` from `src/utils/gradeColors.js` when rendering `cert_grade` or `auto_grade` in the UI. PSA grade codes are kept as-is (e.g. `AA` stays `AA` — it is Authentic Altered). Only standalone `Authentic`/`Auth`/`AUTH` is shortened to `Auth`. When both `cert_grade` and `auto_grade` are present on an autographed item, display as `[cert_grade] / Auto [auto_grade]` (e.g. `AA / Auto NM-MT 8`). Use `auto_grade` for color-coding when both exist (it’s the numeric grade).
 
@@ -675,9 +681,14 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0034_populate_museum_titles.sql` | Data migration: populate `museum_title` for all 11 existing legendary items. Run after `0034_legendary_museum_title.sql`. |
 | `0035_populate_museum_titles.sql` | Rename of `0034_populate_museum_titles.sql` to resolve version conflict with the two `0034` files. |
 | `0036_psa_price_snapshots.sql` | Add `psa_price_snapshots` table (PSA estimate + recent sales per cert, sourced from parse.bot) and `latest_psa_price` view. |
+| `0037_gallery_pop_rarity.sql` | Extend `item_gallery` cert lateral to left-join `latest_population`, exposing `pop_higher integer` and `pop_same integer`. |
+| `0038_rarity_flags.sql` | Add `is_one_of_one boolean` and `is_finest boolean` to `items` (default `false`); rebuild `item_gallery` to expose both. Powers the **1/1** (amber) and **Finest** (blue) rarity badges — admin-curated, not derived from pop data. |
+| `0037_populate_1942_box_scores.sql` | Data migration: populate box scores for the 1942 World Series games. |
+| `0038_item_sold.sql` | Add `is_sold` / `sale_price` to `items` (+ CHECKs, backfill of two sold items); rebuild `item_gallery` with `is_sold` and ticket-sheet game context. |
 | `0039_auction_watchlist.sql` | Add private `auction_watchlist_lots` table (authenticated/service_role RLS only, anon revoked, host-pinning CHECKs) and seed Zane's 31 tracked lots (REA 18, H&S 3, Grey Flannel 2, Love of the Game 2, Leland's 5, Heritage 1) with UTC close times and priority. `opening_bid` for no-bid lots; per-house `image_url` CHECK. No prices seeded. Idempotent. |
 | `0040_item_private_notes.sql` | Add private `item_private_notes` table (one admin-only note per item; authenticated/service_role RLS only, anon/PUBLIC revoked). Idempotent. |
 | `0041_auction_price_comps.sql` | Add private `auction_price_comps` table (price-comp lots, separate from the Want List; authenticated/service_role RLS only, anon/PUBLIC revoked; verified ⇔ `final_price` + `verified_at` + `result_url`; `price_basis` hammer / buyer_premium_inclusive / unknown). Seeds two **pending** Leland's comps (lots 120 / item 138632 PSA 8 (OC) and 119 / item 139902 PSA 4, 1949 Bowman #224 Paige) linked to owned item `de385e68-…`, scheduled close 2026-12-06 03:00 UTC; no prices seeded. Idempotent. |
+| `0042_item_gallery_sold_and_rarity.sql` | Rebuild `item_gallery` as the union of both `0038` rebuilds (`is_sold` + ticket-sheet game context from `0038_item_sold`; `is_one_of_one`, `is_finest`, `pop_higher`, `pop_same` from `0037`/`0038_rarity_flags`). Run after both `0038` files — whichever of those ran last dropped the other's columns. |
 
 ---
 

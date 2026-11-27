@@ -1,5 +1,5 @@
 -- Stores PSA price estimate + recent sales per cert (append-only, same pattern as population_snapshots)
-create table public.psa_price_snapshots (
+create table if not exists public.psa_price_snapshots (
   id            uuid        primary key default gen_random_uuid(),
   cert_id       uuid        not null references public.certifications(id) on delete cascade,
   psa_estimate  text,
@@ -7,18 +7,21 @@ create table public.psa_price_snapshots (
   synced_at     timestamptz not null default now()
 );
 
-create index idx_psa_price_cert_id   on public.psa_price_snapshots(cert_id);
-create index idx_psa_price_synced_at on public.psa_price_snapshots(synced_at desc);
+create index if not exists idx_psa_price_cert_id   on public.psa_price_snapshots(cert_id);
+create index if not exists idx_psa_price_synced_at on public.psa_price_snapshots(synced_at desc);
 
 alter table public.psa_price_snapshots enable row level security;
 
+drop policy if exists "anon can read psa_price_snapshots" on public.psa_price_snapshots;
 create policy "anon can read psa_price_snapshots"
   on public.psa_price_snapshots for select to anon using (true);
 
 -- Admin uses anon key (Clerk handles auth at app level), so allow anon inserts
+drop policy if exists "anon can insert psa_price_snapshots" on public.psa_price_snapshots;
 create policy "anon can insert psa_price_snapshots"
   on public.psa_price_snapshots for insert to anon with check (true);
 
+drop policy if exists "service can manage psa_price_snapshots" on public.psa_price_snapshots;
 create policy "service can manage psa_price_snapshots"
   on public.psa_price_snapshots for all to service_role using (true);
 

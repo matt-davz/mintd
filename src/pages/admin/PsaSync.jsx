@@ -4,6 +4,11 @@ import { supabase } from '../../lib/supabase'
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
+const Page = styled.div`
+  padding: var(--space-6) var(--space-4);
+  @media (min-width: 769px) { padding: var(--space-10); }
+`
+
 const PageHeading = styled.div`
   margin-bottom: var(--space-8);
 `
@@ -318,7 +323,7 @@ export default function PsaSync() {
     : null
 
   return (
-    <>
+    <Page>
       <PageHeading>
         <PageTitle>PSA Population Sync</PageTitle>
         <PageSub>
@@ -444,6 +449,6 @@ export default function PsaSync() {
           </AlertBody>
         </AlertPanel>
       )}
-    </>
+    </Page>
   )
 }

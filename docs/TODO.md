@@ -97,6 +97,7 @@
 - [x] `supabase/functions/psa-sync` — deployed Edge Function
 - [ ] PSA/DNA autograph cert population — map `DNACert` pop fields correctly
 - [ ] Configure `pg_cron` to call `psa-sync` weekly (Mondays 9am UTC)
+- [x] **Rarity badges** — replaced pop-derived "1/1 FINEST" with two independent admin-curated flags (`is_one_of_one`, `is_finest`) on `items`. Badges rendered by `RarityBadge` via `isOneOfOne` / `isFinest` props. Toggled per item in admin modal Meta section. 17 items seeded from pop data on launch.
 
 ### Auction Watchlist (`/admin/auction-watchlist`)
 - [x] `auction_watchlist_lots` table + RLS + seed (migration `0039`)
