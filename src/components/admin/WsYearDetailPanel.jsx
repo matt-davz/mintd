@@ -40,6 +40,11 @@ const Header = styled.div`
   flex-shrink: 0;
 `
 
+const HeaderText = styled.div`
+  flex: 1 1 auto;
+  min-width: 0;
+`
+
 const Title = styled.h3`
   font-family: var(--font-headline);
   font-size: 1.125rem;
@@ -128,24 +133,6 @@ const ItemsGrid = styled.ul`
   list-style: none;
   margin: 0;
   padding: 0;
-`
-
-const Chips = styled.ul`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-`
-
-const Chip = styled.li`
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  background-color: rgba(140, 144, 159, 0.12);
-  color: rgba(229, 226, 225, 0.75);
 `
 
 const Empty = styled.p`
@@ -257,10 +244,14 @@ export const WsYearDetailPanel = forwardRef(function WsYearDetailPanel(
       onBlur={onBlur}
     >
       <Header>
-        <div>
+        <HeaderText>
           <Title id={titleId} $complete={isComplete}>{year} World Series</Title>
-          <Sub>{ownedCount} of {totalGames} games{isComplete ? ' · Complete series' : ''}</Sub>
-        </div>
+          <Sub>
+            {ownedCount} of {totalGames} games
+            {isComplete ? ' · Complete series' : ''}
+            {missing.length > 0 ? ` (missing: ${missing.join(', ')})` : ''}
+          </Sub>
+        </HeaderText>
         <CloseButton type="button" onClick={onClose} aria-label={`Close ${year} World Series details`}>
           <span className="material-symbols-outlined" aria-hidden="true">close</span>
         </CloseButton>
@@ -292,13 +283,6 @@ export const WsYearDetailPanel = forwardRef(function WsYearDetailPanel(
                 </GameBlock>
               )
             })}
-          </Section>
-
-          <Section>
-            <SectionHeading $tone="missing">Missing ({missing.length})</SectionHeading>
-            {missing.length === 0
-              ? <Empty>None — every game collected</Empty>
-              : <Chips>{missing.map(n => <Chip key={n}>Game {n}</Chip>)}</Chips>}
           </Section>
         </BodyInner>
       </Body>
