@@ -117,7 +117,7 @@ To add a new service, add an entry to `CERT_LINK_BUILDERS` in `src/components/ad
 - Public: can INSERT `inquiries` but cannot read them
 - Admin: full access via anon key (Clerk guards `/admin/*` routes — security boundary is at the route layer)
 - Never expose service role key in the browser; use it in Edge Functions only
-- Exception to the anon-admin model: `auction_watchlist_lots` (private bidding intent) is readable/writable **only** by `authenticated` (Clerk JWT via `useSupabaseClient`) and `service_role`; anon has no policy and no table privileges
+- Exception to the anon-admin model: `auction_watchlist_lots` (private bidding intent), `item_private_notes` and `auction_price_comps` (private price comps) are readable/writable **only** by `authenticated` (Clerk JWT via `useSupabaseClient`) and `service_role`; anon has no policy and no table privileges
 
 ### Cloudinary — folder structure
 

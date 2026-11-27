@@ -30,6 +30,7 @@ A private baseball memorabilia collection showcase website for a single client. 
     - **Overview (`/admin/dashboard`)** - Yankees WS Ticket Quest (overall / By Series / By Game; complete series get a gold marker + tooltip), stats cards (total items, total cost) + item grid with advanced filter.
     - **Table View (`/admin/items`)** - no images, raw data table. Sortable columns, advanced filter bar, CSV exports.
     - **Auction Watchlist (`/admin/auction-watchlist`)** - private watchlist of lots across upcoming auctions (REA, Huggins & Scott, Grey Flannel, Love of the Game, Leland's, Heritage) grouped by auction: current bid (live via `auction-watchlist-refresh` Edge Function: direct fetch for REA/H&S, Firecrawl scrape for Grey Flannel/Love of the Game/Leland's/Heritage when `FIRECRAWL_API_KEY` is set (hourly cap); explicitly-labelled manual entry otherwise, never invented; no-bid lots show "No bids yet" + opening bid, never the opening bid as current), stale flags, countdown to *scheduled* close with extended-bidding caveat, must-win badges, add (allow-listed URLs only) / remove. A **Missing-ticket opportunities** panel cross-references the live WS Ticket Tracker Google Sheet ("Don't Have" World Series games, read server-side by the `ws-ticket-tracker` Edge Function with the `GOOGLE_SERVICE_ACCOUNT` secret) against lot titles via the conservative matcher in `src/lib/wsTicketOpportunities.js`; only lots not confirmed closed with a scheduled close in the future or within a 24 h extended-bidding grace window are shown (`buildWsOpportunities(missing, lots, now)`), and each sheet row links to the exact Google Sheet row. Table `auction_watchlist_lots` is authenticated/service_role-only (never anon). Full details: `docs/AUCTION_WATCHLIST.md`.
+    - **Want List (`/admin/want-list`)** - read-only purchase want list from static `src/data/wantlist.json`, followed by a separate private **Price Comps** section (`PriceCompsSection`): lots tracked only to learn verified closing prices for similar owned items, backed by the admin-only `auction_price_comps` table (migration 0041, Clerk-JWT client). Comps are never counted in the want list. `final_price` stays NULL until verified from published results (never a current bid / scheduled time), with `price_basis` (hammer / incl. buyer's premium / unknown) and `result_url`. Full details: `docs/PRICE_COMPS.md`.
     - **Item Modal** - unified `<ItemViewerModal>` for viewing, editing, and creating items. Opened from dashboard, table view (existing items), or "Add New Asset" button (create mode). Supports type-specific detail fields, game context, and LOA management (upload images/PDFs per item via `LoaUploader`). Has a **Private notes** section (`PrivateNotesSection`) backed by the admin-only `item_private_notes` table (migration 0040), saved independently of the item form. `items.notes` is **not** private (anon-readable via `items`/`item_gallery`) - never put sensitive data there.
 
 `mintd` is a high-end memorabilia collector app. Design system: see `docs/DESIGN.md`.
@@ -77,6 +78,7 @@ See `docs/FILESYSTEM.md`.
 /admin/items         → ItemList
 /admin/psa-sync      → PsaSync
 /admin/auction-watchlist → AuctionWatchlist (private, Clerk-JWT Supabase client)
+/admin/want-list    → WantList (static want list + private Price Comps, Clerk-JWT Supabase client)
 ```
 
 Item viewing/editing/creating is handled by `<ItemViewerModal>` (modal), not page routes. "Add New Asset" opens the modal in create mode from AdminLayout. Clicking an item in Dashboard or ItemList opens the modal in view mode.
@@ -87,7 +89,7 @@ Item viewing/editing/creating is handled by `<ItemViewerModal>` (modal), not pag
 - A single `<AdminGuard>` component wraps the admin router - if not signed in, redirect to Clerk hosted login
 - The public site has absolutely zero authentication - no login, no tokens, nothing
 - Never use the Supabase service role key on the public site - anon key only
-- Private admin data that must not be anon-readable (e.g. `auction_watchlist_lots`, `item_private_notes`) uses `useSupabaseClient()` (Clerk JWT → RLS role `authenticated`) instead of the shared anon client
+- Private admin data that must not be anon-readable (e.g. `auction_watchlist_lots`, `item_private_notes`, `auction_price_comps`) uses `useSupabaseClient()` (Clerk JWT → RLS role `authenticated`) instead of the shared anon client
 - The admin site may use the service role key server-side via Edge Functions only - never expose it in the browser
 
 ## Database

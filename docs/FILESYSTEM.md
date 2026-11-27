@@ -11,6 +11,7 @@ src/
 │       ├── ItemList.jsx
 │       ├── PsaSync.jsx         # Manual PSA refresh trigger
 │       ├── GalleryOrder.jsx    # Drag-and-drop gallery curation — pin + reorder items
+│       ├── WantList.jsx        # Want List (/admin/want-list) — static purchase want list (src/data/wantlist.json) + separate private Price Comps section
 │       └── AuctionWatchlist.jsx # Private auction watchlist (/admin/auction-watchlist) — lots grouped by auction, live/manual bids, countdowns, add/remove (see docs/AUCTION_WATCHLIST.md)
 ├── components/
 │   ├── ImageLightbox.jsx        # Shared fullscreen lightbox with rotate controls
@@ -67,6 +68,7 @@ src/
 │       ├── GameLookupToolbar.jsx # MLB game lookup — inline search toolbar
 │       ├── GameLookupResults.jsx # MLB lookup results list with clickable game cards
 │       ├── TeamSelect.jsx       # Searchable MLB team dropdown (current + historical)
+│       ├── priceComps/         # Want List Price Comps (private, auction_price_comps): PriceCompsSection, PriceCompCard, CompFinalPrice, RecordResultForm, AddCompForm
 │       ├── watchlist/          # Auction watchlist UI: AuctionGroup, WatchlistLotCard, LotPrice, LotClosing, ManualPriceForm, AddLotForm, WatchlistToolbar, WsOpportunitiesPanel + WsOpportunityGame (missing WS ticket matches), styles.js
 │       └── itemTypes/          # Type-specific field components
 │           ├── index.js        # Registry mapping type → component
@@ -88,6 +90,7 @@ src/
 │   ├── cloudinary.js           # Cloudinary helpers
 │   ├── itemTypeConfig.js       # Item type metadata, empty forms, serialization
 │   ├── auctionWatchlist.js     # Watchlist house registry, strict lot-URL allow-list validation, time-zone/countdown/price formatting
+│   ├── priceComps.js           # Price comp helpers: price-basis labels, verified/pending, https URL + dollar validation, sort
 │   ├── wsTicketOpportunities.js # Pure lot-title → World Series year/game matcher + cross-reference with sheet "Don't Have" games
 │   ├── worldSeries.js          # Yankees WS completion: YANKEES_WS_GAMES, fetch ticket/sheet links, buildYankeesWsSeries (shared by Museum + admin Dashboard)
 │   └── mlbApi.js               # MLB Stats API client — team data, fetch, game parsing
@@ -101,6 +104,7 @@ src/
 │   ├── useSupabaseClient.js    # Supabase client that sends the Clerk session JWT (RLS role = authenticated)
 │   ├── useItemPrivateNotes.js  # Load/save item_private_notes (Clerk-authenticated client, updated_at conflict guard)
 │   ├── useAuctionWatchlist.js  # Watchlist CRUD + manual price + Edge Function refresh (Clerk-authenticated client)
+│   ├── useAuctionPriceComps.js # Price comps load/add/update (updated_at guard)/remove + owned-item picker options (Clerk-authenticated client)
 │   ├── useWsQuestItems.js      # WS Ticket Quest item titles/images: reuses gallery items, fetches only non-gallery (hidden) linked IDs via the Clerk-auth client
 │   ├── useWsTicketTracker.js   # Reads WS Ticket Tracker "Don't Have" games via the ws-ticket-tracker Edge Function
 │   ├── useTags.js

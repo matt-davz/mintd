@@ -234,6 +234,35 @@ PSA price estimate + recent sales per cert. Append-only — never overwrite. Sou
 
 ---
 
+### `auction_price_comps`
+
+**Private** admin-only price comps (migration 0041): auction lots tracked **only** to learn the verified closing price of items similar to ones already owned. Not purchase intent: separate from the Want List rows/counts and from `auction_watchlist_lots`. Authenticated + service_role only: no anon policy, privileges revoked from anon/PUBLIC, not in `item_gallery` or any public view. Read/written only through `useSupabaseClient()` (Clerk JWT) by `useAuctionPriceComps` → `PriceCompsSection` on `/admin/want-list`. See `docs/PRICE_COMPS.md`.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | `uuid` | PK, default `gen_random_uuid()` | |
+| `auction_house` | `text` | NOT NULL, 1–100 chars | Free text (e.g. `Leland's`) |
+| `auction_name` | `text` | ≤ 200 chars | e.g. `2026 Fall Classic` |
+| `lot_number` | `text` | ≤ 20 chars | Catalog lot number |
+| `title` | `text` | NOT NULL, 1–300 chars | |
+| `source_url` | `text` | NOT NULL, UNIQUE, https only, ≤ 1000 chars | Lot page. Opened in a new tab only; never fetched server-side |
+| `scheduled_close_at` | `timestamptz` | | Scheduled (initial) close, UTC. Extended bidding may run later; never treated as the final close |
+| `owned_item_id` | `uuid` | FK → `items(id)` ON DELETE SET NULL | The owned item this lot is a comp for (required in the UI) |
+| `final_price` | `numeric(12,2)` | ≥ 0 | **NULL until verified** from published results. Never a current bid or estimate. Non-NULL ⇔ verified |
+| `currency` | `text` | NOT NULL, default `USD`, ISO-4217 | |
+| `price_basis` | `text` | NOT NULL, default `unknown`, CHECK in `hammer`, `buyer_premium_inclusive`, `unknown` | Whether `final_price` excludes or includes the buyer's premium |
+| `result_url` | `text` | https only, ≤ 1000 chars | Source of the verified result |
+| `verified_at` | `timestamptz` | ≥ `scheduled_close_at` when both set | When the result was recorded/corrected |
+| `notes` | `text` | ≤ 1000 chars | Optional, concise |
+| `created_by` | `text` | default `auth.jwt() ->> 'sub'` | Clerk user id (NULL for seeded rows) |
+| `created_at` / `updated_at` | `timestamptz` | NOT NULL | `updated_at` via `set_updated_at()` trigger; optimistic-concurrency guard on update |
+
+**CHECK `auction_price_comps_verified_check`:** either `final_price` and `verified_at` are both NULL (pending), or `final_price`, `verified_at` and `result_url` are all set (verified).
+
+**Indexes:** `idx_auction_price_comps_owned_item (owned_item_id)`, `idx_auction_price_comps_close (scheduled_close_at)`
+
+---
+
 ### `tags` + `item_tags`
 
 Flexible many-to-many tag system.
@@ -600,6 +629,8 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `item_ticket_sheets` | SELECT all | INSERT, UPDATE, DELETE |
 | `ticket_sheet_games` | SELECT all | INSERT, UPDATE, DELETE |
 | `auction_watchlist_lots` | **none** (privileges revoked) | `authenticated` (Clerk JWT) SELECT, INSERT, UPDATE, DELETE; `service_role` all |
+| `item_private_notes` | **none** (privileges revoked) | `authenticated` (Clerk JWT) SELECT, INSERT, UPDATE, DELETE; `service_role` all |
+| `auction_price_comps` | **none** (privileges revoked) | `authenticated` (Clerk JWT) SELECT, INSERT, UPDATE, DELETE; `service_role` all |
 
 ---
 
@@ -645,6 +676,8 @@ All tables have RLS enabled. Security boundary is Clerk route protection — adm
 | `0035_populate_museum_titles.sql` | Rename of `0034_populate_museum_titles.sql` to resolve version conflict with the two `0034` files. |
 | `0036_psa_price_snapshots.sql` | Add `psa_price_snapshots` table (PSA estimate + recent sales per cert, sourced from parse.bot) and `latest_psa_price` view. |
 | `0039_auction_watchlist.sql` | Add private `auction_watchlist_lots` table (authenticated/service_role RLS only, anon revoked, host-pinning CHECKs) and seed Zane's 31 tracked lots (REA 18, H&S 3, Grey Flannel 2, Love of the Game 2, Leland's 5, Heritage 1) with UTC close times and priority. `opening_bid` for no-bid lots; per-house `image_url` CHECK. No prices seeded. Idempotent. |
+| `0040_item_private_notes.sql` | Add private `item_private_notes` table (one admin-only note per item; authenticated/service_role RLS only, anon/PUBLIC revoked). Idempotent. |
+| `0041_auction_price_comps.sql` | Add private `auction_price_comps` table (price-comp lots, separate from the Want List; authenticated/service_role RLS only, anon/PUBLIC revoked; verified ⇔ `final_price` + `verified_at` + `result_url`; `price_basis` hammer / buyer_premium_inclusive / unknown). Seeds two **pending** Leland's comps (lots 120 / item 138632 PSA 8 (OC) and 119 / item 139902 PSA 4, 1949 Bowman #224 Paige) linked to owned item `de385e68-…`, scheduled close 2026-12-06 03:00 UTC; no prices seeded. Idempotent. |
 
 ---
 

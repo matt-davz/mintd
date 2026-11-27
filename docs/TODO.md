@@ -113,6 +113,12 @@
 - [ ] After Matt's review: `supabase secrets set FIRECRAWL_API_KEY=…` from the existing secrets store (optional; Grey Flannel/Love of the Game/Leland's/Heritage stay manual without it)
 - [ ] Confirm Clerk → Supabase third-party auth / `supabase` JWT template works for `useSupabaseClient`
 
+### Want List — Price Comps (`/admin/want-list`)
+- [x] `auction_price_comps` table + RLS (authenticated/service_role only) + seed of two pending Leland's comps for the owned 1949 Bowman #224 Paige (migration `0041`)
+- [x] `<PriceCompsSection>` below the Want List table — pending vs verified, add comp, record/correct verified result with price basis + source (see `docs/PRICE_COMPS.md`)
+- [ ] Apply migration `0041`
+- [ ] After Leland's 2026 Fall Classic results post (scheduled initial close 2026-12-06 03:00 UTC, extended bidding possible): record the verified final prices for lots 119 + 120
+
 ## 7. Deployment
 - [ ] Connect repo to Netlify
 - [ ] Set env vars in Netlify dashboard (VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY, VITE_CLERK_PUBLISHABLE_KEY, VITE_CLOUDINARY_CLOUD_NAME, VITE_CLOUDINARY_UPLOAD_PRESET — required after .env was removed from git)

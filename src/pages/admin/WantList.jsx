@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react'
 import styled from 'styled-components'
 import wantlistData from '../../data/wantlist.json'
+import { PriceCompsSection } from '../../components/admin/priceComps/PriceCompsSection'
 
-// Read-only view of the static want list (src/data/wantlist.json).
+// Read-only view of the static want list (src/data/wantlist.json), followed by
+// the separate, private Price Comps section (Supabase auction_price_comps).
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
@@ -482,6 +484,8 @@ export default function WantList() {
           </tbody>
         </Table>
       </TableWrap>
+
+      <PriceCompsSection />
     </>
   )
 }
